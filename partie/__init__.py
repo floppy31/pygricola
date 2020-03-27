@@ -88,9 +88,24 @@ def labourage():
     possibilites=[]
     ferme=variablesGlobales.joueurs[variablesGlobales.quiJoue].courDeFerme
     print(ferme.prettyPrint())
-    for coord in ferme.etat.keys():
-        if ferme.etat[coord].type=='vide':
-            possibilites.append( coord)
+    #si on a pas de champ on peut le mettre ou on veut sur une case libre
+    if ferme.compter('champ')==0:
+        for coord in ferme.etat.keys():
+            if ferme.etat[coord].type=='vide':
+                possibilites.append( coord)
+    #sinon on ne peut labourer qu'a coté d'un champ
+    else:
+        for c in ferme.tousLes('champ'):
+            voiz=ferme.voisin(c)
+            for direction in voiz.keys():
+                if voiz[direction]: #si not None
+                    if ferme.etat[voiz[direction]].type=='vide':
+                        #si elle n'y est pas deje
+                        if voiz[direction] not in possibilites:
+                            possibilites.append( voiz[direction])
+        
+    
+        
     choix=util.printPossibilities("Où voulez vous labourer? :",possibilites)
     if choix != -1:
         caseALabourer=possibilites[choix]
@@ -103,8 +118,30 @@ def cloture():
     pass
     
 def semailleEtOuCuisson():
-    pass
+    
+    joueur=variablesGlobales.joueurs[variablesGlobales.quiJoue]
+    if (joueur.ressources['c']==0 or joueur.ressources['l']==0):
+        print("Vous n'avez rien a semer!!!!")
+        return
+    
+    possibilites=[]
+    ferme=joueur.courDeFerme
+    print(ferme.prettyPrint())
+    for coord in ferme.etat.keys():
+        if ferme.etat[coord].type=='champ':
+            possibilites.append( coord)
+    if len(possibilites)==0:
+        print("Vous n'avez pas de champs!!!!")
+        return        
+    print("vous pouver semer dans ces cases: ",possibilites)
+    print("vous avez {} cereale(s) et {} legume(s): ".format(joueur.ressources['c'],joueur.ressources['l']))
+    print("taper votre plan de semaille: ",possibilites)
+    print("par ex c2:c,c3:l,a3:l pour semer un céréale sur c2, un légume sur c3 et un légume sur a3")
+    planSemaille=input()
+    
 
+    
+    
 def naissancePuisMineur():
     pass
 
@@ -261,6 +298,12 @@ class Partie(object):
         #on reappro les cases
         
         variablesGlobales.plateau['cases'][self._offset+variablesGlobales.plateau['tour']].visible=True
+        
+        ##############"TO DEBUG
+        for c in variablesGlobales.plateau['cases'].keys():
+            variablesGlobales.plateau['cases'][c].visible=True
+        ##############"TO DEBUG
+
         
         for i in range(1,self._offset+variablesGlobales.plateau['tour']+1):
             variablesGlobales.plateau['cases'][i].reappro()

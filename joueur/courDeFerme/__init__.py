@@ -13,7 +13,7 @@ class CourDeFerme(object):
             self.etat[case]=Tuile('vide')
         self.etat["b1"]=Tuile('maisonBois')
         self.etat["c1"]=Tuile('maisonBois')
-
+        self.etat["c2"]=Tuile('champ') #DEBUG
         self.annexe=[]
         
     def initTuiles(self,positionTourbes,positionForets):   
@@ -24,6 +24,50 @@ class CourDeFerme(object):
     
     def __str__(self):
            return self.prettyPrint()
+       
+    def compter(self,type):
+        compteur=0
+        for k in self.etat.keys():
+            #str car sinon le teste est jamais vrai
+            if str(self.etat[k]) == type:
+                print('yes')
+                compteur+=1
+        return compteur
+    
+    def tousLes(self,type):
+        #rend la liste de toutes les cases type
+        l=[]
+        for k in self.etat.keys():
+            if str(self.etat[k])==type:
+                l.append(k)
+        return l
+    
+    def voisin(self,coord):
+        #disco des voisins nord,sud est,ouest
+        voisins={
+            'n':None,
+            'e':None,
+            's':None,
+            'w':None
+            }
+        ligne=coord[0]
+        colonne=int(coord[1])
+        
+        if ligne=="a":
+            voisins["s"]="a"+str(colonne)
+        elif ligne=="b":
+            voisins["n"]="a"+str(colonne)
+            voisins["s"]="c"+str(colonne)
+        elif ligne=="c":
+            voisins["n"]="b"+str(colonne)
+        if colonne==1:
+            voisins["e"]=ligne+str(2)
+        elif colonne==5:
+            voisins["w"]=ligne+str(4)
+        else:
+            voisins["e"]=ligne+str(colonne+1)
+            voisins["w"]=ligne+str(colonne-1)                
+        return voisins
 
     def prettyPrint(self):
         str="""

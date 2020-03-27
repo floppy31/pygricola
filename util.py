@@ -11,7 +11,10 @@ def dummy():
 #     f = open('input.txt','r')
 #     sys.stdin = f
 
-listeReponse=["9","o","1","o","8","o","7","o","6","o"]
+#listeReponse=["9","o","1","o","8","o","7","o","6","o"]
+#listeReponse=["9","o","1","o","8","o","7","o","6","o"]
+listeReponse=[]
+
 idx=0
 
 def customInput(msg):
