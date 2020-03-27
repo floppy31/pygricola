@@ -14,8 +14,10 @@ class Carte:
             self._cout=cout.copy()
         else:
             self._cout=cout
-        
-        self._condition=condition
+        if type(condition)==dict:
+            self._condition=condition.copy()
+        else:
+            self._condition=condition      
         self.activer=activer 
         self._effet=effet
         self.sansPion=sansPion

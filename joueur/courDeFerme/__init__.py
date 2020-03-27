@@ -11,9 +11,10 @@ class CourDeFerme(object):
         self.etat={}
         for case in parseList:
             self.etat[case]=Tuile('vide')
+        self.etat["c2"]=Tuile('maisonBois')
         self.etat["b1"]=Tuile('maisonBois')
         self.etat["c1"]=Tuile('maisonBois')
-        self.etat["c2"]=Tuile('champ') #DEBUG
+        self.etat["c3"]=Tuile('champ') #DEBUG
         self.annexe=[]
         
     def initTuiles(self,positionTourbes,positionForets):   
@@ -28,9 +29,7 @@ class CourDeFerme(object):
     def compter(self,type):
         compteur=0
         for k in self.etat.keys():
-            #str car sinon le teste est jamais vrai
-            if str(self.etat[k]) == type:
-                print('yes')
+            if type in str(self.etat[k]) :
                 compteur+=1
         return compteur
     
@@ -38,7 +37,8 @@ class CourDeFerme(object):
         #rend la liste de toutes les cases type
         l=[]
         for k in self.etat.keys():
-            if str(self.etat[k])==type:
+            #comme ça on peut appeler tousLes('maison')
+            if type in str(self.etat[k]):
                 l.append(k)
         return l
     

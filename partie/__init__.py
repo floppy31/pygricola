@@ -140,11 +140,42 @@ def semailleEtOuCuisson():
     planSemaille=input()
     
 
-    
-    
+def jePeuxNaitre():
+    joueur=variablesGlobales.joueurs[variablesGlobales.quiJoue]
+    ferme=joueur.courDeFerme
+    nbPions=len(variablesGlobales.pions[variablesGlobales.quiJoue])+len(variablesGlobales.pionsPlaces[variablesGlobales.quiJoue])
+    nbMaison=ferme.compter('maison')
+    if nbMaison>nbPions:
+        return True
+    else:
+        print("impossible de naitre, il n'y a pas de place")
+        return False
+      
 def naissancePuisMineur():
-    pass
-
+    possibilites=[]
+    joueur=variablesGlobales.joueurs[variablesGlobales.quiJoue]
+    ferme=joueur.courDeFerme
+    #on a deja verifie qu'on peut naitre
+    #on regarde les enplacement des pions existants (useless???)
+    emplacements=[]
+    nbJoueurs=0
+    for p in variablesGlobales.pions[variablesGlobales.quiJoue]+variablesGlobales.pionsPlaces[variablesGlobales.quiJoue]:
+        emplacements.append(p.localisationInit)
+        nbJoueurs+=1
+    emplacements=set(emplacements)
+    emplacementsMaisons=set(ferme.tousLes('maison'))
+    
+    nouveauNe=Personnage(emplacementsMaisons.difference(emplacements).pop(),nbJoueurs+1)
+    nouveauNe.localisation='naissance'
+    variablesGlobales.pionsPlaces[variablesGlobales.quiJoue].append(nouveauNe)
+    choixAmenagementMineur()
+    
+    
+    
+    
+        
+        
+        
 def renoPuisMajeur():
     pass
 
@@ -184,7 +215,9 @@ class Partie(object):
 
         
         for j in range(variablesGlobales.nombreJoueurs):
-            variablesGlobales.pions[j]=[Personnage("b1",1),Personnage("c1",2)]
+            variablesGlobales.pions[j]=[]
+            variablesGlobales.pions[j].append(Personnage("b1",1))
+            variablesGlobales.pions[j].append(Personnage("c1",2))
             variablesGlobales.pionsPlaces[j]=[]
             (n,c)=example[j]
             variablesGlobales.joueurs[j]=Joueur(nom=n,couleur=c)
@@ -265,7 +298,7 @@ class Partie(object):
         ordreActions[2]=CarteAction('Cloture','toto',effet=cloture)
         ordreActions[3]=CaseAppro('1 mouton','toto',{'m':-1})
         ordreActions[4]=CarteAction('Semaille et/ou cuisson de pain','toto',effet=semailleEtOuCuisson)
-        ordreActions[5]=CarteAction('Naissance puis aménagement mineur','toto',effet=naissancePuisMineur)
+        ordreActions[5]=CarteAction('Naissance puis aménagement mineur','toto',effet=naissancePuisMineur,condition=jePeuxNaitre)
         ordreActions[6]=CarteAction('Rénovation puis aménagement majeur','toto',effet=renoPuisMajeur)
         ordreActions[7]=CaseAppro('1 pierre','toto',{'p':-1})
         ordreActions[8]=CaseAppro('1 légume','toto',{'l':-1})

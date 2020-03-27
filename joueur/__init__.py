@@ -51,7 +51,8 @@ class Joueur(object):
         for i in range(1,31):
             if variablesGlobales.plateau['cases'][i].visible and variablesGlobales.plateau['cases'][i].libre:
                 if self.jePeuxJouer(variablesGlobales.plateau['cases'][i].cout):
-                    casesJouables.append(variablesGlobales.plateau['cases'][i])
+                    if self.jeRemplisLesConditions(variablesGlobales.plateau['cases'][i].condition):
+                        casesJouables.append(variablesGlobales.plateau['cases'][i])
         
         #on regarde si on a des cases activables
         for c in self.cartesDevantSoi:
@@ -92,6 +93,13 @@ class Joueur(object):
     def jePeuxJouer(self,cout): #cout ou condition
         return jouable(self.ressources,cout,True)
          
+    def jeRemplisLesConditions(self,cond):
+        #on traita ça comme un cout
+        if type(cond)==dict:
+            return jouable(self.ressources,cond,True)
+        else:
+            #sinon on appelle la fonction
+            return cond
        
     def jePeuxFaireActionSpeciale(self,carte):
         
