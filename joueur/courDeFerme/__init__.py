@@ -1,3 +1,7 @@
+from pygricola.ressources import long2Short
+import util
+
+
 
 parseList=[]
 for l in ['a','b','c']:
@@ -14,7 +18,7 @@ class CourDeFerme(object):
         self.etat["c2"]=Tuile('maisonBois')
         self.etat["b1"]=Tuile('maisonBois')
         self.etat["c1"]=Tuile('maisonBois')
-        self.etat["c3"]=Tuile('champ') #DEBUG
+        self.etat["c4"]=Tuile('champ') #DEBUG
         self.annexe=[]
         
     def initTuiles(self,positionTourbes,positionForets):   
@@ -26,6 +30,16 @@ class CourDeFerme(object):
     def __str__(self):
            return self.prettyPrint()
        
+    def enQuoiEstLaMaison(self,court=True):
+        if court:
+            return long2Short[self.etat["b1"].type.split('maison')[1].lower()]
+        else:
+            return self.etat["b1"].type
+    
+    def compterEtablesDispo(self):
+        #TODO
+        return 4
+    
     def compter(self,type):
         compteur=0
         for k in self.etat.keys():
@@ -97,8 +111,18 @@ class Tuile(object):
 #foret, tourbe, champ, etable, carte, maisonBois,maisonArgile, maisonPierre,vide
     def __init__(self, type):
         self.type=type
+        self.ressources=util.rVide()
     def __str__(self):
            return str(self.type)
     @property   
     def short(self):
         return alias[self.type]
+    
+    def semer(self,ressource):
+        combien=0
+        if (ressource=='l'):
+            combien=2
+        else:
+            combien=3
+            
+        self.ressources[ressource]+=combien

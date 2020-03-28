@@ -15,11 +15,11 @@ class Joueur(object):
         self.couleur=couleur
         self.courDeFerme=CourDeFerme()
         self.cartesEnMain=[AmenagementMineur(**deck['mineurs']["foyer simple"])]
-        self.cartesDevantSoi=[]       
+        self.cartesDevantSoi=[AmenagementMineur(**deck['mineurs']["foyer simple"])]       
         self.tourFini=False
         self.cartesActivables=[]
         self.ressources={
-            'b':4,
+            'b':7,
             'a':4,
             'p':4,
             'r':4,
@@ -72,7 +72,7 @@ class Joueur(object):
         #ACTION CONFIRMEE
         #si c'est un action ou on ne jour pas de pion (as ou utilisation d'un foyer)
         if casesJouables[choix].sansPion :
-            casesJouables[choix].jouer()
+            casesJouables[choix].activer()
             self.mettreAJourLesRessources(casesJouables[choix].cout)
             self.listerPossibilites()
         elif casesJouables[choix] in actionsSpeJouables:
@@ -100,13 +100,18 @@ class Joueur(object):
         else:
             #sinon on appelle la fonction
             return cond
-       
+    
+    def quePuisJeSemer(self):
+        #methode modifiable si certaines cartes sont jouees
+        return ['c','l']
+    
     def jePeuxFaireActionSpeciale(self,carte):
         
         #
         carte.condition()   
         
-        
+    def prixDeLaPiece(self):
+        return {'r':2,self.courDeFerme.enQuoiEstLaMaison():5}    
 
      
     def combienJaiJoueDe(self,string):
@@ -117,16 +122,22 @@ class Joueur(object):
         return count
         
     def mettreAJourLesRessources(self,rDict):
-        print ('rDict:',rDict)
-        print("avant:")
-        print(self.ressources)
+        #on n affiche que si ca bouge
+        jePrint=False
+        sauv=self.ressources.copy()
+
         for r in self.ressources.keys():
             if r in rDict.keys():
                 self.ressources[r]-=rDict[r]
+                jePrint=True
                 if self.ressources[r]<0:
                     print('RESSOURCES < 0 !!!')
                     exit
-        print("apres:")
-        print(self.ressources)   
+        if jePrint:
+            print("cout: ",rDict)
+            print("avant:")
+            print(sauv)
+            print("apres:")
+            print(self.ressources)   
             
         

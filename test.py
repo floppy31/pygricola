@@ -1,9 +1,11 @@
 
 from partie import Partie
 
-nJoueurs=4
+listeReponse=[] #/pour prédefinir les premières reponses tapes au clavier
+#permet de jouer les premier coup automatiquemetn
 
-p=Partie(nJoueurs)    
+nJoueurs=2
+p=Partie(nJoueurs,listeReponse)    
 p.demarragePartie()
 # for j in range(1,nJoueurs+1):
 #     print(p.joueurs[j])
