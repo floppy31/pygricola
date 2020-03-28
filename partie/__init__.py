@@ -100,8 +100,26 @@ def labourage():
         
     
 def cloture():
-    pass
-    
+    aCloture = False
+    aTermine = False
+    ferme=variablesGlobales.joueurs[variablesGlobales.quiJoue].courDeFerme
+    while aTermine == False:
+        print(ferme.prettyPrint())
+        possibilites=['Construire un nouveau paturage', 'Diviser un paturage existant', 'Terminer l action']
+        choix=util.printPossibilities("Que voulez vous faire? :",possibilites)
+        if (choix == 2): 
+            if aCloture==True:   
+                aTermine = True
+            else:
+                print('Vous n avez pas cloture, action invalide')
+        if choix == 0:
+            ferme.paturages.construireUnPaturage()
+
+        if choix == 0:
+            pass
+        # ~ choix=util.choisirCases("Où voulez vous cloturer? :",casesPossibles)
+        # ~ exit()
+        
 def semailleEtOuCuisson():
     pass
 
@@ -189,7 +207,7 @@ class Partie(object):
         variablesGlobales.plateau["cases"][14]=CaseAppro("1 argile","toto",{'a':-1},visible=True)
         variablesGlobales.plateau["cases"][15]=CaseAppro("1 roseau","toto",{'r':-1},visible=True)
         variablesGlobales.plateau["cases"][16]=CaseAppro("Pêche ","toto",{'pn':-1})
-        variablesGlobales.plateau["cases"][17]=self.actionSurTours[1]
+        variablesGlobales.plateau["cases"][17]=CarteAction("Clotures","toto",visible=True, effet=cloture)
         variablesGlobales.plateau["cases"][18]=self.actionSurTours[2]
         variablesGlobales.plateau["cases"][19]=self.actionSurTours[3]
         variablesGlobales.plateau["cases"][20]=self.actionSurTours[4]

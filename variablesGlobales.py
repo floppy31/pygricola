@@ -18,5 +18,3 @@ def init(nbJoueurs):
     pions=dict()
     pionsPlaces=dict()
     quiAFini=[]
-
-

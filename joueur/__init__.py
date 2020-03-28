@@ -18,8 +18,9 @@ class Joueur(object):
         self.cartesDevantSoi=[]       
         self.tourFini=False
         self.cartesActivables=[]
+        self.cloturesRestantes=15
         self.ressources={
-            'b':4,
+            'b':40,
             'a':4,
             'p':4,
             'r':4,
