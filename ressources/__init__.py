@@ -67,7 +67,7 @@ def jouable(a,b,dbg=False):
             if (b[k]>0):
                 if a[k]<b[k]:
                     if (dbg):
-                        print(k,a[k],b[k])
+                        print("jouable",k,a[k],b[k])
                     res=False
                     break
     return res

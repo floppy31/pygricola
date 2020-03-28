@@ -15,12 +15,13 @@ class Joueur(object):
         self.couleur=couleur
         self.courDeFerme=CourDeFerme()
         self.cartesEnMain=[AmenagementMineur(**deck['mineurs']["foyer simple"])]
-        self.cartesDevantSoi=[]       
+        self.cartesDevantSoi=[AmenagementMineur(**deck['mineurs']["foyer simple"])]       
         self.tourFini=False
         self.cartesActivables=[]
         self.cloturesRestantes=15
         self.ressources={
-            'b':40,
+
+            'b':7,
             'a':4,
             'p':4,
             'r':4,
@@ -52,7 +53,8 @@ class Joueur(object):
         for i in range(1,31):
             if variablesGlobales.plateau['cases'][i].visible and variablesGlobales.plateau['cases'][i].libre:
                 if self.jePeuxJouer(variablesGlobales.plateau['cases'][i].cout):
-                    casesJouables.append(variablesGlobales.plateau['cases'][i])
+                    if self.jeRemplisLesConditions(variablesGlobales.plateau['cases'][i].condition):
+                        casesJouables.append(variablesGlobales.plateau['cases'][i])
         
         #on regarde si on a des cases activables
         for c in self.cartesDevantSoi:
@@ -72,7 +74,7 @@ class Joueur(object):
         #ACTION CONFIRMEE
         #si c'est un action ou on ne jour pas de pion (as ou utilisation d'un foyer)
         if casesJouables[choix].sansPion :
-            casesJouables[choix].jouer()
+            casesJouables[choix].activer()
             self.mettreAJourLesRessources(casesJouables[choix].cout)
             self.listerPossibilites()
         elif casesJouables[choix] in actionsSpeJouables:
@@ -93,13 +95,25 @@ class Joueur(object):
     def jePeuxJouer(self,cout): #cout ou condition
         return jouable(self.ressources,cout,True)
          
-       
+    def jeRemplisLesConditions(self,cond):
+        #on traita ça comme un cout
+        if type(cond)==dict:
+            return jouable(self.ressources,cond,True)
+        else:
+            #sinon on appelle la fonction
+            return cond
+    
+    def quePuisJeSemer(self):
+        #methode modifiable si certaines cartes sont jouees
+        return ['c','l']
+    
     def jePeuxFaireActionSpeciale(self,carte):
         
         #
         carte.condition()   
         
-        
+    def prixDeLaPiece(self):
+        return {'r':2,self.courDeFerme.enQuoiEstLaMaison():5}    
 
      
     def combienJaiJoueDe(self,string):
@@ -110,16 +124,22 @@ class Joueur(object):
         return count
         
     def mettreAJourLesRessources(self,rDict):
-        print ('rDict:',rDict)
-        print("avant:")
-        print(self.ressources)
+        #on n affiche que si ca bouge
+        jePrint=False
+        sauv=self.ressources.copy()
+
         for r in self.ressources.keys():
             if r in rDict.keys():
                 self.ressources[r]-=rDict[r]
+                jePrint=True
                 if self.ressources[r]<0:
                     print('RESSOURCES < 0 !!!')
                     exit
-        print("apres:")
-        print(self.ressources)   
+        if jePrint:
+            print("cout: ",rDict)
+            print("avant:")
+            print(sauv)
+            print("apres:")
+            print(self.ressources)   
             
         

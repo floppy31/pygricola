@@ -7,16 +7,22 @@ from pygricola.ressources import short2Long
 
 class Carte:
 
-    def __init__(self, nom,description,cout={},condition={},effet={},activer=util.dummy,sansPion=False):
+    def __init__(self, nom,description,cout={},condition={},effet={},option={},activer=util.dummy,sansPion=False):
         self.nom = nom
         self.description = description
         if type(cout)==dict:
             self._cout=cout.copy()
         else:
             self._cout=cout
-        
-        self._condition=condition
-        self.activer=activer 
+        if type(condition)==dict:
+            self._condition=condition.copy()
+        else:
+            self._condition=condition      
+        if type(option)==dict:
+            self._option=option.copy()
+        else:
+            self._option=condition                
+        self._activer=activer 
         self._effet=effet
         self.sansPion=sansPion
         self.phraseJouer='je joue :'
@@ -24,7 +30,9 @@ class Carte:
     
     def __str__(self):
            return self.nom
-       
+    def activer(self):
+        return self._activer(self)      
+        
     @property   
     def short(self):
         return self.nom[0:7]
@@ -42,6 +50,12 @@ class Carte:
             return self._condition
         else:
             return self._condition()        
+    @property   
+    def option(self):
+        if type(self._option)==dict:
+            return self._option
+        else:
+            return self._option()        
 
     
     def effet(self):
@@ -69,14 +83,13 @@ def avoirXSavoirFaire(type,x):
     pass
 
 
-def cuisson1():
-    dictCuisson={'l':2,'m':2,'s':2,'v':3,'c':2}
-    
-    print("cuisson1",variablesGlobales.joueurs.keys())
+def cuisson(carte):
+    #on recupere le dict cuisson dans option
+    dictCuisson=carte.option['cuissonDict']
     possibilites=[]
     for res in ['l','m','s','v']:
         if (variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources[res]>0):
-            possibilites.append(Carte("cuire un {} pour {} pn".format(short2Long[res],dictCuisson[res]),"toto",cout={res:1,'n':-dictCuisson[res]}),sansPion=True)        
+            possibilites.append(Carte("cuire un {} pour {} pn".format(short2Long[res],dictCuisson[res]),"toto",cout={res:1,'n':-dictCuisson[res]},sansPion=True))        
     choix=util.printPossibilities("Que voulez vous cuire? :",possibilites)
     if choix != -1:
         possibilites[choix].jouer() 
@@ -86,13 +99,6 @@ def cuisson1():
 def payerLeCout():
     variablesGlobales.joueurs[variablesGlobales.quiJoue].mettreAJourLesRessources(possibilites[choix].cout)
     
-def cuisson(dico):
-    #{'l':2,'m':2,'s':2,'b':3,'c':2}
-    print("cuisson")
-# class Paillasse(AmenagementMineur):
-#     def __init__(self,nom,description,cout={'b':1},condition=avoirXChamp('c',2),effet=byPassNaissance):
-#         self.passableAGauche=passableAGauche
-#         super().__init__(nom,description,cout=cout,effet=effet)    
 
 
 
@@ -101,7 +107,9 @@ majeursDict["foyer à 2"]={
     'nom':'Foyer à 2',
     'description':"Vous pouvez transformer à tout moment...",
     'cout':{'a':2},
-    'activer':cuisson1,
+    'activer':cuisson,
+    'option':{'cuissonDict':{'l':2,'m':2,'s':2,'v':3},'cuissonPain':{'c':2}},
+
     'visible':True,
     'devoile': "abatoir à chevaux 1",   
     }
@@ -109,7 +117,8 @@ majeursDict["foyer à 3"]={
     'nom':'Foyer à 3',
     'description':"Vous pouvez transformer à tout moment...",
     'cout':{'a':3},
-    'activer':cuisson({'l':2,'m':2,'s':2,'b':3,'c':2}) ,
+    'activer':cuisson ,
+    'option':{'cuissonDict':{'l':2,'m':2,'s':2,'b':3},'cuissonPain':{'c':2}},
     'visible':True,
     'devoile': "abatoir à chevaux 2",      
     }
@@ -118,14 +127,16 @@ majeursDict["abatoir à chevaux 1"]={
     'nom':'abatoir à chevaux 1',
     'description':"Vous pouvez transformer à tout moment...",
     'cout':{'a':1,'p':1},
-    'activer':cuisson({'l':1,'m':1,'s':1,'b':2,'h':1}) ,
+    'activer':cuisson ,
+    'option':{'cuissonDict':{'l':1,'m':1,'s':1,'b':2,'h':1}},
     'visible':False     
     }
 majeursDict["abatoir à chevaux 2"]={
     'nom':'abatoir à chevaux 2',
     'description':"Vous pouvez transformer à tout moment...",
     'cout':{'a':1,'p':1},
-    'activer':cuisson({'l':1,'m':1,'s':1,'b':2,'h':1}) ,
+    'activer':cuisson ,
+    'option':{'cuissonDict':{'l':1,'m':1,'s':1,'b':2,'h':1}},
     'visible':False     
     }
 
@@ -134,8 +145,8 @@ mineursDict["foyer simple"]={
     'nom':'Foyer simple',
     'description':"Vous pouvez transformer à tout moment...",
     'cout':{'a':1},
-    'activer':cuisson({'l':2,'m':1,'s':2,'b':3,'c':2})
-    
+    'activer':cuisson,
+    'option':{'cuissonDict':{'l':2,'m':1,'s':2,'b':3},'cuissonPain':{'c':2}},    
     }
 
 savoirFaireDict={}

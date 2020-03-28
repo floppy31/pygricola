@@ -10,6 +10,7 @@ def init(nbJoueurs):
     global pions
     global pionsPlaces
     global quiAFini
+    global listeReponse
     plateau = dict()
     joueurs = dict()
     quiJoue=0
@@ -18,3 +19,7 @@ def init(nbJoueurs):
     pions=dict()
     pionsPlaces=dict()
     quiAFini=[]
+    listeReponse=[]
+
+
+

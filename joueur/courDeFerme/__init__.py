@@ -5,6 +5,11 @@ from pandas.core.common import flatten
 from collections import Counter
 import numpy as np
 
+from pygricola.ressources import long2Short
+import util
+
+
+
 parseList=[]
 for l in ['a','b','c']:
     for i in range(1,6):
@@ -17,11 +22,12 @@ class CourDeFerme(object):
         self.etat=OrderedDict()
         for case in parseList:
             self.etat[case]=Tuile('vide')
+        self.etat["c2"]=Tuile('maisonBois')
         self.etat["b1"]=Tuile('maisonBois')
         self.etat["c1"]=Tuile('maisonBois')
         self.paturages = Paturage()
         self.clotures = Clotures()
-       
+        # ~ self.etat["c4"]=Tuile('champ') #DEBUG
         self.annexe=[]
         
     def initTuiles(self,positionTourbes,positionForets):   
@@ -32,6 +38,59 @@ class CourDeFerme(object):
     
     def __str__(self):
            return self.prettyPrint()
+       
+    def enQuoiEstLaMaison(self,court=True):
+        if court:
+            return long2Short[self.etat["b1"].type.split('maison')[1].lower()]
+        else:
+            return self.etat["b1"].type
+    
+    def compterEtablesDispo(self):
+        #TODO
+        return 4
+    
+    def compter(self,type):
+        compteur=0
+        for k in self.etat.keys():
+            if type in str(self.etat[k]) :
+                compteur+=1
+        return compteur
+    
+    def tousLes(self,type):
+        #rend la liste de toutes les cases type
+        l=[]
+        for k in self.etat.keys():
+            #comme ça on peut appeler tousLes('maison')
+            if type in str(self.etat[k]):
+                l.append(k)
+        return l
+    
+    def voisin(self,coord):
+        #disco des voisins nord,sud est,ouest
+        voisins={
+            'n':None,
+            'e':None,
+            's':None,
+            'w':None
+            }
+        ligne=coord[0]
+        colonne=int(coord[1])
+        
+        if ligne=="a":
+            voisins["s"]="a"+str(colonne)
+        elif ligne=="b":
+            voisins["n"]="a"+str(colonne)
+            voisins["s"]="c"+str(colonne)
+        elif ligne=="c":
+            voisins["n"]="b"+str(colonne)
+        if colonne==1:
+            voisins["e"]=ligne+str(2)
+        elif colonne==5:
+            voisins["w"]=ligne+str(4)
+        else:
+            voisins["e"]=ligne+str(colonne+1)
+            voisins["w"]=ligne+str(colonne-1)                
+        return voisins
 
     def prettyPrint(self):
         str="""
@@ -49,7 +108,17 @@ class CourDeFerme(object):
         for i in range(len(self.paturages.casesDesPaturages)):
             print("Paturage en : {}, d une capacite de {} animaux".format(str(self.paturages.casesDesPaturages[i]), str(self.paturages.capacite[i])))
     
-
+   
+    def semer(self,ressource):
+        combien=0
+        if (ressource=='l'):
+            combien=2
+        else:
+            combien=3
+            
+        self.ressources[ressource]+=combien
+        
+        
 alias={
 'foret':'F',
 'tourbe':'T',
@@ -67,6 +136,7 @@ class Tuile(object):
 #foret, tourbe, champ, etable, carte, maisonBois,maisonArgile, maisonPierre,vide
     def __init__(self, type):
         self.type=type
+        self.ressources=util.rVide()
     def __str__(self):
            return str(self.type)
     @property   
@@ -78,15 +148,27 @@ class Paturage(object):
     def __init__(self):
         self.casesDesPaturages = []
         self.capacite = []
+        self.aCloture = False
 
     def construireUnPaturage(self):
         possibilitesInitiales=[]
         ferme=variablesGlobales.joueurs[variablesGlobales.quiJoue].courDeFerme
         print(ferme.prettyPrint())
         for coord in ferme.etat.keys():
+            #Test s'il y a deja d'autres paturage
+            if not ferme.paturages.casesDesPaturages:
+                if ferme.etat[coord].type=='vide':
+                    possibilitesInitiales.append(coord)
             #TODO GERER L ADJACENCE AVEC UN AUTRE PATURAGE
-            if ferme.etat[coord].type=='vide':
-                possibilitesInitiales.append( coord)
+            else:
+                if (ferme.etat[coord].type=='vide'):
+                    list_case_adj = estAdjacentA(coord)
+                    list_case_paturage = list(flatten(ferme.paturages.casesDesPaturages))
+                    intersect = ([x for x in list_case_adj if x in list_case_paturage])
+                    if not intersect:
+                        pass
+                    else:
+                        possibilitesInitiales.append(coord)
         choix=util.printPossibilities("Où voulez vous cloturer? :",possibilitesInitiales)
         print("Cloture de la case ", possibilitesInitiales[choix])
         print("")
@@ -94,18 +176,20 @@ class Paturage(object):
         casesDuPaturage.append(possibilitesInitiales[choix])
         paturageTermine = False
         
-        
         while paturageTermine==False:
             caseSupplementaire = []
             for i in range(len(casesDuPaturage)):
                 for i in estAdjacentA(casesDuPaturage[i]):
                     if (ferme.etat[i].type=='vide') and ((i in casesDuPaturage)==False):
                         caseSupplementaire.append(i)
-            choix=util.printPossibilities("Ajouter une case au paturage en cours ? :",caseSupplementaire)        
-            if choix == -1:
+            if not caseSupplementaire:
                 paturageTermine = True
             else:
-                casesDuPaturage.append(caseSupplementaire[choix])
+                choix=util.printPossibilities("Ajouter une case au paturage en cours ? :",caseSupplementaire)        
+                if choix == -1:
+                    paturageTermine = True
+                else:
+                    casesDuPaturage.append(caseSupplementaire[choix])
 
         print("Construction d un paturage en : ", casesDuPaturage)
         check = ferme.clotures.construireLesClotures(ferme, casesDuPaturage)
@@ -116,6 +200,7 @@ class Paturage(object):
         if check == 1:
             self.casesDesPaturages.append(casesDuPaturage)
             self.capacite.append(2*len(casesDuPaturage))
+            self.aCloture = True
         ferme.printPaturages()
         
 class Clotures(object):
@@ -244,3 +329,4 @@ def estAdjacentA(case):
     if case == 'c5':
             return ['c4', 'b5']  
             
+ 
