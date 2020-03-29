@@ -199,10 +199,85 @@ class Paturage(object):
 
         if check == 1:
             self.casesDesPaturages.append(casesDuPaturage)
-            self.capacite.append(2*len(casesDuPaturage))
             self.aCloture = True
+            
+        self.calculer_capacite()
         ferme.printPaturages()
         
+        
+    def diviserUnPaturage(self):
+        possibilitesInitiales=[]
+        ferme=variablesGlobales.joueurs[variablesGlobales.quiJoue].courDeFerme
+        cases_gros_paturages = []
+        # Choix de la case initiale
+        if not self.casesDesPaturages:
+            return
+        else:
+            for i in self.casesDesPaturages:
+                if len(i)>1:
+                    cases_gros_paturages.append(i)
+        choix=util.printPossibilities("diviser quel paturage pour en faire un nouveau ? :",cases_gros_paturages)
+        
+        stop = False
+        cases_a_diviser = []
+        paturage_selectionne = cases_gros_paturages[choix]
+        choix=util.printPossibilities("Selectionner une case ? :",paturage_selectionne)
+        cases_a_diviser.append(paturage_selectionne[choix])
+        while (len(paturage_selectionne)-len(cases_a_diviser) >1) and (stop==False):
+            cases_possibles = []
+            for coord in paturage_selectionne:
+                list_case_adj = estAdjacentA(coord)
+                list_case_paturage = list(flatten(cases_a_diviser))
+                intersect = ([x for x in list_case_adj if x in list_case_paturage])
+                if not intersect:
+                    pass
+                else:
+                    cases_possibles.append(coord)
+            choix=util.printPossibilities("Ajouter une case au nouveau paturage divise ? :",cases_possibles)
+            if choix == -1:
+                stop = True
+            else:
+                cases_a_diviser.append(cases_possibles[choix])
+            
+        print("Division d un paturage en : ", cases_a_diviser)
+        check = ferme.clotures.construireLesClotures(ferme, cases_a_diviser)                    
+        print("Bois restant: {}, Clotures Restantes: {}".format(variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources['b'], variablesGlobales.joueurs[variablesGlobales.quiJoue].cloturesRestantes))
+        print(ferme.prettyPrint())
+
+        if check == 1:
+            for i in self.casesDesPaturages:
+                if i == paturage_selectionne:
+                    #suppression ancien paturage
+                    self.casesDesPaturages.remove(paturage_selectionne)
+                    #Ajout du nouveau
+                    self.casesDesPaturages.append(cases_a_diviser)
+                    for k in cases_a_diviser:
+                        paturage_selectionne.remove(k)
+                        cases_restantes =  paturage_selectionne
+            while len(cases_restantes)>0:
+                nouveau_pat=[]
+                el = cases_restantes[0]
+                nouveau_pat.append(el)
+                el_adj = estAdjacentA(el)
+                cases_restantes.remove(el)
+                for i in cases_restantes:
+                    intersect = ([x for x in el_adj if x in cases_restantes])
+                    if not intersect:
+                        pass
+                    else:
+                        nouveau_pat.append(i)
+                        cases_restantes.remove(i)
+ 
+                self.casesDesPaturages.append(nouveau_pat)
+                
+        self.calculer_capacite()
+        ferme.printPaturages()
+                    
+    def calculer_capacite(self):
+        self.capacite = []
+        for i in self.casesDesPaturages:
+            self.capacite.append(2*len(i))
+
 class Clotures(object):
 
     def __init__(self):

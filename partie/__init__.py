@@ -131,12 +131,9 @@ def cloture():
         if choix == 0:
             ferme.paturages.construireUnPaturage()
 
-        if choix == 0:
-            pass
-        # ~ choix=util.choisirCases("Où voulez vous cloturer? :",casesPossibles)
-        # ~ exit()
+        if choix == 1:
+            ferme.paturages.diviserUnPaturage()
 
-    pass
     
 def jePeuxFaireSemailleEtOuCuisson():    
     return jePeuxSemer() and jePeuxCuireDuPain()

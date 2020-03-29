@@ -21,7 +21,7 @@ class Joueur(object):
         self.cloturesRestantes=15
         self.ressources={
 
-            'b':7,
+            'b':10,
             'a':4,
             'p':4,
             'r':4,

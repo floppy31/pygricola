@@ -1,7 +1,7 @@
 
 from partie import Partie
 
-listeReponse=["17","o","0","o","0","o","0","o","-1","o","0","o","0","o","0","o"]
+listeReponse=["17","o","0","o","0","o","0","o","0", "o", "-1","o","0","o","0","o","1","o","0","o","1","o","-1","o"]
  #/pour prédefinir les premières reponses tapes au clavier
 #permet de jouer les premier coup automatiquemetn
 
