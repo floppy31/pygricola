@@ -194,7 +194,7 @@ class Paturage(object):
         print("Construction d un paturage en : ", casesDuPaturage)
         check = ferme.clotures.construireLesClotures(ferme, casesDuPaturage)
         
-        print("Bois restant: ", variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources['b'])
+        print("Bois restant: {}, Clotures Restantes: {}".format(variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources['b'], variablesGlobales.joueurs[variablesGlobales.quiJoue].cloturesRestantes))
         print(ferme.prettyPrint())
 
         if check == 1:
@@ -250,8 +250,11 @@ class Clotures(object):
         if len(listCloturesAConstruire) > variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources['b']:
             print('le joueur n a pas assez de bois pour construire ces clotures')
             return 0
+        if len(listCloturesAConstruire) > variablesGlobales.joueurs[variablesGlobales.quiJoue].cloturesRestantes:
+            return 0
         else:
             variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources['b'] += -len(listCloturesAConstruire)
+            variablesGlobales.joueurs[variablesGlobales.quiJoue].cloturesRestantes += -len(listCloturesAConstruire)            
             for i in casesDuPaturage:
                 ferme.etat[i].type="paturage"
             for i in listCloturesAConstruire:
