@@ -1,4 +1,4 @@
-import variablesGlobales
+import pygricola.variablesGlobales
 
 
 def rVide():
@@ -10,6 +10,10 @@ def dummy():
 
 
 idx=0
+
+
+
+
 
 def customInput(msg):
     global idx

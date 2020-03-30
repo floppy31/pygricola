@@ -1,5 +1,5 @@
 from pygricola.carte import Carte 
-from util import dummy
+from pygricola.util import dummy
 
 
 class AmenagementMajeur(Carte):

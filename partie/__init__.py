@@ -1,10 +1,10 @@
-import variablesGlobales
+import pygricola.variablesGlobales
 from pygricola.joueur import Joueur 
 from pygricola.carte.action import CarteAction,CaseAppro
 from pygricola.carte import deck
 from pygricola.carte.majeur import AmenagementMajeur
 from pygricola.joueur.personnage import Personnage
-import util
+import pygricola.util as util
 
 
 example={
@@ -463,6 +463,10 @@ class Partie(object):
     
     
     def draft(self):
+        pass
+    
+    
+    def avancerJusquaLaProchaineInterraction(self):
         pass
     
     

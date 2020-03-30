@@ -1,5 +1,5 @@
-import util
-import variablesGlobales
+import pygricola.util
+import pygricola.variablesGlobales
 from pygricola.ressources import short2Long
 
 from pygricola.joueur.courDeFerme import CourDeFerme 

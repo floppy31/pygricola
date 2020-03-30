@@ -1,5 +1,5 @@
 from pygricola.ressources import long2Short
-import util
+import pygricola.util
 
 
 

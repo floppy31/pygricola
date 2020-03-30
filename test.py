@@ -11,3 +11,5 @@ p.demarragePartie()
 #     print(p.joueurs[j])
 #     
 
+while(True):
+    message,p.avancerJusquaLaProchaineInterraction()

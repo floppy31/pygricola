@@ -1,5 +1,5 @@
-import variablesGlobales
-import util
+import pygricola.variablesGlobales
+import pygricola.util as util
 from pygricola.ressources import short2Long
 
 
