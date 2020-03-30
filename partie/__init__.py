@@ -115,7 +115,25 @@ def labourage():
         
     
 def cloture():
-    pass
+    aTermine = False
+    ferme=variablesGlobales.joueurs[variablesGlobales.quiJoue].courDeFerme
+    ferme.paturages.aCloture=False
+    while aTermine == False:
+        print(ferme.prettyPrint())
+        possibilites=['Construire un nouveau paturage', 'Diviser un paturage existant', 'Terminer l action']
+        choix=util.printPossibilities("Que voulez vous faire? :",possibilites)
+        if (choix == 2): 
+            if ferme.paturages.aCloture==True:   
+                aTermine = True
+                print("Fin de l action Cloture")
+            else:
+                print('Vous n avez pas cloture, action invalide')
+        if choix == 0:
+            ferme.paturages.construireUnPaturage()
+
+        if choix == 1:
+            ferme.paturages.diviserUnPaturage()
+
     
 def jePeuxFaireSemailleEtOuCuisson():    
     return jePeuxSemer() and jePeuxCuireDuPain()
@@ -143,7 +161,7 @@ def jePeuxCuireDuPain():
     for c in joueur.cartesDevantSoi:
         if 'cuissonPain' in c.option.keys():
             return True
-        
+
         
 def semailleEtOuCuisson():
     
@@ -392,15 +410,10 @@ class Partie(object):
         variablesGlobales.plateau["cases"][4]=CarteAction("TODO   ","toto")
         variablesGlobales.plateau["cases"][5]=CarteAction("TODO   ","toto")
         variablesGlobales.plateau["cases"][6]=CarteAction("TODO   ","toto")
-        
-        
         variablesGlobales.plateau["cases"][7]=CarteAction("Construction de pièce et/ou d'étable","toto",visible=True,condition=jePeuxContruireUnePiece,effet=constructionDePieceEtOuEtable)
         variablesGlobales.plateau["cases"][8]=CarteAction("Premier joueur et aménagement mineur","toto",visible=True,effet=choixAmenagementMineur)
         variablesGlobales.plateau["cases"][9]=CarteAction("1 céréale","toto",cout={'c':-1},visible=True)
         variablesGlobales.plateau["cases"][10]=CarteAction("Labourage d'un champ","toto",visible=True,effet=labourage)
-        
-
-        
         variablesGlobales.plateau["cases"][11]=CarteAction("1 savoir faire","toto",cout=coutSavoirFaire1,visible=True)
         variablesGlobales.plateau["cases"][12]=CarteAction("Journalier","toto",{'n':-2},visible=True)
         variablesGlobales.plateau["cases"][13]=CaseAppro("3 bois ","toto",{'b':-3},visible=True)

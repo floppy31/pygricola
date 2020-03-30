@@ -18,8 +18,10 @@ class Joueur(object):
         self.cartesDevantSoi=[AmenagementMineur(**deck['mineurs']["foyer simple"])]       
         self.tourFini=False
         self.cartesActivables=[]
+        self.cloturesRestantes=15
         self.ressources={
-            'b':7,
+
+            'b':10,
             'a':4,
             'p':4,
             'r':4,

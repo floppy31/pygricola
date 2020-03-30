@@ -9,6 +9,10 @@ def dummy():
 
 
 
+# ~ listeReponse=["9","o","1","o","8","o","7","o","6","o"]
+# ~ listeReponse=[]
+# ~ listeReponse=["9","o","0","o","0","o","0","o","-1","o"]
+
 idx=0
 
 
