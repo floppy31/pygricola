@@ -12,7 +12,7 @@ def possibiliteBetail(partie,carte):
 
     possibilite=["1 mouton et 1 Pn","1 sanglier"]
     if(joueur.jePeuxJouer({'n':1})):
-        possibilite.append("1 pn pour 1 boeuf")
+        possibilite.append("1 pn contre 1 boeuf")
         
     return possibilite
 
@@ -29,6 +29,7 @@ def betail(partie,choix,possibilites,carte):
     joueur.personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
     joueur.mettreAJourLesRessources(cout)
+    partie.messagesPrincipaux.append("{} prends {}".format(partie.joueurQuiJoue().nom,possibilites[choix]))
 
     return (-1,carte,False,"") #on ne peux plus en jouer                
         
