@@ -1,12 +1,9 @@
-import variablesGlobales
-import util
+import pygricola.util as util
 from collections import Counter, OrderedDict
 from pandas.core.common import flatten
 from collections import Counter
 import numpy as np
 
-from pygricola.ressources import long2Short
-import pygricola.util
 
 
 
@@ -18,7 +15,8 @@ for l in ['a','b','c']:
         
 class CourDeFerme(object):
 
-    def __init__(self):
+    def __init__(self,partie):
+        self.partie=partie
         self.etat=OrderedDict()
         for case in parseList:
             self.etat[case]=Tuile('vide')
@@ -41,7 +39,7 @@ class CourDeFerme(object):
        
     def enQuoiEstLaMaison(self,court=True):
         if court:
-            return long2Short[self.etat["b1"].type.split('maison')[1].lower()]
+            return util.long2Short[self.etat["b1"].type.split('maison')[1].lower()]
         else:
             return self.etat["b1"].type
     
@@ -64,6 +62,16 @@ class CourDeFerme(object):
             if type in str(self.etat[k]):
                 l.append(k)
         return l
+    
+    def estVoisin(self,coord1,coord2):
+        voiz=self.voisin(coord1)
+        reponse=False
+        for k in voiz.keys():
+            if voiz[k]==coord2:
+                reponse==True
+        return reponse
+        
+        
     
     def voisin(self,coord):
         #disco des voisins nord,sud est,ouest
@@ -109,16 +117,16 @@ class CourDeFerme(object):
             print("Paturage en : {}, d une capacite de {} animaux".format(str(self.paturages.casesDesPaturages[i]), str(self.paturages.capacite[i])))
     
    
-    def semer(self,ressource):
-        combien=0
-        if (ressource=='l'):
-            combien=2
-        else:
-            combien=3
-            
-        self.ressources[ressource]+=combien
+
         
-        
+    def save(self):
+        #TODO: doit retourner un dico ou ordered dico
+        return self.prettyPrint()
+    
+    def load(self):
+        #TODO : doit refaire la cour de ferme à partir d'un dico
+        return 0
+    
 alias={
 'foret':'F',
 'tourbe':'T',
@@ -142,6 +150,21 @@ class Tuile(object):
     @property   
     def short(self):
         return alias[self.type]
+
+    def semer(self,ressource):
+        if self.type=="champ":
+            combien=0
+            if (ressource=='l'):
+                combien=2
+            else:
+                combien=3
+                
+            self.ressources[ressource]+=combien
+        else:
+            print("ERREUR vous ne pouvez semer que sur un champ")
+            qsfqdfdf
+            
+
         
 class Paturage(object):
 
@@ -152,7 +175,7 @@ class Paturage(object):
 
     def construireUnPaturage(self):
         possibilitesInitiales=[]
-        ferme=variablesGlobales.joueurs[variablesGlobales.quiJoue].courDeFerme
+        ferme=self.partie.joueurs[self.partie.quiJoue].courDeFerme
         print(ferme.prettyPrint())
         for coord in ferme.etat.keys():
             #Test s'il y a deja d'autres paturage
@@ -194,7 +217,7 @@ class Paturage(object):
         print("Construction d un paturage en : ", casesDuPaturage)
         check = ferme.clotures.construireLesClotures(ferme, casesDuPaturage)
         
-        print("Bois restant: {}, Clotures Restantes: {}".format(variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources['b'], variablesGlobales.joueurs[variablesGlobales.quiJoue].cloturesRestantes))
+        print("Bois restant: {}, Clotures Restantes: {}".format(self.partie.joueurs[self.partie.quiJoue].ressources['b'], self.partie.joueurs[self.partie.quiJoue].cloturesRestantes))
         print(ferme.prettyPrint())
 
         if check == 1:
@@ -207,7 +230,7 @@ class Paturage(object):
         
     def diviserUnPaturage(self):
         possibilitesInitiales=[]
-        ferme=variablesGlobales.joueurs[variablesGlobales.quiJoue].courDeFerme
+        ferme=self.partie.joueurs[self.partie.quiJoue].courDeFerme
         cases_gros_paturages = []
         # Choix de la case initiale
         if not self.casesDesPaturages:
@@ -241,7 +264,7 @@ class Paturage(object):
             
         print("Division d un paturage en : ", cases_a_diviser)
         check = ferme.clotures.construireLesClotures(ferme, cases_a_diviser)                    
-        print("Bois restant: {}, Clotures Restantes: {}".format(variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources['b'], variablesGlobales.joueurs[variablesGlobales.quiJoue].cloturesRestantes))
+        print("Bois restant: {}, Clotures Restantes: {}".format(self.partie.joueurs[self.partie.quiJoue].ressources['b'], self.partie.joueurs[self.partie.quiJoue].cloturesRestantes))
         print(ferme.prettyPrint())
 
         if check == 1:
@@ -322,14 +345,14 @@ class Clotures(object):
             if self.estConstruite[np.where(self.positions == i)] == False:
                 listCloturesAConstruire.append(i)
         #Verification de la quantite de bois
-        if len(listCloturesAConstruire) > variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources['b']:
+        if len(listCloturesAConstruire) > self.partie.joueurs[self.partie.quiJoue].ressources['b']:
             print('le joueur n a pas assez de bois pour construire ces clotures')
             return 0
-        if len(listCloturesAConstruire) > variablesGlobales.joueurs[variablesGlobales.quiJoue].cloturesRestantes:
+        if len(listCloturesAConstruire) > self.partie.joueurs[self.partie.quiJoue].cloturesRestantes:
             return 0
         else:
-            variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources['b'] += -len(listCloturesAConstruire)
-            variablesGlobales.joueurs[variablesGlobales.quiJoue].cloturesRestantes += -len(listCloturesAConstruire)            
+            self.partie.joueurs[self.partie.quiJoue].ressources['b'] += -len(listCloturesAConstruire)
+            self.partie.joueurs[self.partie.quiJoue].cloturesRestantes += -len(listCloturesAConstruire)            
             for i in casesDuPaturage:
                 ferme.etat[i].type="paturage"
             for i in listCloturesAConstruire:

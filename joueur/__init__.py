@@ -1,26 +1,25 @@
-import pygricola.util
-import pygricola.variablesGlobales
-from pygricola.ressources import short2Long
+import pygricola.util as util
 
 from pygricola.joueur.courDeFerme import CourDeFerme 
 from pygricola.joueur.personnage import Personnage
-from pygricola.ressources import jouable
 from pygricola.carte import deck,Carte
 from pygricola.carte.mineur import AmenagementMineur
 
 class Joueur(object):
 
-    def __init__(self, nom,couleur):
+    def __init__(self, partie,nom,id,couleur):
+        self.partie=partie
         self.nom=nom
+        self.id=id
         self.couleur=couleur
-        self.courDeFerme=CourDeFerme()
-        self.cartesEnMain=[AmenagementMineur(**deck['mineurs']["foyer simple"])]
-        self.cartesDevantSoi=[AmenagementMineur(**deck['mineurs']["foyer simple"])]       
+        self.courDeFerme=CourDeFerme(partie)
+        self.cartesEnMain=[AmenagementMineur(partie=self.partie,**deck['mineurs']["foyer simple"])]
+        self.cartesDevantSoi=[AmenagementMineur(partie=self.partie,**deck['mineurs']["foyer simple"])]       
         self.tourFini=False
         self.cartesActivables=[]
-        self.cloturesRestantes=15
+        self.personnages=[Personnage("b1",1,self.couleur),Personnage("c1",2,self.couleur)]
+        self.personnagesPlaces=[]
         self.ressources={
-
             'b':10,
             'a':4,
             'p':4,
@@ -34,27 +33,25 @@ class Joueur(object):
             'v':0,
             'h':0,
             }
-        self.localisationAnimaux={
-            
-            }
+
 
     def __str__(self):
-           return 'nom: {}\ncouleur: {}\n---\n{}'.format(self.nom,self.couleur,self.courDeferme)
+           return 'nom: {}\n'.format(self.nom)
        
-    def listerPossibilites(self):
-        actionPossibles=[]
+    def possibilites(self):
             
         actionsSpeJouables=[]
-        for aS in variablesGlobales.plateau["actionsSpeciales"].keys():
+        for aS in self.partie.plateau["actionsSpeciales"].keys():
             if self.jePeuxFaireActionSpeciale(aS):
                 actionsSpeJouables.append(aS)
         
         casesJouables=[]
+        
         for i in range(1,31):
-            if variablesGlobales.plateau['cases'][i].visible and variablesGlobales.plateau['cases'][i].libre:
-                if self.jePeuxJouer(variablesGlobales.plateau['cases'][i].cout):
-                    if self.jeRemplisLesConditions(variablesGlobales.plateau['cases'][i].condition):
-                        casesJouables.append(variablesGlobales.plateau['cases'][i])
+            if self.partie.plateau['cases'][i].visible and self.partie.plateau['cases'][i].libre:
+                if self.jePeuxJouer(self.partie.plateau['cases'][i].cout):
+                    if self.jeRemplisLesConditions(self.partie.plateau['cases'][i].condition):
+                        casesJouables.append(self.partie.plateau['cases'][i])
         
         #on regarde si on a des cases activables
         for c in self.cartesDevantSoi:
@@ -63,45 +60,84 @@ class Joueur(object):
         #manger cru        
         for k in ['l','c']:
             if self.ressources[k]>0:
-                casesJouables.append(deck['utilitaire'][k+" cru"])
+                casesJouables.append(Carte(partie=self.partie,**deck['utilitaire'][k+" cru"]))
 
         casesJouables=casesJouables+self.cartesActivables
-        
-        choix=util.printPossibilities("QUE VOULEZ VOUS FAIRE?",casesJouables)
-        if choix==-1:
-            self.listerPossibilites()
+        self.partie.choixPossibles=casesJouables
+#         choix=util.printPossibilities(self.partie,"QUE VOULEZ VOUS FAIRE?",casesJouables)
+#         if choix==-1:
+#             self.listerPossibilites()
+#             
+#         #ACTION CONFIRMEE
+#         #si c'est un action ou on ne joue pas de pion (as ou utilisation d'un foyer)
+#         if casesJouables[choix].sansPion :
+#             casesJouables[choix].activer()
+#             self.mettreAJourLesRessources(casesJouables[choix].cout)
+#             self.listerPossibilites()
+#         elif casesJouables[choix] in actionsSpeJouables:
+#             pass
+#         else:
+#         
+#             personage=self.personnages.pop()
+#             self.personnagesPlaces.append(personnage)    
+#             caseJouee=casesJouables[choix].jouer(personage)
+#             print('je joue sur la case:',caseJouee)
+#             self.mettreAJourLesRessources(caseJouee.cout)
+#             self.tourFini= len(self.personnages)==0
+# #             carteJouee=casesJouables[choix].effet(faire=True)
+# #             carteJouee.jouer()
+#                       
+#         return actionPossibles   
+    
+    def pouvoirCuisson(self,ncereal):
+        #combien j'ai de bouffe au max si je cuis ncereal
+        return 2*ncereal
             
-        #ACTION CONFIRMEE
-        #si c'est un action ou on ne jour pas de pion (as ou utilisation d'un foyer)
-        if casesJouables[choix].sansPion :
-            casesJouables[choix].activer()
-            self.mettreAJourLesRessources(casesJouables[choix].cout)
-            self.listerPossibilites()
-        elif casesJouables[choix] in actionsSpeJouables:
-            pass
+    #doit retourner, soit -1 action fini, soit le sujet s'il y a encore des possibilites
+    def jouer(self,choix):
+        if choix==-1:
+            return self
         else:
-        
-            pion=variablesGlobales.pions[variablesGlobales.quiJoue].pop()
-            variablesGlobales.pionsPlaces[variablesGlobales.quiJoue].append(pion)    
-            caseJouee=casesJouables[choix].jouer(pion)
-            print('je joue sur la case:',caseJouee)
-            self.mettreAJourLesRessources(caseJouee.cout)
-            self.tourFini= len(variablesGlobales.pions[variablesGlobales.quiJoue])==0
-#             carteJouee=casesJouables[choix].effet(faire=True)
-#             carteJouee.jouer()
-                      
-        return actionPossibles   
+            #ACTION CONFIRMEE
+            #si c'est un action ou on ne joue pas de pion (as ou utilisation d'un foyer)
+            if self.partie.casesJouables[choix].sansPion :
+                self.partie.casesJouables[choix].activer()
+                self.mettreAJourLesRessources(self.partie.casesJouables[choix].cout)
+                self.possibilites()
+#     TODO        elif self.casesJouables[choix] in actionsSpeJouables:
+#                 pass
+            else:
+            
+ 
+                (choixPossibles,caseJouee)=self.partie.casesJouables[choix].jouer()
+                if choixPossibles==-1:
+                    print('je joue sur la case:',caseJouee)
+                    
+                    rcode=-1
+                    self.mettreAJourLesRessources(caseJouee.cout)
+                    personnage=self.personnages.pop()
+                    self.personnagesPlaces.append(personnage)                   
+                    caseJouee.mettrePersonnage(personnage)
+                    self.tourFini= len(self.personnages)==0
+                    if self.tourFini:
+                        self.partie.quiAFini.append(self.partie.quiJoue)
+                    return rcode
+                else:
+                    return (choixPossibles,caseJouee)
      
     def jePeuxJouer(self,cout): #cout ou condition
-        return jouable(self.ressources,cout,True)
+        return util.jouable(self.ressources,cout,True)
          
     def jeRemplisLesConditions(self,cond):
         #on traita ça comme un cout
         if type(cond)==dict:
-            return jouable(self.ressources,cond,True)
+            return util.jouable(self.ressources,cond,True)
         else:
             #sinon on appelle la fonction
             return cond
+    
+    def jaiFini(self):
+        return len(self.personnages)==0
     
     def quePuisJeSemer(self):
         #methode modifiable si certaines cartes sont jouees
@@ -142,4 +178,20 @@ class Joueur(object):
             print("apres:")
             print(self.ressources)   
             
+    def save(self):
+        dico={}
+        dico['nom']=self.nom
+        dico['id']=self.id
+        dico['couleur']=self.couleur
+        dico['courDeFerme']=self.courDeFerme.save()
+        dico['cartesEnMain']=[c.save() for c in self.cartesEnMain]
+        dico['cartesDevantSoi']=[c.save() for c in self.cartesDevantSoi]
+        dico['tourFini']=self.tourFini
+        dico['cartesActivables']=[c.save() for c in self.cartesActivables]
+        dico['ressources']=self.ressources
+        dico['personnages']=[p.save() for p in self.personnages]
+        dico['personnagesPlaces']=[p.save() for p in self.personnagesPlaces]
+        return dico
         
+
+           

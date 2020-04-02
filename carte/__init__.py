@@ -1,15 +1,14 @@
-import pygricola.variablesGlobales
 import pygricola.util as util
-from pygricola.ressources import short2Long
 
 
 
 
 class Carte:
 
-    def __init__(self, nom,description,cout={},condition={},effet={},option={},activer=util.dummy,sansPion=False):
+    def __init__(self,partie, nom,description,possibilites={},cout={},condition={},effet={},option={},activer=util.dummy,sansPion=False):
         self.nom = nom
         self.description = description
+        self.partie=partie
         if type(cout)==dict:
             self._cout=cout.copy()
         else:
@@ -24,8 +23,10 @@ class Carte:
             self._option=condition                
         self._activer=activer 
         self._effet=effet
+        self._possibilites=possibilites
         self.sansPion=sansPion
-        self.phraseJouer='je joue :'
+        self.phraseJouer='joue :'
+        self.occupants=[]
 #        super().__init__()
     
     def __str__(self):
@@ -42,36 +43,70 @@ class Carte:
         if type(self._cout)==dict:
             return self._cout
         else:
-            return self._cout()
+            return self._cout(self.partie)
     
     @property   
     def condition(self):
         if type(self._condition)==dict:
             return self._condition
         else:
-            return self._condition()        
+            return self._condition(self.partie)        
     @property   
     def option(self):
         if type(self._option)==dict:
             return self._option
         else:
-            return self._option()        
+            return self._option(self.partie)        
 
     
-    def effet(self):
+    def effet(self,choix,choixPossibles):
         if type(self._effet)==dict:
-                
             return self._effet
         else:
-            return self._effet()    
+            return self._effet(self.partie,choix,choixPossibles,self)    
+
+    def possibilites(self):
+        if type(self.possibilites)==dict:
+            return -1 #on n'a pas de choix à faire
+        else:
+            return self._possibilites(self.partie)        
+
         
     def jouer(self):
-        print(self.phraseJouer,self.nom)
-        self.effet()
-        return self
-        
+        encore=True # on va encore pouvoir jouer après
+        #on regarde si la carte a une fonction possibilite
+        if not type(self._possibilites)==dict:
+            choixPossibles=self._possibilites(self.partie,self)
+            self.partie.choixPossibles=choixPossibles
+            self.sujet=self
+            return (choixPossibles,self,encore,"jouerA")
+        else:
+            self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.nom))
+            self.partie.joueurQuiJoue().mettreAJourLesRessources(self.cout)
+            self._cout=util.rVide()
+            if self.sansPion==True:
+                print('vous pouvez jouer encore')
+                self.partie.initChoix()
+                return (-1,self,encore,"jouerB")
+
+            else:
+                personnage=self.partie.joueurQuiJoue().personnages.pop()
+                self.partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
+                self.mettrePersonnage(personnage)
+                encore=False
+            return (-1,self,encore,"jouerC")
+    
+    def mettrePersonnage(self,perso):
+        print("Mettre personnage")
+        perso.localisation=self
+        self.occupants.append(perso)
+        self.libre=False
+            
     def printCout(self):
         return str(self.cout)
+    
+    def save(self):
+        return {'nom':self.nom}
         
 def byPassNaissance():
     pass
@@ -83,22 +118,27 @@ def avoirXSavoirFaire(type,x):
     pass
 
 
-def cuisson(carte):
+
+def possibilitesCuisson(partie,carte):
     #on recupere le dict cuisson dans option
-    dictCuisson=carte.option['cuissonDict']
+    dictCuisson=carte.option['cuissonDict']    
     possibilites=[]
     for res in ['l','m','s','v']:
-        if (variablesGlobales.joueurs[variablesGlobales.quiJoue].ressources[res]>0):
-            possibilites.append(Carte("cuire un {} pour {} pn".format(short2Long[res],dictCuisson[res]),"toto",cout={res:1,'n':-dictCuisson[res]},sansPion=True))        
-    choix=util.printPossibilities("Que voulez vous cuire? :",possibilites)
-    if choix != -1:
-        possibilites[choix].jouer() 
-        variablesGlobales.joueurs[variablesGlobales.quiJoue].mettreAJourLesRessources(possibilites[choix].cout)       
-    return
+        if (partie.joueurQuiJoue().ressources[res]>0):
+            possibilites.append(Carte(partie,"cuire un {} pour {} pn".format(util.short2Long[res],dictCuisson[res]),"toto",cout={res:1,'n':-dictCuisson[res]},sansPion=True))  
+    partie.phraseChoixPossibles="Que voulez vous cuire? :"
+    return possibilites            
+def cuisson(partie,choix,possibilites,carte):
+    #on recupere le dict cuisson dans option
+    dictCuisson=carte.option['cuissonDict']
+    print('cuisson',choix,possibilites,carte,possibilites[choix])
+    possibilites[choix].jouer()
+    return 0
 
 def payerLeCout():
     variablesGlobales.joueurs[variablesGlobales.quiJoue].mettreAJourLesRessources(possibilites[choix].cout)
     
+
 
 
 
@@ -147,13 +187,27 @@ mineursDict["foyer simple"]={
     'cout':{'a':1},
     'activer':cuisson,
     'option':{'cuissonDict':{'l':2,'m':1,'s':2,'b':3},'cuissonPain':{'c':2}},    
+    'sansPion':True,
+    'effet':cuisson,
+    'possibilites':possibilitesCuisson,
     }
 
 savoirFaireDict={}
 
 utilitaireDict={}
-utilitaireDict["c cru"]=Carte("manger cru une cereale pour 1 pn","toto",cout={'c':1,'n':-1},sansPion=True)
-utilitaireDict["l cru"]=Carte("manger cru un légume pour 1 pn","toto",cout={'l':1,'n':-1},sansPion=True)
+utilitaireDict["c cru"]={
+    'nom':"manger cru une cereale pour 1 pn",
+    'description':"toto",
+    'cout':{'c':1,'n':-1},
+    'sansPion':True
+    }
+
+utilitaireDict["l cru"]={
+    'nom':"manger cru un légume pour 1 pn",
+    'description':"toto",
+    'cout':{'l':1,'n':-1},
+    'sansPion':True
+    }
 
 
 deck={

@@ -1,8 +1,14 @@
-import pygricola.variablesGlobales
 
 
 def rVide():
     return {'b':0,'a':0,'p':0,'r':0,'n':0,'f':0,'c':0,'l':0,'m':0,'s':0,'v':0,'h':0}.copy()
+
+def estVide(r):
+    vide=True
+    for k in r.keys():
+        if r[k]!=0:
+            vide=False
+    return vide
 
 def dummy():
     pass
@@ -13,30 +19,30 @@ def dummy():
 # ~ listeReponse=[]
 # ~ listeReponse=["9","o","0","o","0","o","0","o","-1","o"]
 
+
+
 idx=0
 
 
 
-
-
-def customInput(msg):
+def customInput(partie,msg):
     global idx
     normalInput=True
     try:
-        variablesGlobales.listeReponse[idx]
+        partie.listeReponse[idx]
         normalInput=False
     except:
         pass
     if normalInput:
         return input(msg)
     else:
-        ret=variablesGlobales.listeReponse[idx]
+        ret=partie.listeReponse[idx]
         idx+=1
         return ret        
     
 #dans certains cas, on ne veux pas que l'action soit annulable, par exemple 
 #quand on veut savoir si on construit la deuxieme piece
-def printPossibilities(message,possibilites,annulable=True):
+def printPossibilities(partie,message,possibilites,annulable=True):
     
     choixValide=False
     confirmation=False
@@ -53,7 +59,7 @@ def printPossibilities(message,possibilites,annulable=True):
                 print("{} : {}".format(possibilites.index(p),nom))
             if annulable:
                 print('a pour anuler:')     
-            g = customInput(message+"   ") 
+            g = customInput(partie,message+"   ") 
             try:
                 if g=='a':
                     if not annulable:
@@ -67,11 +73,11 @@ def printPossibilities(message,possibilites,annulable=True):
             except:
                 pass
             if not choixValide:
-                print('Vous avez fait un choix invalide!! Recommencez')
+                print('Vous avez fait un choix invalide!!',g,' Recommencez')
         
         
         stri="Vous avez choisi {}\n Vous confirmez?(o/n)   ".format(possibilites[choix])
-        conf = customInput(stri) 
+        conf = customInput(partie,stri) 
         if(conf=='o'):
             confirmation=True
         elif conf=='n':
@@ -81,3 +87,63 @@ def printPossibilities(message,possibilites,annulable=True):
         
     return choix 
 
+
+short2Long={
+    'b':'bois',
+    'a':'argile',
+    'p':'pierre',
+    'r':'roseau',
+    'n':'pn',
+    'f':'feu',
+    'c':'cereale',
+    'l':'legume',
+    'm':'mouton',
+    's':'sanglier',
+    'v':'boeuf',
+    'h':'cheval',
+    }
+long2Short={
+    'bois':'b',
+    'argile':'a',
+    'pierre':'p',
+    'roseau':'r',
+    'pn':'n',
+    'feu':'f',
+    'cereale':'c',
+    'legume':'l',
+    'mouton':'m',
+    'sanglier':'s',
+    'boeuf':'v',
+    'cheval':'h',
+    }
+
+
+def ajouter(a,b):
+    somme={}
+    for k in list(set(a.keys()).union(set(b.keys()))):
+        if k not in a.keys():
+            somme[k]=b[k]
+        elif k not in b.keys():
+            somme[k]=a[k]
+        else:
+            somme[k]=a[k]+b[k]
+    return somme
+
+def jouable(a,b,dbg=False):
+    #true if a>=b
+    #valable pour cout et condition
+    res=True
+    
+    for k in a.keys():
+        if k in b.keys():
+            if (b[k]>0):
+                if a[k]<b[k]:
+                    if (dbg):
+                        print("jouable",k,a[k],b[k])
+                    res=False
+                    break
+    return res
+
+
+
+        

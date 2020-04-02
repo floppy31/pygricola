@@ -1,23 +1,15 @@
 from pygricola.carte import Carte 
 
 
-resourceAlias={
-            'bois':'B',
-            'argile':'A',
-            'pierre':'P',
-            'roseau':'R',
-            'pn':'N',
-            'feu':'F',
-            }
 
 
 class CarteAction(Carte):
 
-    def __init__(self,nom,desc,cout={},condition={},effet={},visible=False,activer=True,sansPion=False):
+    def __init__(self,partie,nom,desc,possibilites={},cout={},condition={},effet={},visible=False,activer=True,sansPion=False):
         self.visible=visible
         self.activer=activer
         self.libre=True
-        super().__init__(nom,desc,cout=cout,effet=effet,condition=condition,sansPion=sansPion)
+        super().__init__(partie,nom,desc,possibilites=possibilites,cout=cout,effet=effet,condition=condition,sansPion=sansPion)
         
     def reappro(self):
         pass
@@ -28,18 +20,14 @@ class CarteAction(Carte):
     def faireAction(Carte):
         pass
 
-    def jouer(self,pion):
-        pion.localisation=self
-        self.libre=False
-        return super().jouer()
-            
+
 
         
 class CaseAppro(CarteAction):
 
-    def __init__(self,nom,desc,appro,visible=False,sansPion=False):
+    def __init__(self,partie,nom,desc,appro,possibilites={},effet={},cout={},visible=False,sansPion=False):
         self.appro=appro
-        super().__init__(nom,desc,visible=visible,sansPion=sansPion)
+        super().__init__(partie,nom,desc,possibilites=possibilites,cout=cout,effet=effet,visible=visible,sansPion=sansPion)
         
     def reappro(self):
         for k in self.appro.keys():
