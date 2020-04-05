@@ -15,6 +15,8 @@ def dummy():
 
 
 
+
+
 # ~ listeReponse=["9","o","1","o","8","o","7","o","6","o"]
 # ~ listeReponse=[]
 # ~ listeReponse=["9","o","0","o","0","o","0","o","-1","o"]
@@ -51,8 +53,9 @@ def printPossibilities(partie,message,possibilites,annulable=True):
         while(not choixValide):
             
             for p in possibilites:
-                
-                if hasattr(p, 'nom'):
+                if hasattr(p, 'display'):
+                    nom=p.display
+                elif hasattr(p, 'nom'):
                     nom=p.nom
                 else:
                     nom=p
@@ -119,6 +122,7 @@ long2Short={
 
 
 def ajouter(a,b):
+    
     somme={}
     for k in list(set(a.keys()).union(set(b.keys()))):
         if k not in a.keys():
@@ -127,23 +131,28 @@ def ajouter(a,b):
             somme[k]=a[k]
         else:
             somme[k]=a[k]+b[k]
-    return somme
+    print("somme",a,b,somme)
+    return somme.copy()
 
-def jouable(a,b,dbg=False):
+def jouable(a,b):
     #true if a>=b
     #valable pour cout et condition
     res=True
-    
+    raison="OK"
     for k in a.keys():
         if k in b.keys():
             if (b[k]>0):
                 if a[k]<b[k]:
-                    if (dbg):
-                        print("jouable",k,a[k],b[k])
                     res=False
+                    raison="non jouable {} {} {}".format(k,a[k],b[k])
                     break
-    return res
+    return res,raison
 
-
+def prettyGain(a):
+    stri=""
+    for k in a.keys():
+        if (a[k]!=0):
+            stri+="+{} {} ".format(str(-a[k]),short2Long[k])
+    return stri
 
         

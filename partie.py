@@ -1,7 +1,9 @@
-from pygricola.joueur import Joueur 
+from pygricola.joueur import Joueur ,loadJoueur
 from pygricola.carte.action import CarteAction,CaseAppro
-from pygricola.carte import deck
-from pygricola.carte.majeur import AmenagementMajeur
+
+
+from pygricola.carte import deck,loadCarte,genererActionsSpeciales
+from pygricola.carte.amenagement import AmenagementMajeur
 import pygricola.fonctionsPlateau as fct
 
 import pygricola.util as util
@@ -13,7 +15,7 @@ example={
     1:('Daniel','yellow'),
     2:('Gauthier','red'),
     3:('Damien','green'),
-    4:('Arthur','violet'),
+    4:('Anouck','violet'),
       }
 
 recoltes=[4,7,9,11,13,14]
@@ -110,6 +112,7 @@ class Partie(object):
         self.choixPossibles=[] #on garde ça en memoire
         self.phraseChoixPossibles="" #on garde ça en memoire
         self.sujet="" #on garde ça en memoire
+        self.messagesDetail=[] #pour debug
         
     #je separe la fonction d'init... a cause de save/load
     #on a besoin de creer un objet partie sans tout réinitialiser
@@ -118,7 +121,7 @@ class Partie(object):
         self.nombreJoueurs=nombreJoueurs
         self.streamName=streamName
         self.listeReponse=listeReponse       
-        self._initJoueurs()       
+        self._initJoueurs()        
         self.initOrdre()
         (positionTourbes,positionForets)=self.genererCourDeferme()
         self.faireCourDeferme(positionTourbes,positionForets)      
@@ -129,19 +132,19 @@ class Partie(object):
         
     def _initJoueurs(self):
 
-        
+        bonusNourriture=[0,1,1,1,2]
         for j in range(self.nombreJoueurs):
 
             (n,c)=example[j]
             self.joueurs[j]=Joueur(partie=self,id=j,nom=n,couleur=c)
-
+            self.joueurs[j].ressources['n']+=bonusNourriture[j]
 
         
     def _genererPlateau(self,nombre):
         self.plateau["cases"]=dict()
         self.plateau["actionsSpeciales"]=dict()
         self.plateau["tour"]=1
-
+        self.plateau["actionsSpeciales"]=genererActionsSpeciales(self)
         if nombre==2:
             self.plateau["cases"][1]=CarteAction(self,"","toto",visible=False)
             self.plateau["cases"][2]=CarteAction(self,"","toto",visible=False)
@@ -152,22 +155,22 @@ class Partie(object):
         elif nombre ==3:
             self.plateau["cases"][1]=CarteAction(self,"","toto",visible=False)
             self.plateau["cases"][2]=CarteAction(self,"","toto",visible=False)
-            self.plateau["cases"][3]=CaseAppro(self,"1 argile","toto",{'a':-1},visible=True)
-            self.plateau["cases"][4]=CaseAppro(self,"2 bois","toto",{'b':-2},visible=True)
+            self.plateau["cases"][3]=CaseAppro(self,"argile x1","toto",{'a':-1},visible=True)
+            self.plateau["cases"][4]=CaseAppro(self,"bois x2","toto",{'b':-2},visible=True)
             self.plateau["cases"][5]=CarteAction(self,"Roseau ou Pierre + pn","toto",possibilites=fct.possibiliteRoseauPnOuPierrePn,effet=fct.roseauPnOuPierrePn,visible=True)
             self.plateau["cases"][6]=CarteAction(self,"1 savoir faire pour 2 pn","toto",cout={'n':2},visible=True)       
         elif nombre==4:
             self.plateau["cases"][1]=CaseAppro(self,"Spectacle","toto",{'n':-1},visible=True)
             self.plateau["cases"][2]=CarteAction(self,"1 savoir faire pour 1 ou 2 pn","toto",cout=fct.coutSavoirFaire2,visible=True)
-            self.plateau["cases"][3]=CaseAppro(self,"2 argiles","toto",{'a':-2},visible=True)
-            self.plateau["cases"][4]=CaseAppro(self,"2 bois","toto",{'b':-2},visible=True)
-            self.plateau["cases"][5]=CaseAppro(self,"1 bois","toto",{'b':-1},visible=True)
+            self.plateau["cases"][3]=CaseAppro(self,"argiles x2","toto",{'a':-2},visible=True)
+            self.plateau["cases"][4]=CaseAppro(self,"bois x2","toto",{'b':-2},visible=True)
+            self.plateau["cases"][5]=CaseAppro(self,"bois x1","toto",{'b':-1},visible=True)
             self.plateau["cases"][6]=CarteAction(self,"Roseau pierre pn","toto",cout={'n':-1,'p':-1,'r':-1},visible=True)
         elif nombre ==5:
-            self.plateau["cases"][1]=CaseAppro(self,"Construction d'un pièce ou Spectacle","toto",{'n':-1},possibilites=fct.possibiliteConstructionOuSpectacle,effet=fct.constructionOuSpectacle,visible=True)
+            self.plateau["cases"][1]=CaseAppro(self,"Construction d'une pièce ou Spectacle","toto",{'n':-1},possibilites=fct.possibiliteConstructionOuSpectacle,effet=fct.constructionOuSpectacle,visible=True)
             self.plateau["cases"][2]=CarteAction(self,"1 savoir faire pour 1 ou 2 pn ou Naissance","toto",condition=fct.jePeuxJouerSavoirFaireOuNaissance,possibilites=fct.possibiliteSavoiFaireOuNaissance,effet=fct.savoiFaireOuNaissance,visible=True)
-            self.plateau["cases"][3]=CaseAppro(self,"3 argiles","toto",{'a':-3},visible=True)
-            self.plateau["cases"][4]=CaseAppro(self,"4 bois","toto",{'b':-4},visible=True)
+            self.plateau["cases"][3]=CaseAppro(self,"argiles x3","toto",{'a':-3},visible=True)
+            self.plateau["cases"][4]=CaseAppro(self,"bois x4","toto",{'b':-4},visible=True)
             self.plateau["cases"][5]=CarteAction(self,"Bétail","toto",visible=True,possibilites=fct.possibiliteBetail,effet=fct.betail)
             self.plateau["cases"][6]=CaseAppro(self,"Roseau pierre bois","toto",{'r':-1},cout={'b':-1,'p':-1},visible=True)        #il y a 30 case
         #6 1eres sont celles qui dependent du nombre de joueur
@@ -179,9 +182,9 @@ class Partie(object):
         self.plateau["cases"][10]=CarteAction(self,"Labourage d'un champ","toto",visible=True,effet=fct.labourage,possibilites=fct.possibilitesLabourage)
         self.plateau["cases"][11]=CarteAction(self,"1 savoir faire","toto",cout=fct.coutSavoirFaire1,visible=True)
         self.plateau["cases"][12]=CarteAction(self,"Journalier","toto",cout={'n':-2},visible=True)
-        self.plateau["cases"][13]=CaseAppro(self,"3 bois ","toto",{'b':-3},visible=True)
-        self.plateau["cases"][14]=CaseAppro(self,"1 argile","toto",{'a':-1},visible=True)
-        self.plateau["cases"][15]=CaseAppro(self,"1 roseau","toto",{'r':-1},visible=True)
+        self.plateau["cases"][13]=CaseAppro(self,"bois x3","toto",{'b':-3},visible=True)
+        self.plateau["cases"][14]=CaseAppro(self,"argile x1","toto",{'a':-1},visible=True)
+        self.plateau["cases"][15]=CaseAppro(self,"roseau x1","toto",{'r':-1},visible=True)
         self.plateau["cases"][16]=CaseAppro(self,"Pêche ","toto",{'n':-1},visible=True)
         self.plateau["cases"][17]=self.actionSurTours[1]
         self.plateau["cases"][18]=self.actionSurTours[2]
@@ -328,6 +331,13 @@ class Partie(object):
                 self.listerPossibilites()
 #     TODO        elif self.casesJouables[choix] in actionsSpeJouables:
 #                 pass
+            #ACTION SPECIALE
+            elif isinstance(self.casesJouables[choix],ActionSpeciale):
+                #
+                self.casesJouables[choix].jouer()
+                wdfwdf
+
+
             else:
             
                 personnage=self.joueurs[self.quiJoue].personnages.pop()
@@ -442,12 +452,14 @@ class Partie(object):
     #pour le graphique    
     def exportPlateau(self):
         cases=[]
-        for c in range(10):
-            dico={
-                'nom':"Majeur",
-                'type':"Majeur",
-                }
-            cases.append(dico.copy())
+        for c in self.plateau['majeurs'].keys():
+            if self.plateau['majeurs'][c].visible:
+                dico={
+                    'nom':self.plateau['majeurs'][c].nom,
+                    'type':"Majeur",
+                    'devoile':self.plateau['majeurs'][c].devoile
+                    }
+                cases.append(dico.copy())
         for c in self.plateau["cases"].keys():
             dico={
                 'nom':self.plateau["cases"][c].nom,
@@ -465,6 +477,14 @@ class Partie(object):
 
             
             cases.append(dico.copy())
+            
+        for CAS in self.plateau["actionsSpeciales"]:
+            dico={
+                'nom':CAS.listAs(),
+                'type':"ActionSpeciale",
+                'etat':CAS.etat,
+                }
+            cases.append(dico.copy())            
         return cases
     
     
@@ -482,11 +502,30 @@ class Partie(object):
         dico["nombreJoueurs"]=self.nombreJoueurs
         dico["premierJoueur"]=self.premierJoueur
         dico["quiAFini"]=self.quiAFini
-        dico["listeReponse"]=self.listeReponse        
+        dico["listeReponse"]=self.listeReponse    
+        dico["messagesPrincipaux"]=self.messagesPrincipaux    
+        dico["choixPossibles"]=self.choixPossibles    
+        dico["phraseChoixPossibles"]    =self.phraseChoixPossibles    
+        dico["sujet"] =self.sujet    
         return json.dumps(dico)
 
     
     
-    def load(self):
-        pass
+    def load(self,jsonStr):
+        dico=json.loads(jsonStr)
+        self.plateau['cases']=[loadCarte(c,self) for c in dico["plateau"]['cases']]
+        self.plateau['actionsSpeciales']=[loadCarte(c,self) for c in dico["plateau"]['cases']]
+        self.plateau['majeurs']=[loadCarte(c,self) for c in dico["plateau"]['cases']]
+        self.plateau['tour']=dico["plateau"]['tour']
+        
+        self.joueurs =[loadJoueur(j,self) for j in dico["joueurs"]]
+        self.quiJoue=dico["quiJoue"]
+        self.nombreJoueurs=dico["nombreJoueurs"]
+        self.premierJoueur=dico["premierJoueur"]
+        self.quiAFini=dico["quiAFini"]
+        self.listeReponse=dico["listeReponse"]
+        self.messagesPrincipaux=dico["messagesPrincipaux"]
+        self.choixPossibles=dico["choixPossibles"] #on garde ça en memoire
+        self.phraseChoixPossibles=dico["phraseChoixPossibles"] #on garde ça en memoire
+        self.sujet=dico["sujet"] #on garde ça en memoire        
 

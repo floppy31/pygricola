@@ -20,7 +20,6 @@ class CourDeFerme(object):
         self.etat=OrderedDict()
         for case in parseList:
             self.etat[case]=Tuile('vide')
-        self.etat["c2"]=Tuile('maisonBois')
         self.etat["b1"]=Tuile('maisonBois')
         self.etat["c1"]=Tuile('maisonBois')
         self.paturages = Paturage()
@@ -46,6 +45,10 @@ class CourDeFerme(object):
     def compterEtablesDispo(self):
         #TODO
         return 4
+    
+    
+    def contient(self,type):
+        return type in self.etat.keys()
     
     def compter(self,type):
         compteur=0
@@ -121,7 +124,7 @@ class CourDeFerme(object):
         
     def save(self):
         #TODO: doit retourner un dico ou ordered dico
-        return self.prettyPrint()
+        return [alias[self.etat[case].type] for case in parseList]
     
     def load(self):
         #TODO : doit refaire la cour de ferme à partir d'un dico

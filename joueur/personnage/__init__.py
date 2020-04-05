@@ -25,4 +25,10 @@ class Personnage(object):
         dico['localisationInit']=self.localisationInit
         dico['consomationNourriture']=self.consomationNourriture
         dico['id']=self.id
+        dico['couleur']=self.couleur
         return dico
+    
+def loadPersonnage(dico):
+    p=Personnage(dico['localisation'],dico['id'],dico['couleur'])
+    p.localisationInit=dico['localisationInit']
+    return p
