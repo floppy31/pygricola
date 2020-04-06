@@ -1,4 +1,5 @@
 import pygricola.util as util
+
 ####cette condition est particulière
 ####si la carte à une methode possibilités, on l'appelle avec Fake=True
 ####si la liste est vide, on ne peux pas faire l'action
@@ -7,7 +8,6 @@ def possibilitesNonVide(partie,carte):
         pos=carte._possibilites(partie,carte,Fake=True)
         if len(pos)==0:
             partie.messagesDetail.append("{} : possibilites vides".format(carte.nom) )
-
         return len(pos)>0
     return True
     
@@ -17,24 +17,21 @@ def possibilitesNonVide(partie,carte):
 ##################################################################################
 
 def possibiliteBetail(partie,carte,Fake=False):
-
     joueur=partie.joueurQuiJoue()
-
-    possibilite=["1 mouton et 1 Pn","1 sanglier"]
+    possibilite=["u0","u1"]
     if(joueur.jePeuxJouer({'n':1})):
-        possibilite.append("1 pn contre 1 boeuf")
+        possibilite.append("u2")
     if not Fake:
-        partie.phraseChoixPossibles="Choissisez une action:"
-        partie.sujet=carte
-        
+        partie.phraseChoixPossibles="p0"
+        partie.sujet=carte 
     return possibilite
 
 def betail(partie,choix,possibilites,carte):
     cout={}
     joueur=partie.joueurQuiJoue()
-    if possibilites[choix]=="1 mouton et 1 Pn":
+    if possibilites[choix]=="u0":
         cout={"n":-1,"m":-1}
-    elif possibilites[choix]=="1 sanglier":
+    elif possibilites[choix]=="u1":
         cout={"s":-1}
     else:
         cout={"n":1,"v":-1}
@@ -42,11 +39,36 @@ def betail(partie,choix,possibilites,carte):
     joueur.personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
     joueur.mettreAJourLesRessources(cout)
-    partie.messagesPrincipaux.append("{} prends {}".format(partie.joueurQuiJoue().nom,possibilites[choix]))
+    partie.messagesPrincipaux.append("{} ~p1~ {}".format(partie.joueurQuiJoue().nom,possibilites[choix]))
 
-    return (-1,carte,False,"") #on ne peux plus en jouer                
+    return (-1,carte,False,"") #on ne peux plus en jouer  
+              
+def possibiliteRoseauPnOuPierrePn(partie,carte,Fake=False):
+    possibilites=["u4","u5"]
+    if (not Fake):   
+        partie.phraseChoixPossibles="p0"
+        partie.sujet=carte
+    return possibilites     
+
+def roseauPnOuPierrePn(partie,choix,possibilites,carte):
+    cout={}
+    joueur=partie.joueurQuiJoue()
+
+    if possibilites[choix]=="u4":
+        cout={"p":-1,"n":-1}
+    else:
+        cout={"r":-1,"n":-1}
         
+    personnage=joueur.personnages.pop()
+    joueur.personnagesPlaces.append(personnage)                  
+    carte.mettrePersonnage(personnage)
+    joueur.mettreAJourLesRessources(cout)
 
+    return (-1,carte,False,"") #on ne peux plus en jouer       
+       
+##################################################################################
+#---------------------------------------Naissances--------------
+##################################################################################
 def jePeuxNaitre(partie):
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
@@ -66,20 +88,20 @@ def jePeuxJouerSavoirFaireOuNaissance(partie,carte):
     
     
 def possibiliteSavoiFaireOuNaissance(partie,carte,Fake=False):
-    possibilites=["Savoir faire"]
+    possibilites=["p2"]
     joueur=partie.joueurQuiJoue()
     tourOk=partie.plateau["tour"]>4
     if tourOk:
         if joueur.jePeuxNaitre(partie):
-            possibilites.append('Naissance')
+            possibilites.append('p3')
     if (not Fake):
-        partie.phraseChoixPossibles="Choissisez une action:"
+        partie.phraseChoixPossibles="p0"
         partie.sujet=carte
     return possibilites     
 
 def savoiFaireOuNaissance(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
-    if possibilites[choix]=="Savoir faire":
+    if possibilites[choix]=="p2":
         cout=coutSavoirFaire2(partie)
         dgsdg
     else:
@@ -100,30 +122,29 @@ def savoiFaireOuNaissance(partie,choix,possibilites,carte):
         carte.mettrePersonnage(personnage)
         return (-1,carte,False,"") 
     
+def naissancePuisMineur(partie,choix,possibilites,carte):
+    from pygricola.joueur.personnage import Personnage
 
+    joueur=partie.joueurs[partie.quiJoue]
+    ferme=joueur.courDeFerme
+    #on a deja verifie qu'on peut naitre
+    #on regarde les enplacement des pions existants (useless???)
+    emplacements=[]
+    nbJoueurs=0
+    for p in joueur.personnages+joueur.personnagesPlaces:
+        emplacements.append(p.localisationInit)
+        nbJoueurs+=1
+    emplacements=set(emplacements)
+    emplacementsMaisons=set(ferme.tousLes('maison'))
+    
+    nouveauNe=Personnage(emplacementsMaisons.difference(emplacements).pop(),nbJoueurs+1,joueur.couleur)
+    carte.mettrePersonnage(nouveauNe)
+    nouveauNe.consomationNourriture=1
+    joueur.personnagesPlaces.append(nouveauNe)
+    
+    return choixAmenagementMineur(partie,choix,possibilites,carte)
 
-def possibiliteRoseauPnOuPierrePn(partie,carte,Fake=False):
-    possibilites=["1 pierre et 1 pn","1 roseau et 1 pn"]
-    if (not Fake):   
-        partie.phraseChoixPossibles="Choissisez une action:"
-        partie.sujet=carte
-    return possibilites     
-
-def roseauPnOuPierrePn(partie,choix,possibilites,carte):
-    cout={}
-    joueur=partie.joueurQuiJoue()
-
-    if possibilites[choix]=="1 pierre et 1 pn":
-        cout={"p":-1,"n":-1}
-    else:
-        cout={"r":-1,"n":-1}
-        
-    personnage=joueur.personnages.pop()
-    joueur.personnagesPlaces.append(personnage)                  
-    carte.mettrePersonnage(personnage)
-    joueur.mettreAJourLesRessources(cout)
-
-    return (-1,carte,False,"") #on ne peux plus en jouer        
+  
         
 
 ##################################################################################
@@ -154,6 +175,7 @@ def possibilitesAmenagementMineur(partie,carte,Fake=False):
         if joueur.jeRemplisLesConditions(c.condition):
              if joueur.jePeuxJouer(c.cout):
                         possibilites.append(c)
+    possibilites.append('u3')
     if (not Fake):                    
         partie.phraseChoixPossibles="Choissisez un aménagement mineur:"
         partie.sujet=carte
@@ -161,25 +183,32 @@ def possibilitesAmenagementMineur(partie,carte,Fake=False):
     
 def choixAmenagementMineur(partie,choix,possibilites,carte):
     carteJouee=possibilites[choix]
-    carteJouee.jouer()
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
-    joueur.cartesDevantSoi.append(carteJouee)
-    joueur.cartesEnMain.remove(carteJouee)
-    typeCarte="aménagement mineur"           
-    partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "réalise l'",typeCarte,carteJouee.nom))
-    
-    if(carte.nom=="Premier joueur et aménagement mineur"):
-        personnage=joueur.personnages.pop()
-        joueur.personnagesPlaces.append(personnage)                  
-        carte.mettrePersonnage(personnage)
+    if carteJouee=="u3":
+        #on ne fait pas de mineur
+        partie.messagesPrincipaux.append("{} {}".format(joueur.nom, "ne fais pas de mineur"))
+    else:    
+        carteJouee.jouer()
+        joueur.cartesDevantSoi.append(carteJouee)
+        joueur.cartesEnMain.remove(carteJouee)
+        partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "~p3~",carteJouee.nom))
+        
+    if carte.uid=="a1":#premier joueur + mineur
         partie.premierJoueur=joueur.id
-        encore=False    
-        return (-1,carte,False,"") #on ne peux plus en jouer
-    elif isinstance(carte,ActionSpeciale):
-        carte.carteQuiMePorte.etat+=1
-        joueur.mettreAJourLesRessources(carte.cout)
-        return (-1,carte,False,"")
+    elif carte.uid=="a14":#naissance + mineur
+        pass
+    else:
+        if isinstance(carte,ActionSpeciale):
+            carte.carteQuiMePorte.etat+=1
+            joueur.mettreAJourLesRessources(carte.cout)
+            return (-1,carte,False,"")     
+    personnage=joueur.personnages.pop()
+    joueur.personnagesPlaces.append(personnage)                  
+    carte.mettrePersonnage(personnage)
+    encore=False    
+    return (-1,carte,False,"") #on ne peux plus en jouer
+
     ##################################################################################
 #---------------------------------------Majeur          --------------------------
 ##################################################################################        
@@ -187,8 +216,8 @@ def possibilitesAmenagementMajeur(partie,carte,Fake=False):
     possibilites=[]   
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
-    for c in plateau["majeurs"]:
-        if joueur.jePeuxJouer(c.condition):
+    for k,c in plateau["majeurs"].items():
+        if joueur.jeRemplisLesConditions(c.condition):
              if joueur.jePeuxJouer(c.cout):
                         possibilites.append(c)
     if (not Fake):                    
@@ -521,8 +550,9 @@ def constructionOuSpectacle(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
 
     if possibilites[choix]=="Spectacle":
-        cout=carte.ressources.copy()
-        carte.ressources=util.rVide()
+        cout=carte.cout.copy()
+        carte._cout=util.rVide() #vidage de la carte???
+        TTTT
         partie.messagesPrincipaux.append("{} va sur Spectacle".format(partie.joueurQuiJoue().nom))
     else:
         ferme=joueur.courDeFerme
@@ -531,6 +561,7 @@ def constructionOuSpectacle(partie,choix,possibilites,carte):
         case=possibilites[choix].split("construire en ")[-1]
         ferme.etat[case].type=typeMaison  
         partie.messagesPrincipaux.append("{} construit 1 pièce en {}".format(partie.joueurQuiJoue().nom,case))
+
     joueur.mettreAJourLesRessources(cout)    
     personnage=partie.joueurQuiJoue().personnages.pop()
     partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  

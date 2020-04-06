@@ -2,7 +2,7 @@ import pygricola.util as util
 from partie import Partie
 listeReponse=[] #/pour prédefinir les premières reponses tapes au clavier
 #permet de jouer les premier coup automatiquemetn
-nJoueurs=2
+nJoueurs=3
 p=Partie()
 p.initialiser(nJoueurs,listeReponse)    
 p.demarragePartie()

@@ -3,7 +3,6 @@ import pygricola.util as util
 from pygricola.joueur.courDeFerme import CourDeFerme 
 from pygricola.joueur.personnage import Personnage,loadPersonnage
 from pygricola.carte import deck,Carte
-from pygricola.carte.amenagement import AmenagementMineur
 
 class Joueur(object):
 
@@ -13,9 +12,8 @@ class Joueur(object):
         self.id=id
         self.couleur=couleur
         self.courDeFerme=CourDeFerme(partie)
-        self.cartesEnMain=[AmenagementMineur(partie=self.partie,**deck['mineurs']["foyer simple"])]
+        self.cartesEnMain=[]
         self.cartesDevantSoi={}
-        self.cartesDevantSoi["foyer simple"]=AmenagementMineur(partie=self.partie,**deck['mineurs']["foyer simple"])       
         self.tourFini=False
         self.cartesActivables=[]
         self.personnages=[Personnage("b1",1,self.couleur),Personnage("c1",2,self.couleur)]
@@ -44,6 +42,7 @@ class Joueur(object):
         actionsSpeJouables=[]
         for CAS in self.partie.plateau["actionsSpeciales"]:
             for aS in CAS.listeActionSpeciale:
+                print("joueur",aS)
                 if self.jePeuxFaireActionSpeciale(aS):
                     actionsSpeJouables.append(aS)
                     

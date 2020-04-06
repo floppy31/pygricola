@@ -1,5 +1,4 @@
 
-
 def rVide():
     return {'b':0,'a':0,'p':0,'r':0,'n':0,'f':0,'c':0,'l':0,'m':0,'s':0,'v':0,'h':0}.copy()
 
@@ -122,7 +121,6 @@ long2Short={
 
 
 def ajouter(a,b):
-    
     somme={}
     for k in list(set(a.keys()).union(set(b.keys()))):
         if k not in a.keys():
@@ -133,6 +131,27 @@ def ajouter(a,b):
             somme[k]=a[k]+b[k]
     print("somme",a,b,somme)
     return somme.copy()
+
+def sontEgaux(a,b):
+    egaux=True
+    for k in list(set(a.keys()).union(set(b.keys()))):
+        if k not in a.keys():
+            if b[k]!=0:
+                egaux=False
+                break
+        elif k not in b.keys():
+            if a[k]!=0:
+                egaux=False
+                break
+        else:
+            if a[k]!=b[k]:
+                egaux=False
+                break
+    if not egaux:
+        print(a,b)
+    
+    return egaux
+
 
 def jouable(a,b):
     #true if a>=b

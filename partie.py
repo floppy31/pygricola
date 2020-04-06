@@ -2,8 +2,7 @@ from pygricola.joueur import Joueur ,loadJoueur
 from pygricola.carte.action import CarteAction,CaseAppro
 
 
-from pygricola.carte import deck,loadCarte,genererActionsSpeciales
-from pygricola.carte.amenagement import AmenagementMajeur
+from pygricola.carte import deck,loadCarte,genererActionsSpeciales,AmenagementMajeur
 import pygricola.fonctionsPlateau as fct
 
 import pygricola.util as util
@@ -49,25 +48,7 @@ def cloture(partie):
 
 
       
-def naissancePuisMineur(partie):
-    joueur=partie.joueurs[partie.quiJoue]
-    ferme=joueur.courDeFerme
-    #on a deja verifie qu'on peut naitre
-    #on regarde les enplacement des pions existants (useless???)
-    emplacements=[]
-    nbJoueurs=0
-    for p in joueur.personnages+joueur.personnagesPlaces[partie.quiJoue]:
-        emplacements.append(p.localisationInit)
-        nbJoueurs+=1
-    emplacements=set(emplacements)
-    emplacementsMaisons=set(ferme.tousLes('maison'))
-    
-    nouveauNe=Personnage(emplacementsMaisons.difference(emplacements).pop(),nbJoueurs+1,joueur.couleur)
-    carte.mettrePersonnage(nouveauNe)
-    nouveauNe.consomationNourriture=1
-    joueur.personnagesPlaces.append(nouveauNe)
-    
-    choixAmenagementMineur()
+
     
     
 
@@ -146,46 +127,46 @@ class Partie(object):
         self.plateau["tour"]=1
         self.plateau["actionsSpeciales"]=genererActionsSpeciales(self)
         if nombre==2:
-            self.plateau["cases"][1]=CarteAction(self,"","toto",visible=False)
-            self.plateau["cases"][2]=CarteAction(self,"","toto",visible=False)
-            self.plateau["cases"][3]=CarteAction(self,"","toto",visible=False)
-            self.plateau["cases"][4]=CarteAction(self,"","toto",visible=False)
-            self.plateau["cases"][5]=CarteAction(self,"","toto",visible=False)
-            self.plateau["cases"][6]=CarteAction(self,"","toto",visible=False)        
+            self.plateau["cases"][1]=CarteAction(self,"a40",visible=False)
+            self.plateau["cases"][2]=CarteAction(self,"a40",visible=False)
+            self.plateau["cases"][3]=CarteAction(self,"a40",visible=False)
+            self.plateau["cases"][4]=CarteAction(self,"a40",visible=False)
+            self.plateau["cases"][5]=CarteAction(self,"a40",visible=False)
+            self.plateau["cases"][6]=CarteAction(self,"a40",visible=False)        
         elif nombre ==3:
-            self.plateau["cases"][1]=CarteAction(self,"","toto",visible=False)
-            self.plateau["cases"][2]=CarteAction(self,"","toto",visible=False)
-            self.plateau["cases"][3]=CaseAppro(self,"argile x1","toto",{'a':-1},visible=True)
-            self.plateau["cases"][4]=CaseAppro(self,"bois x2","toto",{'b':-2},visible=True)
-            self.plateau["cases"][5]=CarteAction(self,"Roseau ou Pierre + pn","toto",possibilites=fct.possibiliteRoseauPnOuPierrePn,effet=fct.roseauPnOuPierrePn,visible=True)
-            self.plateau["cases"][6]=CarteAction(self,"1 savoir faire pour 2 pn","toto",cout={'n':2},visible=True)       
+            self.plateau["cases"][1]=CarteAction(self,"a40",visible=False)
+            self.plateau["cases"][2]=CarteAction(self,"a40",visible=False)
+            self.plateau["cases"][3]=CaseAppro(self,"a24",{'a':-1},visible=True)
+            self.plateau["cases"][4]=CaseAppro(self,"a25",{'b':-2},visible=True)
+            self.plateau["cases"][5]=CarteAction(self,"a26",possibilites=fct.possibiliteRoseauPnOuPierrePn,effet=fct.roseauPnOuPierrePn,visible=True)
+            self.plateau["cases"][6]=CarteAction(self,"a27",cout={'n':2},visible=True)       
         elif nombre==4:
-            self.plateau["cases"][1]=CaseAppro(self,"Spectacle","toto",{'n':-1},visible=True)
-            self.plateau["cases"][2]=CarteAction(self,"1 savoir faire pour 1 ou 2 pn","toto",cout=fct.coutSavoirFaire2,visible=True)
-            self.plateau["cases"][3]=CaseAppro(self,"argiles x2","toto",{'a':-2},visible=True)
-            self.plateau["cases"][4]=CaseAppro(self,"bois x2","toto",{'b':-2},visible=True)
-            self.plateau["cases"][5]=CaseAppro(self,"bois x1","toto",{'b':-1},visible=True)
-            self.plateau["cases"][6]=CarteAction(self,"Roseau pierre pn","toto",cout={'n':-1,'p':-1,'r':-1},visible=True)
+            self.plateau["cases"][1]=CaseAppro(self,"a28",{'n':-1},visible=True)
+            self.plateau["cases"][2]=CarteAction(self,"a29",cout=fct.coutSavoirFaire2,visible=True)
+            self.plateau["cases"][3]=CaseAppro(self,"a30",{'a':-2},visible=True)
+            self.plateau["cases"][4]=CaseAppro(self,"a31",{'b':-2},visible=True)
+            self.plateau["cases"][5]=CaseAppro(self,"a32",{'b':-1},visible=True)
+            self.plateau["cases"][6]=CarteAction(self,"a33",cout={'n':-1,'p':-1,'r':-1},visible=True)
         elif nombre ==5:
-            self.plateau["cases"][1]=CaseAppro(self,"Construction d'une pièce ou Spectacle","toto",{'n':-1},possibilites=fct.possibiliteConstructionOuSpectacle,effet=fct.constructionOuSpectacle,visible=True)
-            self.plateau["cases"][2]=CarteAction(self,"1 savoir faire pour 1 ou 2 pn ou Naissance","toto",condition=fct.jePeuxJouerSavoirFaireOuNaissance,possibilites=fct.possibiliteSavoiFaireOuNaissance,effet=fct.savoiFaireOuNaissance,visible=True)
-            self.plateau["cases"][3]=CaseAppro(self,"argiles x3","toto",{'a':-3},visible=True)
-            self.plateau["cases"][4]=CaseAppro(self,"bois x4","toto",{'b':-4},visible=True)
-            self.plateau["cases"][5]=CarteAction(self,"Bétail","toto",visible=True,possibilites=fct.possibiliteBetail,effet=fct.betail)
-            self.plateau["cases"][6]=CaseAppro(self,"Roseau pierre bois","toto",{'r':-1},cout={'b':-1,'p':-1},visible=True)        #il y a 30 case
+            self.plateau["cases"][1]=CaseAppro(self,"a34",{'n':-1},possibilites=fct.possibiliteConstructionOuSpectacle,effet=fct.constructionOuSpectacle,visible=True)
+            self.plateau["cases"][2]=CarteAction(self,"a35",condition=fct.jePeuxJouerSavoirFaireOuNaissance,possibilites=fct.possibiliteSavoiFaireOuNaissance,effet=fct.savoiFaireOuNaissance,visible=True)
+            self.plateau["cases"][3]=CaseAppro(self,"a36",{'a':-3},visible=True)
+            self.plateau["cases"][4]=CaseAppro(self,"a37",{'b':-4},visible=True)
+            self.plateau["cases"][5]=CarteAction(self,"a38",visible=True,possibilites=fct.possibiliteBetail,effet=fct.betail)
+            self.plateau["cases"][6]=CaseAppro(self,"a39",{'r':-1},cout={'b':-1,'p':-1},visible=True)        #il y a 30 case
         #6 1eres sont celles qui dependent du nombre de joueur
         #
 
-        self.plateau["cases"][7]=CarteAction(self,"Construction de pièce et/ou d'étable","toto",visible=True,condition=fct.jePeuxFaireConstructionDePieceEtOuEtable,effet=fct.planConstructionDePieceEtOuEtable,possibilites=fct.demanderPlanConstructionDePieceEtOuEtable)
-        self.plateau["cases"][8]=CarteAction(self,"Premier joueur et aménagement mineur","toto",visible=True,possibilites=fct.possibilitesAmenagementMineur,effet=fct.choixAmenagementMineur)
-        self.plateau["cases"][9]=CarteAction(self,"1 céréale","toto",cout={'c':-1},visible=True)
-        self.plateau["cases"][10]=CarteAction(self,"Labourage d'un champ","toto",visible=True,effet=fct.labourage,possibilites=fct.possibilitesLabourage)
-        self.plateau["cases"][11]=CarteAction(self,"1 savoir faire","toto",cout=fct.coutSavoirFaire1,visible=True)
-        self.plateau["cases"][12]=CarteAction(self,"Journalier","toto",cout={'n':-2},visible=True)
-        self.plateau["cases"][13]=CaseAppro(self,"bois x3","toto",{'b':-3},visible=True)
-        self.plateau["cases"][14]=CaseAppro(self,"argile x1","toto",{'a':-1},visible=True)
-        self.plateau["cases"][15]=CaseAppro(self,"roseau x1","toto",{'r':-1},visible=True)
-        self.plateau["cases"][16]=CaseAppro(self,"Pêche ","toto",{'n':-1},visible=True)
+        self.plateau["cases"][7]=CarteAction(self,"a0",visible=True,condition=fct.jePeuxFaireConstructionDePieceEtOuEtable,effet=fct.planConstructionDePieceEtOuEtable,possibilites=fct.demanderPlanConstructionDePieceEtOuEtable)
+        self.plateau["cases"][8]=CarteAction(self,"a1",visible=True,possibilites=fct.possibilitesAmenagementMineur,effet=fct.choixAmenagementMineur)
+        self.plateau["cases"][9]=CarteAction(self,"a2",cout={'c':-1},visible=True)
+        self.plateau["cases"][10]=CarteAction(self,"a3",visible=True,effet=fct.labourage,possibilites=fct.possibilitesLabourage)
+        self.plateau["cases"][11]=CarteAction(self,"a4",cout=fct.coutSavoirFaire1,visible=True)
+        self.plateau["cases"][12]=CarteAction(self,"a5",cout={'n':-2},visible=True)
+        self.plateau["cases"][13]=CaseAppro(self,"a6",{'b':-3},visible=True)
+        self.plateau["cases"][14]=CaseAppro(self,"a7",{'a':-1},visible=True)
+        self.plateau["cases"][15]=CaseAppro(self,"a8",{'r':-1},visible=True)
+        self.plateau["cases"][16]=CaseAppro(self,"a9",{'n':-1},visible=True)
         self.plateau["cases"][17]=self.actionSurTours[1]
         self.plateau["cases"][18]=self.actionSurTours[2]
         self.plateau["cases"][19]=self.actionSurTours[3]
@@ -203,8 +184,8 @@ class Partie(object):
         
         
         self.plateau["majeurs"]=dict()
-        for m in deck['majeurs'].keys():
-            self.plateau["majeurs"][deck['majeurs'][m]['nom']]=AmenagementMajeur(partie=self,**deck['majeurs'][m])
+        for uid,v in deck['majeurs'].items():
+            self.plateau["majeurs"][uid]=AmenagementMajeur(self,uid,**v)
                     
         
                 
@@ -221,20 +202,20 @@ class Partie(object):
     def faireActionSurTours(self):
         ordreActions={}
         
-        ordreActions[1]=CarteAction(self,'Aménagement majeur ou mineur','toto',effet=fct.choixAmenagementMineurOuMajeur,possibilites=fct.possibilitesAmenagementMineurOuMajeur)
-        ordreActions[2]=CarteAction(self,'Cloture','toto',effet=cloture,visible=False)
-        ordreActions[3]=CaseAppro(self,'1 mouton','toto',{'m':-1},visible=False)
-        ordreActions[4]=CarteAction(self,'Semaille et/ou cuisson de pain','toto',visible=False,possibilites=fct.demanderPlanSemailleEtOuCuisson,effet=fct.planSemailleEtOuCuisson,condition=fct.jePeuxFaireSemailleEtOuCuisson)
-        ordreActions[5]=CarteAction(self,'Naissance puis aménagement mineur','toto',visible=False,effet=naissancePuisMineur,condition=fct.jePeuxNaitre)
-        ordreActions[6]=CarteAction(self,'Rénovation puis aménagement majeur','toto',visible=False,effet=renoPuisMajeur,condition=jePeuxRenover)
-        ordreActions[7]=CaseAppro(self,'1 pierre','toto',{'p':-1},visible=False)
-        ordreActions[8]=CaseAppro(self,'1 légume','toto',{'l':-1},visible=False)
-        ordreActions[9]=CaseAppro(self,'1 sanglier','toto',{'s':-1},visible=False)
-        ordreActions[10]=CaseAppro(self,'1 boeuf','toto',{'b':-1},visible=False)
-        ordreActions[11]=CaseAppro(self,'1 pierre','toto',{'p':-1},visible=False)
-        ordreActions[12]=CarteAction(self,'Labourage semaille','toto',effet=labourageSemaille,visible=False)
-        ordreActions[13]=CarteAction(self,'Naissance même sans pièce libre','toto',effet=naissanceSansPieceLibre,visible=False)
-        ordreActions[14]=CarteAction(self,'Rénovation puis cloture','toto',effet=renoPuisCloture,visible=False)
+        ordreActions[1]=CarteAction(self,"a10",effet=fct.choixAmenagementMineurOuMajeur,possibilites=fct.possibilitesAmenagementMineurOuMajeur)
+        ordreActions[2]=CarteAction(self,"a11",effet=cloture,visible=False)
+        ordreActions[3]=CaseAppro(self,"a12",{'m':-1},visible=False)
+        ordreActions[4]=CarteAction(self,"a13",visible=False,possibilites=fct.demanderPlanSemailleEtOuCuisson,effet=fct.planSemailleEtOuCuisson,condition=fct.jePeuxFaireSemailleEtOuCuisson)
+        ordreActions[5]=CarteAction(self,"a14",visible=False,effet=fct.naissancePuisMineur,condition=fct.jePeuxNaitre)
+        ordreActions[6]=CarteAction(self,"a15",visible=False,effet=renoPuisMajeur,condition=jePeuxRenover)
+        ordreActions[7]=CaseAppro(self,"a16",{'p':-1},visible=False)
+        ordreActions[8]=CaseAppro(self,"a17",{'l':-1},visible=False)
+        ordreActions[9]=CaseAppro(self,"a18",{'s':-1},visible=False)
+        ordreActions[10]=CaseAppro(self,"a19",{'b':-1},visible=False)
+        ordreActions[11]=CaseAppro(self,"a20",{'p':-1},visible=False)
+        ordreActions[12]=CarteAction(self,"a21",effet=labourageSemaille,visible=False)
+        ordreActions[13]=CarteAction(self,"a22",effet=naissanceSansPieceLibre,visible=False)
+        ordreActions[14]=CarteAction(self,"a23",effet=renoPuisCloture,visible=False)
         return ordreActions
                     
     def initOrdre(self):
@@ -290,9 +271,14 @@ class Partie(object):
         return self.joueurs[self.quiJoue]
         
     def joueurSuivant(self):
+        
         if self.joueurQuiJoue().jaiFini():
-            self.quiAFini.append(self.quiJoue)
-        if (len(self.quiAFini)==self.nombreJoueurs):
+            if self.quiJoue not in self.quiAFini:
+                self.quiAFini.append(self.quiJoue)
+        print("joueurSuivant: ",self.quiAFini,self.nombreJoueurs,self.joueurs[0].personnages,self.joueurs[0].personnagesPlaces)
+        print(self.joueurs[1].personnages,self.joueurs[1].personnagesPlaces)
+        
+        if (len(self.quiAFini)>self.nombreJoueurs-1):
             return -1 #le tour est fini
         else:
             self.quiJoue=(1 + self.quiJoue )%self.nombreJoueurs

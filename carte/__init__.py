@@ -1,5 +1,6 @@
 import pygricola.util as util
 import pygricola.fonctionsPlateau as fct
+from pygricola.traduction import trad
 
 ##################################################################################
 #---------------------------------------Cuisson-------------------------
@@ -30,9 +31,8 @@ def cuisson(partie,choix,possibilites,carte):
 
 class Carte:
 
-    def __init__(self,partie, nom,description,possibilites={},cout={},condition={},effet={},option={},activer=util.dummy,sansPion=False):
-        self.nom = nom
-        self.description = description
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},option={},activer=util.dummy,sansPion=False):
+        self.uid=uid
         self.partie=partie
         if type(cout)==dict:
             self._cout=cout.copy()
@@ -58,7 +58,17 @@ class Carte:
            return self.nom
     def activer(self):
         return self._activer(self)      
-        
+
+    @property   
+    def nom(self):
+        return self.nomTrad('fr')
+    
+    def nomTrad(self,lang):
+        return trad[self.uid][lang][0]
+       
+    def descTrad(self,lang):
+        return trad[self.uid][lang][1]
+                    
     @property   
     def short(self):
         return self.nom[0:7]
@@ -159,21 +169,40 @@ def avoirXSavoirFaire(type,x):
     pass
 
 
+class Amenagement(Carte):
 
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},activer=util.dummy,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+        self.pointsVictoire=pointsVictoire
+        self.pointsSpeciaux=pointsSpeciaux
+        super().__init__(partie,uid,possibilites,cout=cout,condition=condition,effet=effet,option=option,activer=activer,sansPion=sansPion)
+        
+    @property
+    def display(self):
+        return "Activer: {}".format(self.nom)            
+ 
 
+class AmenagementMineur(Amenagement):
 
-def payerLeCout():
-    variablesGlobales.joueurs[variablesGlobales.quiJoue].mettreAJourLesRessources(possibilites[choix].cout)
-    
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},activer=util.dummy,passableAGauche=False,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+        self.passableAGauche=passableAGauche
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,activer=activer,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
+
+class AmenagementMajeur(Amenagement):
+
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},option={},activer=util.dummy,visible=False,devoile=None,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+        self.visible=visible
+        self.devoile=devoile
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,activer=activer,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
+
 
 
 
 class CarteActionSpeciale(Carte):
 
-    def __init__(self,partie,nom,description):
+    def __init__(self,partie,uid):
         self.etat=0 #0 dispo, 1 achetable, -1 plus dispo
         self.listeActionSpeciale=[]
-        super().__init__(partie,nom,description)
+        super().__init__(partie,uid)
     
     def listAs(self):
         stri="Action spéciale: <br>"
@@ -183,9 +212,9 @@ class CarteActionSpeciale(Carte):
     
     
 class ActionSpeciale(Carte):
-    def __init__(self,partie,carteQuiMePorte,nom,description,cout={},effet={},possibilites={}):
+    def __init__(self,partie,uid,carteQuiMePorte,cout={},effet={},possibilites={}):
         self.carteQuiMePorte=carteQuiMePorte
-        super().__init__(partie,nom,description,cout=cout,effet=effet,sansPion=True,possibilites=possibilites)    
+        super().__init__(partie,uid,cout=cout,effet=effet,sansPion=True,possibilites=possibilites)    
             
     @property   
     def cout(self):
@@ -194,7 +223,7 @@ class ActionSpeciale(Carte):
             pass
         elif self.carteQuiMePorte.etat==1:
             cout['n']+=2
-
+        print('cout actionspe dbg',self.carteQuiMePorte.etat,self._cout,cout)
         coutTot=util.ajouter(self._cout,cout)
         return coutTot
     
@@ -210,75 +239,60 @@ def genererActionsSpeciales(partie):
     njoueurs=partie.nombreJoueurs
     listeCarteActionSpeciale=[] 
     actionSpecialeDict={}
-    actionSpecialeDict["1 cheval pour 1 pn"]={
-        'nom':'Acheter un cheval pour 1 pn',
-        'description':"Vous pouvez transformer à tout moment...",
+    actionSpecialeDict["b0"]={
         'cout':{'n':1,'h':-1},
         }
-    actionSpecialeDict["1 cheval"]={
-        'nom':'Prendre un cheval',
-        'description':"Vous pouvez transformer à tout moment...",
+    actionSpecialeDict["b1"]={
         'cout':{'h':-1},
         }
-    actionSpecialeDict["1 pn"]={
-        'nom':'Foire du travail',
-        'description':"Vous pouvez transformer à tout moment...",
+    actionSpecialeDict["b2"]={
         'cout':{'n':-1},
         }
-    actionSpecialeDict["Marché noir"]={
-        'nom':'Marché noir',
-        'description':"Vous pouvez transformer à tout moment...",
+    actionSpecialeDict["b3"]={
         'cout':{'f':1},
         'possibilites':fct.possibilitesAmenagementMineur,
         'effet':fct.choixAmenagementMineur
         }
-    actionSpecialeDict["Travail clandestin"]={
-        'nom':'Travail clandestin',
-        'description':"Vous pouvez transformer à tout moment...",
+    actionSpecialeDict["b4"]={
         'cout':{'f':1,'n':1},
         'possibilites':fct.possibilitesAmenagementMajeur,
         'effet':fct.choixAmenagementMajeur
         }
-    actionSpecialeDict["Abattre des arbres"]={
-        'nom':'Abattre des arbres',
-        'description':"Vous pouvez transformer à tout moment...",
+    actionSpecialeDict["b5"]={
         'cout':{'b':-2},
         'possibilites':fct.possibilitesAbattreDesArbres,
         'effet':fct.choixAbattreDesArbres        
         }
-    actionSpecialeDict["Couper et brûler"]={
-        'nom':'Couper et brûler',
-        'description':"Vous pouvez transformer à tout moment...",
+    actionSpecialeDict["b6"]={
         'possibilites':fct.possibilitesCouperBruler,
         'effet':fct.choixCouperBruler   
         }
-    actionSpecialeDict["Couper la tourbe"]={
-        'nom':'Couper la tourbe',
-        'description':"Vous pouvez transformer à tout moment...",
+    actionSpecialeDict["b7"]={
         'possibilites':fct.possibilitesCouperLaTourbe,
         'effet':fct.choixCouperLaTourbe  
         }
-    carteActionSpecialeDict={2:[
-    ["1 cheval pour 1 pn","1 pn","Marché noir","Travail clandestin"],
-    ["Abattre des arbres","Couper et brûler","Couper la tourbe"]],
+    carteActionSpecialeDict={1:[],#pas d'as avec 1 seul joueur
+                             2:[
+    ["b0","b2","b3","b4"],
+    ["b5","b6","b7"]],
                          3:[
-    ["1 cheval","1 pn","Marché noir","Travail clandestin"],
-    ["Abattre des arbres","Couper et brûler","Couper la tourbe"]],
+    ["b1","b2","b3","b4"],
+    ["b5","b6","b7"]],
                          4:[
-    ["1 cheval","Abattre des arbres"],
-    ["1 pn","Marché noir","Travail clandestin"],
-    ["Couper et brûler","Couper la tourbe"]],
+    ["b1","b5"],
+    ["b2","b3","b4"],
+    ["b6","b7"]],
                          5:[
-    ["1 cheval pour 1 pn"],
-    ["Marché noir","Travail clandestin"],
-    ["Couper et brûler","Couper la tourbe"],
-    ["1 pn","Abattre des arbres"]]
+    ["b0"],
+    ["b3","b4"],
+    ["b6","b7"],
+    ["b2","b5"]]
                         }
     for listActions in carteActionSpecialeDict[njoueurs]:
         
-        CAS=CarteActionSpeciale(partie,"Action spéciale:" + str(carteActionSpecialeDict[njoueurs].index(listActions)),"as")
+        CAS=CarteActionSpeciale(partie,'AS{}'.format(carteActionSpecialeDict[njoueurs].index(listActions)))
         for a in listActions:
-            aS=ActionSpeciale(partie,CAS,**actionSpecialeDict[a])
+            aS=ActionSpeciale(partie,a,CAS,**actionSpecialeDict[a])
             CAS.listeActionSpeciale.append(aS)
         listeCarteActionSpeciale.append(CAS)
     return listeCarteActionSpeciale
@@ -291,32 +305,26 @@ def genererActionsSpeciales(partie):
 
 
 majeursDict={}
-majeursDict["foyer à 2"]={
-    'nom':'Foyer à 2',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M0"]={
     'cout':{'a':2},
     'activer':cuisson,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':2,'m':2,'s':2,'v':3},'cuissonPain':{'c':2}},
     'visible':True,
-    'devoile': "abatoir à chevaux 1",   
+    'devoile': "M2",   
     'pointsVictoire':1,
     }
-majeursDict["foyer à 3"]={
-    'nom':'Foyer à 3',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M1"]={
     'cout':{'a':3},
     'activer':cuisson ,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':2,'m':2,'s':2,'v':3},'cuissonPain':{'c':2}},
     'visible':True,
-    'devoile': "abatoir à chevaux 2",     
+    'devoile': "M3",     
     'pointsVictoire':1, 
     }
 
-majeursDict["abatoir à chevaux 1"]={
-    'nom':'abatoir à chevaux 1',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M2"]={
     'cout':{'a':1,'p':1},
     'activer':cuisson ,
     "possibilites":possibilitesCuisson,    
@@ -324,9 +332,7 @@ majeursDict["abatoir à chevaux 1"]={
     'visible':False,
     'pointsVictoire':2,     
     }
-majeursDict["abatoir à chevaux 2"]={
-    'nom':'abatoir à chevaux 2',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M3"]={
     'cout':{'a':1,'p':1},
     'activer':cuisson ,
     "possibilites":possibilitesCuisson,
@@ -334,62 +340,48 @@ majeursDict["abatoir à chevaux 2"]={
     'visible':False,
     'pointsVictoire':2,     
     }
-majeursDict["Four à tourbe"]={
-    'nom':'four à tourbe',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M4"]={
     'cout':{'p':1},
     'visible':True,
-    'devoile': "Musée de la lande",  
+    'devoile': "M5",  
     'pointsVictoire':1,   
     }
-majeursDict["Musée de la lande"]={
-    'nom':'Musée de la land',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M5"]={
     'cout':{'p':1,'r':1,'a':1},
     'visible':False,
     'pointsVictoire':3,
     }
-majeursDict["Loge du forestier"]={
-    'nom':'Loge du forestier',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M6"]={
     'cout':{'a':2,'b':1},
     'visible':True,
-    'devoile': "Ecuries",     
+    'devoile': "M7",     
     'pointsVictoire':1,
     }
-majeursDict["Ecuries"]={
-    'nom':'Ecuries',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M7"]={
     'cout':{'a':1,'b':2,'r':1},
     'visible':False,
     'devoile': "Ecuries",     
     'pointsVictoire':3,
     }
-majeursDict["Fourneau à 4"]={
-    'nom':'Fourneau à 4',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M8"]={
     'cout':{'a':4},
     'activer':cuisson ,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
     'visible':True,
-    'devoile': "Coquerie 1",     
+    'devoile': "M9",     
     'pointsVictoire':1, 
     }
-majeursDict["Fourneau à 5"]={
-    'nom':'Fourneau à 5',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M9"]={
     'cout':{'a':5},
     'activer':cuisson ,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
     'visible':True,
-    'devoile': "Coquerie 2",     
+    'devoile': "M10",     
     'pointsVictoire':1, 
     }
-majeursDict["Coquerie 1"]={
-    'nom':'Coquerie 1',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M10"]={
     'cout':{'a':6},
     'activer':cuisson ,
     "possibilites":possibilitesCuisson,
@@ -397,9 +389,7 @@ majeursDict["Coquerie 1"]={
     'visible':False,
     'pointsVictoire':2, 
     }
-majeursDict["Coquerie 2"]={
-    'nom':'Coquerie 2',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M11"]={
     'cout':{'a':6},
     'activer':cuisson ,
     "possibilites":possibilitesCuisson,
@@ -408,101 +398,77 @@ majeursDict["Coquerie 2"]={
     'pointsVictoire':2, 
     }
 
-majeursDict["Puits"]={
-    'nom':'Puits',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M12"]={
     'cout':{'p':3,'b':1},
     'option':{'reservePuit':{'n':5}},
     'visible':True,
     'pointsVictoire':3, 
-    'devoile': "Eglise du village",
+    'devoile': "M13",
     }
-majeursDict["Eglise du village"]={
-    'nom':'Eglise du village',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M13"]={
     'cout':{'p':4,'b':2,'n':-2},
     'option':{'chauffage':0},
     'visible':False,
     'pointsVictoire':4, 
     }
 
-majeursDict["Four en brique"]={
-    'nom':'Four en briquee',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M14"]={
     'cout':{'a':3,'p':1},
     'option':{'cuissonPain':{'c':5}},
     'visible':True,
     'pointsVictoire':2, 
-    'devoile': "Chaudière",
+    'devoile': "M14",
     }
-majeursDict["Chaudière"]={
-    'nom':'Chaudière',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M15"]={
     'cout':{'a':1,'p':1,'c':-2},
     'visible':False,
     'pointsVictoire':1, 
     }
-majeursDict["Four en pierre"]={
-    'nom':'Four en pierre',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M16"]={
     'cout':{'p':3,'a':1},
     'option':{'cuissonPain':{'c':4}},
     'visible':True,
     'pointsVictoire':3, 
-    'devoile': "Poêle",
+    'devoile': "M17",
     }
-majeursDict["Poêle"]={
-    'nom':'Poêle',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M17"]={
     'cout':{'a':2,'p':1},
     'visible':False,
     'pointsVictoire':1, 
     }
-majeursDict["Menuiserie"]={
-    'nom':'Menuiserie',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M18"]={
     'cout':{'p':2,'b':2},
     'visible':True,
     'pointsVictoire':2, 
-    'devoile': "Fabricant de meubles",
+    'devoile': "M19",
     }
-majeursDict["Fabricant de meubles"]={
-    'nom':'Fabricant de meubles',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M19"]={
     'cout':{'p':1,'b':1},
     'visible':False,
     'pointsVictoire':2, 
     'option':{'echange':{'b':1,'a':-1}},
     }
 
-majeursDict["Poterie"]={
-    'nom':'Poterie',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M20"]={
     'cout':{'p':2,'a':2},
     'visible':True,
     'pointsVictoire':2, 
-    'devoile': "Céramiste",
+    'devoile': "M21",
     }
-majeursDict["Céramiste"]={
-    'nom':'Céramiste',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M21"]={
     'cout':{'p':1,'a':1},
     'visible':False,
     'pointsVictoire':2, 
     'option':{'echange':{'a':1,'b':-1}},
     }
 
-majeursDict["Vanerie"]={
-    'nom':'Vanerie',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M22"]={
     'cout':{'p':2,'r':2},
     'visible':True,
     'pointsVictoire':2, 
-    'devoile': "Fabricant de paniers",
+    'devoile': "M23",
     }
-majeursDict["Fabricant de paniers"]={
-    'nom':'Fabricant de paniers',
-    'description':"Vous pouvez transformer à tout moment...",
+majeursDict["M23"]={
     'cout':{'p':1,'r':1},
     'visible':False,
     'pointsVictoire':2, 
@@ -511,15 +477,15 @@ majeursDict["Fabricant de paniers"]={
 
 
 mineursDict={}
-mineursDict["foyer simple"]={
-    'nom':'Foyer simple',
-    'description':"Vous pouvez transformer à tout moment...",
-    'cout':{'a':1},
-    'activer':cuisson,
-    'option':{'cuissonDict':{'l':2,'m':1,'s':2,'v':3},'cuissonPain':{'c':2}},    
-    'sansPion':True,
-    'possibilites':possibilitesCuisson,
-    }
+# mineursDict["foyer simple"]={
+#     'nom':'Foyer simple',
+#     'description':"Vous pouvez transformer à tout moment...",
+#     'cout':{'a':1},
+#     'activer':cuisson,
+#     'option':{'cuissonDict':{'l':2,'m':1,'s':2,'v':3},'cuissonPain':{'c':2}},    
+#     'sansPion':True,
+#     'possibilites':possibilitesCuisson,
+#     }
 
 savoirFaireDict={}
 
