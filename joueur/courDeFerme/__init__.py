@@ -8,7 +8,7 @@ import numpy as np
 
 
 parseList=[]
-for l in ['a','b','c']:
+for l in ['A','B','C']:
     for i in range(1,6):
         parseList.append("{}{}".format(l,i))
         
@@ -20,8 +20,8 @@ class CourDeFerme(object):
         self.etat=OrderedDict()
         for case in parseList:
             self.etat[case]=Tuile('vide')
-        self.etat["b1"]=Tuile('maisonBois')
-        self.etat["c1"]=Tuile('maisonBois')
+        self.etat["B1"]=Tuile('maisonBois')
+        self.etat["C1"]=Tuile('maisonBois')
         self.paturages = Paturage()
         self.clotures = Clotures()
         # ~ self.etat["c4"]=Tuile('champ') #DEBUG
@@ -38,9 +38,9 @@ class CourDeFerme(object):
        
     def enQuoiEstLaMaison(self,court=True):
         if court:
-            return util.long2Short[self.etat["b1"].type.split('maison')[1].lower()]
+            return util.long2Short[self.etat["B1"].type.split('maison')[1].lower()]
         else:
-            return self.etat["b1"].type
+            return self.etat["B1"].type
     
     def compterEtablesDispo(self):
         #TODO
@@ -87,13 +87,14 @@ class CourDeFerme(object):
         ligne=coord[0]
         colonne=int(coord[1])
         
-        if ligne=="a":
-            voisins["s"]="a"+str(colonne)
-        elif ligne=="b":
-            voisins["n"]="a"+str(colonne)
-            voisins["s"]="c"+str(colonne)
-        elif ligne=="c":
-            voisins["n"]="b"+str(colonne)
+        if ligne=="A":
+            voisins["s"]="B"+str(colonne)
+        elif ligne=="B":
+            voisins["n"]="A"+str(colonne)
+            voisins["s"]="C"+str(colonne)
+        elif ligne=="C":
+            voisins["n"]="B"+str(colonne)
+            
         if colonne==1:
             voisins["e"]=ligne+str(2)
         elif colonne==5:
@@ -126,7 +127,8 @@ class CourDeFerme(object):
         #TODO: doit retourner un dico ou ordered dico
         return [alias[self.etat[case].type] for case in parseList]
     
-    def load(self):
+    def load(self,dico):
+        print('loadFerme',dico)
         #TODO : doit refaire la cour de ferme à partir d'un dico
         return 0
     

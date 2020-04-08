@@ -6,8 +6,9 @@ import pygricola.util as util
 def possibilitesNonVide(partie,carte):
     if not type(carte._possibilites)==dict:
         pos=carte._possibilites(partie,carte,Fake=True)
+        print('posnonvide',pos)
         if len(pos)==0:
-            partie.messagesDetail.append("{} : possibilites vides".format(carte.nom) )
+            partie.messagesDetail.append("{} : possibilites vides".format(carte.uid) )
         return len(pos)>0
     return True
     
@@ -190,7 +191,7 @@ def choixAmenagementMineur(partie,choix,possibilites,carte):
         partie.messagesPrincipaux.append("{} {}".format(joueur.nom, "ne fais pas de mineur"))
     else:    
         carteJouee.jouer()
-        joueur.cartesDevantSoi.append(carteJouee)
+        joueur.cartesDevantSoi[carteJouee.uid]=carteJouee
         joueur.cartesEnMain.remove(carteJouee)
         partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "~p3~",carteJouee.nom))
         
@@ -200,8 +201,8 @@ def choixAmenagementMineur(partie,choix,possibilites,carte):
         pass
     else:
         if isinstance(carte,ActionSpeciale):
-            carte.carteQuiMePorte.etat+=1
             joueur.mettreAJourLesRessources(carte.cout)
+            carte.carteQuiMePorte.changerEtat(partie.quiJoue)
             return (-1,carte,False,"")     
     personnage=joueur.personnages.pop()
     joueur.personnagesPlaces.append(personnage)                  
@@ -230,14 +231,15 @@ def choixAmenagementMajeur(partie,choix,possibilites,carte):
     carteJouee.jouer()
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
-    joueur.cartesDevantSoi.append(carteJouee)
-    del plateau["majeurs"][carteJouee.nom]
+    joueur.cartesDevantSoi[carteJouee.uid]=carteJouee
+    del plateau["majeurs"][carteJouee.uid]
     partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "réalise l'aménagement majeur",carteJouee.nom))
     
 
     if isinstance(carte,ActionSpeciale):
-        carte.carteQuiMePorte.etat+=1
         joueur.mettreAJourLesRessources(carte.cout)
+        carte.carteQuiMePorte.changerEtat(partie.quiJoue)
+        
         return (-1,carte,False,"")
 ##################################################################################
 #---------------------------------------MINEUR OU MAJEUR--------------------------
@@ -266,19 +268,19 @@ def choixAmenagementMineurOuMajeur(partie,choix,possibilites,carte):
     carteJouee.jouer()
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
-    joueur.cartesDevantSoi.append(carteJouee)
+    joueur.cartesDevantSoi[carteJouee.uid]=carteJouee
     if carteJouee in joueur.cartesEnMain:
     #on la pose
         joueur.cartesEnMain.remove(carteJouee)
         typeCarte="aménagement mineur"
     else:
         #on enleve le majeur et on gere les cartes dessous
-        del plateau['majeurs'][carteJouee.nom]
+        del plateau['majeurs'][carteJouee.uid]
         typeCarte="aménagement majeur"
         if not carteJouee.devoile is None:
             plateau['majeurs'][carteJouee.devoile].visible=True
             
-    partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "réalise l'",typeCarte,carteJouee.nom))
+    partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "réalise l'",typeCarte,carteJouee.uid))
     personnage=joueur.personnages.pop()
     joueur.personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
@@ -303,8 +305,8 @@ def choixAbattreDesArbres(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
     ferme.etat[caseAbattre].type="vide"
-    carte.carteQuiMePorte.etat+=1
     joueur.mettreAJourLesRessources(util.ajouter(joueur.coutAbattre(),carte.cout))
+    carte.carteQuiMePorte.changerEtat(partie.quiJoue)
     partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'abats des arbres en ',caseAbattre))
     encore=False    
     return (-1,carte,False,"") 
@@ -318,15 +320,16 @@ def possibilitesCouperBruler(partie,carte,Fake=False):
         partie.phraseChoixPossibles="Quelle forêt voulez vous couper et brûler? :"
         partie.sujet=carte      
     #les champs doivent se toucher
-    if(ferme.compter("champs")!=0):
+    if(ferme.compter("champ")!=0):
         foretsAdjChamp=[]
         for f in forets:
             voiz=ferme.voisin(f)
             for direction in voiz.keys():
                 if voiz[direction]: #si not None
                     if ferme.etat[voiz[direction]].type=='champ':
-                        foretsAdjChamp.append(f)
-                        break
+                        if not f in foretsAdjChamp:
+                            foretsAdjChamp.append(f)
+                        
         return foretsAdjChamp
     else:
         return forets
@@ -337,8 +340,9 @@ def choixCouperBruler(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
     ferme.etat[caseCouper].type="champ"
-    carte.carteQuiMePorte.etat+=1
-    joueur.mettreAJourLesRessources(carte.cout)    
+    joueur.mettreAJourLesRessources(carte.cout)
+    carte.carteQuiMePorte.changerEtat(partie.quiJoue)
+        
     partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'coupe et brûle en ',caseCouper))
     encore=False    
     return (-1,carte,False,"") 
@@ -360,8 +364,9 @@ def choixCouperLaTourbe(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
     ferme.etat[caseCouper].type="vide"
-    carte.carteQuiMePorte.etat+=1
     joueur.mettreAJourLesRessources(util.ajouter(joueur.coutTourbe(),carte.cout))
+    carte.carteQuiMePorte.changerEtat(partie.quiJoue)
+    
     partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'coupe la tourbe en ',caseCouper))
     encore=False    
     return (-1,carte,False,"") 
@@ -416,7 +421,7 @@ def demanderPlanConstructionDePieceEtOuEtable(partie,carte):
     
 
 def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
-    #par ex c2:p,c3:p,d4:e,a1:e
+    #par ex C2:p,C3:p,C4:e,A1:e
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme                                  
     planCorrect=True
@@ -438,15 +443,15 @@ def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
             #et etre vide
             if ferme.etat[case].type=='vide':
                 #p comme piece        
-                if(type=='p'):
+                if(type=='P'):
                     casesMaison.append(case)
                     cout=util.ajouter(cout,joueur.prixDeLaPiece())
-                elif(type=='e'): 
+                elif(type=='E'): 
                     casesEtables.append(case)
                     cout=util.ajouter(cout,{'b':2})
                 else:
                     planCorrect=False
-                    msg="type de case {} invalide... Soit soit 'e' soit 'p'".format(type)
+                    msg="type de case {} invalide... Soit soit 'E' soit 'P'".format(type)
                     break
             else:
                 planCorrect=False
@@ -625,7 +630,7 @@ def jePeuxCuireDuPain(partie):
     fourOk=False
     #j'ai au moins un cereal
     joueur=partie.joueurQuiJoue()
-    for c in joueur.cartesDevantSoi:
+    for uid,c in joueur.cartesDevantSoi.items():
         if 'cuissonPain' in c.option.keys():
             fourOk=True
     return joueur.ressources['c']>0 and fourOk

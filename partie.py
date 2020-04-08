@@ -191,8 +191,8 @@ class Partie(object):
                 
          
     def genererCourDeferme(self):
-        pTourbes=['b2','b3','b4']
-        pForets=['a1','a2','a3','a4','a5']  
+        pTourbes=['B2','B3','B4']
+        pForets=['A1','A2','A3','A4','A5']  
         return(pTourbes,pForets)  
     
     def faireCourDeferme(self,positionTourbes,positionForets):
@@ -272,18 +272,13 @@ class Partie(object):
         
     def joueurSuivant(self):
         
-        if self.joueurQuiJoue().jaiFini():
-            if self.quiJoue not in self.quiAFini:
-                self.quiAFini.append(self.quiJoue)
-        print("joueurSuivant: ",self.quiAFini,self.nombreJoueurs,self.joueurs[0].personnages,self.joueurs[0].personnagesPlaces)
-        print(self.joueurs[1].personnages,self.joueurs[1].personnagesPlaces)
-        
         if (len(self.quiAFini)>self.nombreJoueurs-1):
             return -1 #le tour est fini
         else:
             self.quiJoue=(1 + self.quiJoue )%self.nombreJoueurs
             if(self.joueurQuiJoue().jaiFini()):
-                self.quiJoue=(1 + self.quiJoue )%self.nombreJoueurs  
+                if self.quiJoue not in self.quiAFini:
+                    self.quiAFini.append(self.quiJoue)
                 return self.joueurSuivant()
             else:
                 return self.quiJoue
@@ -305,48 +300,51 @@ class Partie(object):
 #         else:
 #             return []
     
-    def jouer(self,choix):
-        if choix==-1:
-            self.possibilitesJoueur()
-        else:
-            #ACTION CONFIRMEE
-            #si c'est un action ou on ne joue pas de pion (as ou utilisation d'un foyer)
-            if self.casesJouables[choix].sansPion :
-                self.casesJouables[choix].activer()
-                self.mettreAJourLesRessources(self.casesJouables[choix].cout)
-                self.listerPossibilites()
-#     TODO        elif self.casesJouables[choix] in actionsSpeJouables:
-#                 pass
-            #ACTION SPECIALE
-            elif isinstance(self.casesJouables[choix],ActionSpeciale):
-                #
-                self.casesJouables[choix].jouer()
-                wdfwdf
-
-
-            else:
-            
-                personnage=self.joueurs[self.quiJoue].personnages.pop()
-                self.joueurs[self.quiJoue].personnagesPlaces.append(personnage)    
-                caseJouee=self.casesJouables[choix].jouer(personnage)
-                print('je joue sur la case:',caseJouee)
-                self.joueurs[self.quiJoue].mettreAJourLesRessources(caseJouee.cout)
-                self.joueurs[self.quiJoue].tourFini= len(self.joueurs[self.quiJoue].personnages)==0
-                if self.joueurs[self.quiJoue].tourFini:
-                    self.quiAFini.append(self.quiJoue)
-                    
+#     def jouer(self,choix):
+#         if choix==-1:
+#             self.possibilitesJoueur()
+#         else:
+#             #ACTION CONFIRMEE
+#             #si c'est un action ou on ne joue pas de pion (as ou utilisation d'un foyer)
+#             if self.casesJouables[choix].sansPion :
+#                 self.casesJouables[choix].activer()
+#                 self.mettreAJourLesRessources(self.casesJouables[choix].cout)
+#                 self.listerPossibilites()
+# #     TODO        elif self.casesJouables[choix] in actionsSpeJouables:
+# #                 pass
+#             #ACTION SPECIALE
+#             elif isinstance(self.casesJouables[choix],ActionSpeciale):
+#                 #
+#                 self.casesJouables[choix].jouer()
+#                 wdfwdf
+# 
+# 
+#             else:
+#             
+#                 personnage=self.joueurs[self.quiJoue].personnages.pop()
+#                 self.joueurs[self.quiJoue].personnagesPlaces.append(personnage)    
+#                 caseJouee=self.casesJouables[choix].jouer(personnage)
+#                 print('je joue sur la case:',caseJouee)
+#                 self.joueurs[self.quiJoue].mettreAJourLesRessources(caseJouee.cout)
+#                 self.joueurs[self.quiJoue].tourFini= len(self.joueurs[self.quiJoue].personnages)==0
+#                 if self.joueurs[self.quiJoue].tourFini:
+#                     self.quiAFini.append(self.quiJoue)
+#                     
 
     def finDuTour(self):
         if self.plateau['tour']==14:
             print("FIN DE PARTIE")
             return -1
         else:
+            #on replace les joueurs
             for id in self.joueurs.keys():
                 while(len(self.joueurs[id].personnagesPlaces)>0):
                     p=self.joueurs[id].personnagesPlaces.pop()
                     p.retourMaison()
                     self.joueurs[id].personnages.append(p)
-             
+            #on remets les actions spéciales
+            for CAS in self.plateau["actionsSpeciales"]:
+                CAS.changerEtat(-2)
             self.quiAFini.clear()
             self.plateau['tour']+=1
         return self.plateau['tour']
@@ -356,7 +354,7 @@ class Partie(object):
         vis=[]
         for i in range(1,31):
             if self.plateau['cases'][i].visible:
-                vis.append(self.plateau['cases'][i].nom)
+                vis.append(self.plateau['cases'][i].uid)
         return vis
     
     #pour l'affichage
@@ -441,22 +439,22 @@ class Partie(object):
         for c in self.plateau['majeurs'].keys():
             if self.plateau['majeurs'][c].visible:
                 dico={
-                    'nom':self.plateau['majeurs'][c].nom,
+                    'uid':self.plateau['majeurs'][c].uid,
                     'type':"Majeur",
                     'devoile':self.plateau['majeurs'][c].devoile
                     }
                 cases.append(dico.copy())
         for c in self.plateau["cases"].keys():
             dico={
-                'nom':self.plateau["cases"][c].nom,
+                'uid':self.plateau["cases"][c].uid,
                 'type':"Action",
                 'class': "" if self.plateau["cases"][c].visible else "disabled",
                 }
-            ressources=""
+            ressourcesList=[]
             for t in self.plateau["cases"][c].cout.keys():
                 if self.plateau["cases"][c].cout[t]<0:
-                    ressources+="{} x {}".format(util.short2Long[t],-self.plateau["cases"][c].cout[t])    
-            dico['res']=ressources
+                    ressourcesList.append((util.short2Long[t],-self.plateau["cases"][c].cout[t]))    
+            dico['res']=ressourcesList
             dico['perso']=[]
             for perso in self.plateau["cases"][c].occupants:
                 dico['perso'].append(perso.couleur)
@@ -466,10 +464,16 @@ class Partie(object):
             
         for CAS in self.plateau["actionsSpeciales"]:
             dico={
-                'nom':CAS.listAs(),
+                'uid':CAS.listAs(),
                 'type':"ActionSpeciale",
-                'etat':CAS.etat,
+                
                 }
+            if CAS.etat==-2:
+                dico['etat']={'texte':'','color':"#fff"}
+            elif CAS.etat>-1:
+                dico['etat']={'texte':'p12','color':self.joueurs[CAS.etat].couleur}
+            else:
+                dico['etat']={'texte':'p13','color':"#999"}
             cases.append(dico.copy())            
         return cases
     

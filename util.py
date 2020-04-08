@@ -1,3 +1,5 @@
+from pygricola.traduction import trad
+
 
 def rVide():
     return {'b':0,'a':0,'p':0,'r':0,'n':0,'f':0,'c':0,'l':0,'m':0,'s':0,'v':0,'h':0}.copy()
@@ -12,7 +14,24 @@ def estVide(r):
 def dummy():
     pass
 
-
+def traduire(stri):
+    if isinstance(stri,list):
+        s=""
+        for i in stri:
+            if i in trad.keys():
+                s+="{} ".format(trad[i]['fr'])
+            elif i[0] in ['A','B','C']:
+                s+=i
+            else:
+                s+='NO TRAD'+i
+        return s
+    elif isinstance(stri,str):
+        if stri in trad.keys():
+            return "{} ".format(trad[stri]['fr'])
+        elif stri[0] in ['A','B','C']:
+            return stri
+        else:
+            return 'PAS DE TRADUCTION str'+stri
 
 
 
@@ -24,6 +43,13 @@ def dummy():
 
 idx=0
 
+
+def tradUidOrSelf(o):
+    if hasattr(o, 'uid'):
+        return traduire(o.uid)
+    else:
+        return o
+        
 
 
 def customInput(partie,msg):
@@ -52,13 +78,7 @@ def printPossibilities(partie,message,possibilites,annulable=True):
         while(not choixValide):
             
             for p in possibilites:
-                if hasattr(p, 'display'):
-                    nom=p.display
-                elif hasattr(p, 'nom'):
-                    nom=p.nom
-                else:
-                    nom=p
-                print("{} : {}".format(possibilites.index(p),nom))
+                print("{} : {}".format(possibilites.index(p),tradUidOrSelf(p)))
             if annulable:
                 print('a pour anuler:')     
             g = customInput(partie,message+"   ") 
@@ -78,7 +98,7 @@ def printPossibilities(partie,message,possibilites,annulable=True):
                 print('Vous avez fait un choix invalide!!',g,' Recommencez')
         
         
-        stri="Vous avez choisi {}\n Vous confirmez?(o/n)   ".format(possibilites[choix])
+        stri="Vous avez choisi {}\n Vous confirmez?(o/n)   ".format(tradUidOrSelf(possibilites[choix]))
         conf = customInput(partie,stri) 
         if(conf=='o'):
             confirmation=True
@@ -91,18 +111,18 @@ def printPossibilities(partie,message,possibilites,annulable=True):
 
 
 short2Long={
-    'b':'bois',
-    'a':'argile',
-    'p':'pierre',
-    'r':'roseau',
-    'n':'pn',
-    'f':'feu',
-    'c':'cereale',
-    'l':'legume',
-    'm':'mouton',
-    's':'sanglier',
-    'v':'boeuf',
-    'h':'cheval',
+    'b':'rb',
+    'a':'ra',
+    'p':'rp',
+    'r':'rr',
+    'n':'rn',
+    'f':'rf',
+    'c':'rc',
+    'l':'rl',
+    'm':'rm',
+    's':'rs',
+    'v':'rv',
+    'h':'rh',
     }
 long2Short={
     'bois':'b',
@@ -163,7 +183,7 @@ def jouable(a,b):
             if (b[k]>0):
                 if a[k]<b[k]:
                     res=False
-                    raison="non jouable {} {} {}".format(k,a[k],b[k])
+                    raison="coût non jouable {} {} {}".format(k,a[k],b[k])
                     break
     return res,raison
 

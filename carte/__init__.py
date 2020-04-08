@@ -55,13 +55,15 @@ class Carte:
 #        super().__init__()
     
     def __str__(self):
-           return self.nom
+           return self.uid
     def activer(self):
         return self._activer(self)      
 
-    @property   
-    def nom(self):
-        return self.nomTrad('fr')
+#     @property   
+#     def nom(self):
+# #        return self.nomTrad('fr')
+#         return self.uid
+
     
     def nomTrad(self,lang):
         return trad[self.uid][lang][0]
@@ -69,9 +71,9 @@ class Carte:
     def descTrad(self,lang):
         return trad[self.uid][lang][1]
                     
-    @property   
-    def short(self):
-        return self.nom[0:7]
+#     @property   
+#     def short(self):
+#         return self.nom[0:7]
     
     @property   
     def cout(self):
@@ -82,15 +84,21 @@ class Carte:
     
     @property   
     def condition(self):
+        print('carte condition')
         #si la condition est dict vide on appelle possibilitesNonVide qui est le défaut
         if self._condition=={}:
-            return fct.possibilitesNonVide(self.partie,self)     
+            print('carte conditionA')
+            reponse=fct.possibilitesNonVide(self.partie,self)     
         #si c'est un dico non vide
         elif type(self._condition)==dict:
-            return self._condition and util.possibilitesNonVide(self.partie,self)  
+            print('carte conditionB')
+            reponse=self._condition and fct.possibilitesNonVide(self.partie,self)  
         else:
             #sino on appelle la condition
-            return self._condition(self.partie,self)        
+            print('carte conditionC')
+            reponse= self._condition(self.partie,self)
+        print("reponse",reponse)
+        return reponse        
     @property   
     def option(self):
         if type(self._option)==dict:
@@ -109,7 +117,7 @@ class Carte:
         if type(self.possibilites)==dict:
             return -1 #on n'a pas de choix à faire
         else:
-            return self._possibilites(self.partie)        
+            return self._possibilites(self.partie,self)        
 
         
     def jouer(self):
@@ -121,13 +129,14 @@ class Carte:
             self.sujet=self
             return (choixPossibles,self,encore,"")
         else:
-            self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.nom))
+            self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid))
             self.partie.joueurQuiJoue().mettreAJourLesRessources(self.cout)
             self._cout=util.rVide()
             if self.sansPion==True:
                 if isinstance(self,ActionSpeciale):
                     #ici passe foire du travail
-                    self.carteQuiMePorte.etat+=1
+                    
+                    self.carteQuiMePorte.changerEtat(self.partie.quiJoue)
                     self.partie.joueurSuivant()
                     self.partie.initChoix()
                     return (-1,self,encore,"")
@@ -152,10 +161,10 @@ class Carte:
         return str(self.cout)
     
     def save(self):
-        return {'nom':self.nom}
+        return {'uid':self.uid}
     
 def loadCarte(stri,partie):
-    
+    print('loadCarte',stri)
     pass
         
         
@@ -178,7 +187,7 @@ class Amenagement(Carte):
         
     @property
     def display(self):
-        return "Activer: {}".format(self.nom)            
+        return ["p5",self.uid]            
  
 
 class AmenagementMineur(Amenagement):
@@ -198,18 +207,27 @@ class AmenagementMajeur(Amenagement):
 
 
 class CarteActionSpeciale(Carte):
-
+ 
     def __init__(self,partie,uid):
-        self.etat=0 #0 dispo, 1 achetable, -1 plus dispo
+        self.etat=-2 #-2 dispo, sinon numero du joueur qui l'a pris, -1 plus dispo
         self.listeActionSpeciale=[]
         super().__init__(partie,uid)
     
     def listAs(self):
-        stri="Action spéciale: <br>"
+        list=["p4"]
         for l in self.listeActionSpeciale:
-            stri+="{} <br>".format(l.nom)
-        return stri
+            list.append(l.uid)
+        return list
     
+    def changerEtat(self,nouveau):
+        #si l'ancien etat etait positif ou nul alors je mets -1 (fini)
+        if self.etat>-1:
+            self.etat=-1
+            print("AS: ",self.uid,"changement d'etat:",self.etat,"-->",-1)
+        else:
+            print("AS: ",self.uid,"changement d'etat:",self.etat,"-->",nouveau)
+            self.etat=nouveau
+        
     
 class ActionSpeciale(Carte):
     def __init__(self,partie,uid,carteQuiMePorte,cout={},effet={},possibilites={}):
@@ -219,21 +237,28 @@ class ActionSpeciale(Carte):
     @property   
     def cout(self):
         cout={'n':0}
-        if self.carteQuiMePorte.etat==0:
+        #carte dispo
+        if self.carteQuiMePorte.etat==-2:
             pass
-        elif self.carteQuiMePorte.etat==1:
+        #carte prise par un autre
+        elif self.carteQuiMePorte.etat!=self.partie.quiJoue:
             cout['n']+=2
+        elif self.carteQuiMePorte.etat==self.partie.quiJoue:
+            jelaiprisemoi
+        else:
+            impossible
         print('cout actionspe dbg',self.carteQuiMePorte.etat,self._cout,cout)
         coutTot=util.ajouter(self._cout,cout)
         return coutTot
     
     @property
     def display(self):
-        if self.carteQuiMePorte.etat==0:
-            return "Action Spéciale: {}".format(self.nom)
-        elif self.carteQuiMePorte.etat==1:
-            return "Racheter action spéciale: {} (coûte 2 pn)".format(self.nom)
-        
+        if self.carteQuiMePorte.etat==-2:
+            return ["p4",self.uid]
+        elif self.carteQuiMePorte.etat>-1:
+            return ["p6",self.uid,"(","p7",")"]
+        else:
+            return "CAS IMPOSSIBLE ".format(self.uid)        
 
 def genererActionsSpeciales(partie):   
     njoueurs=partie.nombreJoueurs
@@ -259,7 +284,6 @@ def genererActionsSpeciales(partie):
         'effet':fct.choixAmenagementMajeur
         }
     actionSpecialeDict["b5"]={
-        'cout':{'b':-2},
         'possibilites':fct.possibilitesAbattreDesArbres,
         'effet':fct.choixAbattreDesArbres        
         }
@@ -490,16 +514,12 @@ mineursDict={}
 savoirFaireDict={}
 
 utilitaireDict={}
-utilitaireDict["c cru"]={
-    'nom':"Activer: manger cru une cereale pour 1 pn",
-    'description':"toto",
+utilitaireDict["c0"]={
     'cout':{'c':1,'n':-1},
     'sansPion':True
     }
 
-utilitaireDict["l cru"]={
-    'nom':"Activer: manger cru un légume pour 1 pn",
-    'description':"toto",
+utilitaireDict["c1"]={
     'cout':{'l':1,'n':-1},
     'sansPion':True
     }

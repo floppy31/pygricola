@@ -2,7 +2,7 @@ import pygricola.util as util
 
 from pygricola.joueur.courDeFerme import CourDeFerme 
 from pygricola.joueur.personnage import Personnage,loadPersonnage
-from pygricola.carte import deck,Carte
+from pygricola.carte import deck,Carte,loadCarte
 
 class Joueur(object):
 
@@ -14,19 +14,18 @@ class Joueur(object):
         self.courDeFerme=CourDeFerme(partie)
         self.cartesEnMain=[]
         self.cartesDevantSoi={}
-        self.tourFini=False
         self.cartesActivables=[]
         self.personnages=[Personnage("b1",1,self.couleur),Personnage("c1",2,self.couleur)]
         self.personnagesPlaces=[]
         self.ressources={
-            'b':0,
-            'a':0,
-            'p':0,
-            'r':0,
-            'n':2,
-            'f':0,
-            'c':0,
-            'l':0,
+            'b':10,
+            'a':10,
+            'p':10,
+            'r':10,
+            'n':10,
+            'f':10,
+            'c':10,
+            'l':10,
             'm':0,
             's':0,
             'v':0,
@@ -45,6 +44,8 @@ class Joueur(object):
                 print("joueur",aS)
                 if self.jePeuxFaireActionSpeciale(aS):
                     actionsSpeJouables.append(aS)
+                else:
+                    self.partie.messagesDetail.append(["p8",aS.uid] )
                     
         
         casesJouables=[]
@@ -54,17 +55,29 @@ class Joueur(object):
                 if self.jePeuxJouer(self.partie.plateau['cases'][i].cout):
                     if self.jeRemplisLesConditions(self.partie.plateau['cases'][i].condition):
                         casesJouables.append(self.partie.plateau['cases'][i])
+                    else:
+                        self.partie.messagesDetail.append(["p9",self.partie.plateau['cases'][i].uid] )
+                else:
+                    self.partie.messagesDetail.append(["p10",self.partie.plateau['cases'][i].uid] )
+            else:
+                self.partie.messagesDetail.append([self.partie.plateau['cases'][i].uid,"p11"] )
         
         #on regarde si on a des cases activables
         for k,v in self.cartesDevantSoi.items():
             if not v.activer == util.dummy:
                 if self.jeRemplisLesConditions(v.condition):
                     casesJouables.append(v)
+                else:
+                    self.partie.messagesDetail.append(["p9",v] )
         #manger cru        
-        for k in ['l','c']:
-            if self.ressources[k]>0:
-                casesJouables.append(Carte(partie=self.partie,**deck['utilitaire'][k+" cru"]))
-
+        #cereale
+        if self.ressources['c']>0:
+            casesJouables.append(Carte(self.partie,"c0",**deck['utilitaire']["c0"]))
+        #legume
+        if self.ressources['l']>0:
+            casesJouables.append(Carte(self.partie,"c1",**deck['utilitaire']["c1"]))
+            
+            
         casesJouables=casesJouables+self.cartesActivables+actionsSpeJouables
         self.partie.choixPossibles=casesJouables
 #         choix=util.printPossibilities(self.partie,"QUE VOULEZ VOUS FAIRE?",casesJouables)
@@ -121,8 +134,8 @@ class Joueur(object):
                     personnage=self.personnages.pop()
                     self.personnagesPlaces.append(personnage)                   
                     caseJouee.mettrePersonnage(personnage)
-                    self.tourFini= len(self.personnages)==0
-                    if self.tourFini:
+                    
+                    if self.jaiFini():
                         self.partie.quiAFini.append(self.partie.quiJoue)
                     return rcode
                 else:
@@ -130,13 +143,13 @@ class Joueur(object):
      
     def jePeuxJouer(self,cout): #cout ou condition
         (result,message)=util.jouable(self.ressources,cout)
-        self.partie.messagesDetail.append(message )
+        if message!="OK":
+            self.partie.messagesDetail.append(message )
         return result
          
     def jeRemplisLesConditions(self,cond):
         #si cond =False non
         if cond==False:
-            self.partie.messagesDetail.append("condition Fausse" )
             return False
         else:
             #on traita ça comme un cout
@@ -144,12 +157,12 @@ class Joueur(object):
             if type(cond)==dict:
                 return util.jouable(self.ressources,cond,True)
             else:
-                self.partie.messagesDetail.append("appel condition" )
                 #sinon on appelle la fonction
                 return cond
     
     def jaiFini(self):
-        return len(self.personnages)==0
+        rep=len(self.personnages)==0
+        return rep
     
     def quePuisJeSemer(self):
         #methode modifiable si certaines cartes sont jouees
@@ -159,22 +172,29 @@ class Joueur(object):
         #je peux payer le cout, et il me reste 1 personnage
         #je remplis les conditions
         #la carte est libre
-        if carte.carteQuiMePorte.etat==2:
+        if carte.carteQuiMePorte.etat==-1:
             #plus rachetable
-            self.partie.messagesDetail.append("{} plus rachetable".format(carte.nom) )
+            self.partie.messagesDetail.append("{} plus rachetable".format(carte) )
+            return False
+        #c'est moi qui l'ai deja prise
+        elif carte.carteQuiMePorte.etat==self.id:
+            self.partie.messagesDetail.append("j'ai déjà pris {}".format(carte) )
             return False
         #carte.cout prend en compte le cout supplémentaire en cas de rachat
-        return self.jePeuxJouer(carte.cout) and len(self.personnages)>0 and self.jeRemplisLesConditions(carte.condition) 
+        coutOk=self.jePeuxJouer(carte.cout)
+        persoOk=len(self.personnages)>0 
+        condOk=self.jeRemplisLesConditions(carte.condition) 
+        return coutOk and persoOk and condOk 
         
                 #
-    def aiJeJoue(self,nomCarte):
-        return nomCarte in self.cartesDevantSoi.keys()
+    def aiJeJoue(self,uidCarte):
+        return uidCarte in self.cartesDevantSoi.keys()
     
     def prixDeLaPiece(self):
         return {'r':2,self.courDeFerme.enQuoiEstLaMaison():5}  
       
     def coutAbattre(self):
-        if self.aiJeJoue("Loge du forestier"):
+        if self.aiJeJoue("M6"):
             if self.ressources['h']>0:
                 return{'b':-4}
             else:
@@ -183,7 +203,7 @@ class Joueur(object):
             return{'b':-2}
             
     def coutTourbe(self):
-        if self.aiJeJoue("Four à tourbe"):
+        if self.aiJeJoue("M4"):
             if self.ressources['h']>0:
                 return{'f':-5}
             else:
@@ -225,7 +245,6 @@ class Joueur(object):
         dico['courDeFerme']=self.courDeFerme.save()
         dico['cartesEnMain']=[c.save() for c in self.cartesEnMain]
         dico['cartesDevantSoi']=[v.save() for c,v in self.cartesDevantSoi.items()]
-        dico['tourFini']=self.tourFini
         dico['cartesActivables']=[c.save() for c in self.cartesActivables]
         dico['ressources']=self.ressources
         dico['personnages']=[p.save() for p in self.personnages]
@@ -238,7 +257,6 @@ def loadJoueur(dico,partie):
     j.courDeFerme.load(dico['courDeFerme']) 
     j.cartesEnMain=[loadCarte(c,partie) for c in dico["cartesEnMain"]]
     j.cartesDevantSoi  = [loadCarte(c,partie) for c in dico["cartesDevantSoi"]]
-    j.tourFini=dico['tourFini']
     j.cartesActivables=[]
     j.ressources=dico['ressources']
     j.personnages=[loadPersonnage(p) for p in dico['personnages']]
