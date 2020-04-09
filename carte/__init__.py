@@ -9,9 +9,9 @@ def possibilitesCuisson(partie,carte,Fake=False):
     #on recupere le dict cuisson dans option
     dictCuisson=carte.option['cuissonDict']    
     possibilites=[]
-    for res in ['l','m','s','v']:
+    for res in ['l','m','s','v','h']:
         if (partie.joueurQuiJoue().ressources[res]>0):
-            possibilites.append(Carte(partie,"cuire un {} pour {} pn".format(util.short2Long[res],dictCuisson[res]),"toto",cout={res:1,'n':-dictCuisson[res]},sansPion=True))  
+            possibilites.append(Carte(partie,"u"+res,cout={res:1,'n':-dictCuisson[res]},sansPion=True))  
     if not Fake:
         partie.phraseChoixPossibles="Que voulez vous cuire? :"
         partie.sujet=carte
@@ -21,7 +21,7 @@ def possibilitesCuisson(partie,carte,Fake=False):
 def cuisson(partie,choix,possibilites,carte):
     #on recupere le dict cuisson dans option
     dictCuisson=carte.option['cuissonDict']
-    print('cuisson',choix,possibilites,carte,possibilites[choix])
+    print('cuissonDBG',choix,possibilites,carte,possibilites[choix])
     possibilites[choix].jouer()
     return (-1,carte,True,"")
 ##################################################################################          
@@ -31,7 +31,7 @@ def cuisson(partie,choix,possibilites,carte):
 
 class Carte:
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},option={},activer=util.dummy,sansPion=False):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},option={},sansPion=False):
         self.uid=uid
         self.partie=partie
         if type(cout)==dict:
@@ -46,7 +46,6 @@ class Carte:
             self._option=option.copy()
         else:
             self._option=condition                
-        self._activer=activer 
         self._effet=effet
         self._possibilites=possibilites
         self.sansPion=sansPion
@@ -56,8 +55,7 @@ class Carte:
     
     def __str__(self):
            return self.uid
-    def activer(self):
-        return self._activer(self)      
+
 
 #     @property   
 #     def nom(self):
@@ -124,11 +122,13 @@ class Carte:
         encore=True # on va encore pouvoir jouer après
         #on regarde si la carte a une fonction possibilite
         if not type(self._possibilites)==dict:
+            print("jouerDBG1")
             choixPossibles=self._possibilites(self.partie,self)
             self.partie.choixPossibles=choixPossibles
             self.sujet=self
             return (choixPossibles,self,encore,"")
         else:
+            print("jouerDBG2",self.uid)
             self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid))
             self.partie.joueurQuiJoue().mettreAJourLesRessources(self.cout)
             self._cout=util.rVide()
@@ -180,10 +180,10 @@ def avoirXSavoirFaire(type,x):
 
 class Amenagement(Carte):
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},activer=util.dummy,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
         self.pointsVictoire=pointsVictoire
         self.pointsSpeciaux=pointsSpeciaux
-        super().__init__(partie,uid,possibilites,cout=cout,condition=condition,effet=effet,option=option,activer=activer,sansPion=sansPion)
+        super().__init__(partie,uid,possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion)
         
     @property
     def display(self):
@@ -192,16 +192,16 @@ class Amenagement(Carte):
 
 class AmenagementMineur(Amenagement):
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},activer=util.dummy,passableAGauche=False,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},passableAGauche=False,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
         self.passableAGauche=passableAGauche
-        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,activer=activer,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
 
 class AmenagementMajeur(Amenagement):
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},option={},activer=util.dummy,visible=False,devoile=None,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},option={},visible=False,devoile=None,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
         self.visible=visible
         self.devoile=devoile
-        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,activer=activer,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
 
 
 
@@ -331,7 +331,7 @@ def genererActionsSpeciales(partie):
 majeursDict={}
 majeursDict["M0"]={
     'cout':{'a':2},
-    'activer':cuisson,
+    'effet':cuisson,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':2,'m':2,'s':2,'v':3},'cuissonPain':{'c':2}},
     'visible':True,
@@ -340,7 +340,7 @@ majeursDict["M0"]={
     }
 majeursDict["M1"]={
     'cout':{'a':3},
-    'activer':cuisson ,
+    'effet':cuisson ,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':2,'m':2,'s':2,'v':3},'cuissonPain':{'c':2}},
     'visible':True,
@@ -350,7 +350,7 @@ majeursDict["M1"]={
 
 majeursDict["M2"]={
     'cout':{'a':1,'p':1},
-    'activer':cuisson ,
+    'effet':cuisson ,
     "possibilites":possibilitesCuisson,    
     'option':{'cuissonDict':{'l':1,'m':1,'s':1,'v':2,'h':1}},
     'visible':False,
@@ -358,7 +358,7 @@ majeursDict["M2"]={
     }
 majeursDict["M3"]={
     'cout':{'a':1,'p':1},
-    'activer':cuisson ,
+    'effet':cuisson ,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':1,'m':1,'s':1,'v':2,'h':1}},
     'visible':False,
@@ -389,7 +389,7 @@ majeursDict["M7"]={
     }
 majeursDict["M8"]={
     'cout':{'a':4},
-    'activer':cuisson ,
+    'effet':cuisson ,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
     'visible':True,
@@ -398,7 +398,7 @@ majeursDict["M8"]={
     }
 majeursDict["M9"]={
     'cout':{'a':5},
-    'activer':cuisson ,
+    'effet':cuisson ,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
     'visible':True,
@@ -407,7 +407,7 @@ majeursDict["M9"]={
     }
 majeursDict["M10"]={
     'cout':{'a':6},
-    'activer':cuisson ,
+    'effet':cuisson ,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
     'visible':False,
@@ -415,7 +415,7 @@ majeursDict["M10"]={
     }
 majeursDict["M11"]={
     'cout':{'a':6},
-    'activer':cuisson ,
+    'effet':cuisson ,
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
     'visible':False,
@@ -505,7 +505,7 @@ mineursDict={}
 #     'nom':'Foyer simple',
 #     'description':"Vous pouvez transformer à tout moment...",
 #     'cout':{'a':1},
-#     'activer':cuisson,
+#     'effet':cuisson,
 #     'option':{'cuissonDict':{'l':2,'m':1,'s':2,'v':3},'cuissonPain':{'c':2}},    
 #     'sansPion':True,
 #     'possibilites':possibilitesCuisson,

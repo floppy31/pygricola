@@ -212,35 +212,122 @@ class FonctionsPlateau(unittest.TestCase):
         self.assertTrue(util.sontEgaux(joueur.ressources,{'n':1,'m':1,'v':1}))    
             
     def test_ConstructionDePieceEtOuEtable(self):
-        #je peux rien faire
+        p=Partie()
+        p.initialiser(1,[])  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()   
+        carte=p.plateau["cases"][7]
         
-        #je gagne les ressources
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True
+        self.assertFalse(carteEstDispo)
+        #si on se mets 2 bois alors elle doit être dispo
+        joueur.ressources['b']=2
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True
+        self.assertTrue(carteEstDispo)      
+        #on va faire joujou avec le plan de construction
+        joueur.ressources['b']=18 #on veut aller jusqu'a 4 étables et 2 pièces
+        joueur.ressources['r']=4
+        ferme=joueur.courDeFerme
+        ferme.etat["A1"].type="vide"
+        ferme.etat["A2"].type="vide"
+        ferme.etat["B2"].type="tourbe"
+        ferme.etat["C2"].type="vide"
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(p.choixPossibles==choixPossibles=='inputtext')
+        inputTextNonValables=["toto","A1:f","B1:E","B1:P","B2:P","C2:P,C3:P,C4:P","C2:P,C4:P",
+                              "A1:E,A2:E,C4:E,C2:E,C3:E"]
         
-        #je peux faire
-        
-        #je ne peux pas en faire 5
-        
-        #position impossible
-        
-        #etables impossibles
-        
-        #j'en fais plusieurs
-        pass
+        for it in inputTextNonValables:
+            (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
+            self.assertTrue(choixPossibles=='inputtext') 
+            self.assertTrue(encore) 
+            print(message)
+        inputTextValablesEtRessources=[
+            ("A1:P",{'b':13,'r':2}),#1 pièce
+            ("A1:P,C2:P",{'b':8,'r':0}),#2 pièce
+            ("A1:P,C2:E",{'b':11,'r':2}),#1 pièce, 1 etable
+            ]
+        for it,reste in inputTextValablesEtRessources:
+            #je me remets les ressources
+            joueur.ressources['b']=18
+            joueur.ressources['r']=4   
+            #et la ferme    
+            ferme.etat["A1"].type="vide"
+            ferme.etat["A2"].type="vide"
+            ferme.etat["B2"].type="tourbe"
+            ferme.etat["C2"].type="vide"  
+
+            (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
+            print(choixPossibles,message)  
+            self.assertTrue(choixPossibles==-1) 
+            self.assertFalse(encore)
+            self.assertTrue(util.sontEgaux(joueur.ressources,reste))
+            #on remets le personnage artificiellement 
+            joueur.personnages.append(joueur.personnagesPlaces.pop())              
+               
+
        
     def test_ConstructionOuSpectacle(self):
+
         #je ne la vois qu'a 5
+        for njoueurs in range(1,5):
+            p=Partie()
+            p.initialiser(njoueurs,[])  
+            joueur=p.joueurs[0]
+            joueur.ressources=util.rVide()   
+            carte=p.plateau["cases"][1]
+            self.assertFalse(carte.uid=="a34")
+        p=Partie()
+        p.initialiser(5,[])  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()   
+        carte=p.plateau["cases"][1]
+        self.assertTrue(carte.uid=="a34")        
+
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True
+        #on peut toujours faire spectacle
+        self.assertTrue(carteEstDispo)
         
         #je ne peux faire que spectacle
-        
-        #je peux faire 1 pèce avec les ressources
-        
-        #je ne peux faire qu'une pièce
-        
-        #test position
-        
-        #ok
-        pass
-
+        p.sujet=carte
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(len(choixPossibles)==1)
+        self.assertTrue(choixPossibles[0]=="u6")
+        joueur.ressources['b']=5 
+        joueur.ressources['r']=2        
+        ferme=joueur.courDeFerme
+        ferme.etat["A1"].type="foret"
+        ferme.etat["B2"].type="tourbe"
+        ferme.etat["C2"].type="foret"  
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        #on n'a pas de place pour la maison
+        self.assertTrue(len(choixPossibles)==1)
+        self.assertTrue(choixPossibles[0]=="u6")        
+        #par contre si je fais de la place
+        ferme.etat["A1"].type="vide"
+        ferme.etat["B2"].type="vide"
+        ferme.etat["C2"].type="vide"
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(len(choixPossibles)==4)  #spectacle + 3 possibilites
+        sujet=carte
+        caseChoisie=choixPossibles[1][1] 
+        (choixPossibles,sujet,encore,message)=sujet.effet(1,choixPossibles) 
+        self.assertFalse(encore)
+        self.assertTrue(choixPossibles==-1)
+        self.assertTrue(util.sontEgaux(joueur.ressources,util.rVide() ))
+        self.assertFalse(carte.libre)
 
     def test_Labourage(self):
         #1er labour
@@ -275,11 +362,77 @@ class FonctionsPlateau(unittest.TestCase):
 
     def test_Majeurs(self):
         #visibilité
+        p=Partie()
+        p.initialiser(3,[])  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()
         
-        #devoiler fonctionne
+        carte=p.plateau["cases"][17] #bof mais a priori c'est elle 
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        #pas de ressources pas de possibilites
+        self.assertTrue(len(choixPossibles)==0)
+        #on teste la condition possibilites non vide
+        self.assertFalse(joueur.jeRemplisLesConditions(carte.condition))
+        #avec 2 argiles je peux faire seulement le foyer à 2
+        joueur.ressources['a']=2
+        self.assertTrue(joueur.jeRemplisLesConditions(carte.condition))
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(len(choixPossibles)==1)
+        self.assertTrue(choixPossibles[0].uid=="M0")
+        sujet=carte
+        #je le fais
+        (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)   
+        #peux plus rejouer
+        self.assertFalse(encore) 
+        #je n'ai plus de ressource
+        self.assertTrue(util.sontEgaux(joueur.ressources,{}))
+        #j'ai bien le majeur joué devant moi
+        self.assertTrue(joueur.aiJeJoue('M0'))  
+        #si je pouvais re jouer alors je ne pourrais pas activer le foyer 
+        joueur.possibilites()    
+        activable=False
+        for pos in p.choixPossibles:
+            if (pos.uid) =="M0":
+                activable=True
+        self.assertFalse(activable)     
+        #mais avec un mouton si!
+        joueur.ressources['m']=1
+        joueur.possibilites()    
+        activable=False
+        for pos in p.choixPossibles:
+            if (pos.uid) =="M0":
+                activable=True
+                sujet=pos
+        self.assertTrue(activable)     
+        #que puis-je activer
+        cuissonPossibles=sujet.possibilites()
+        self.assertTrue(cuissonPossibles[0].uid=="um") #cuire un mouton
+        (choixPossibles,sujet,encore,message)=sujet.effet(0,cuissonPossibles)   
+        #on peut encore jouer
+        self.assertTrue(encore) 
+        #on a gagné 2 pn et perdu le mouton
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':2}))
+        #on passe au joueur suivant
+        p.joueurSuivant()
+        joueur=p.joueurs[1]
+        joueur.possibilites() 
+        joueur.ressources=util.rVide()
+        joueur.ressources['a']=2
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertFalse(joueur.jeRemplisLesConditions(carte.condition))        
+        #par contre si je me mets 1 argile en plus je peux 
+        joueur.ressources['a']=3
+        self.assertTrue(joueur.jeRemplisLesConditions(carte.condition))  
+        #si je me mets une pierre en plus
+        joueur.ressources['p']=1
+        #je peux jouer 4 trucs (foyer à 3, four a tourbe, four en brique, et abatoir à chevaux 1
+        joueur.possibilites() #on réinitialise
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        uidPossibles=["M1","M2","M4","M14"]
+        for am in choixPossibles:
+            uidPossibles.remove(am.uid)
+        self.assertTrue(len(uidPossibles)==0)  
         
-        
-        pass
         
 
         
@@ -294,8 +447,93 @@ class FonctionsPlateau(unittest.TestCase):
         (choixPossibles,sujet,encore,message)=sujet.effet(1,p.choixPossibles)
         self.assertTrue(util.sontEgaux(joueur.ressources,{'n':1,'r':1}))
         
-    def test_Semailles(self):
+    def test_SemailleCuisson(self):
         #pas de céréale ni cuisson
+        p=Partie()
+        p.initialiser(1,[])  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()   
+        for ind,c in p.plateau["cases"].items():
+            if c.uid=="a13":
+                #au debut la case est pas dispo
+                self.assertFalse(c.visible)
+                #mais bon on la rend visible
+                c.visible=True
+                carte=c
+                break
+        #la carte à beau être visible, si je peux rien en faire 
+        #il ne faut pas qu'elle apparaisse
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True       
+        self.assertFalse(carteEstDispo)
+        
+        #si j'ai un champ 
+        ferme=joueur.courDeFerme
+        ferme.etat["A1"].type="champ"   
+        #et un four non plus (la je mets tous les fours artificiellement
+        for uid,v in p.plateau["majeurs"].items():
+            if 'cuissonPain' in v.option.keys():
+                joueur.cartesDevantSoi[uid]=v
+                
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True       
+        self.assertFalse(carteEstDispo)
+        
+        #mais si je prends des céréales alors là je peux!!
+        joueur.ressources['c']=2
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True       
+        self.assertTrue(carteEstDispo)        
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+
+        self.assertTrue(p.choixPossibles==choixPossibles=='inputtext')
+        ferme.etat["A1"].type="champ"   
+        ferme.etat["A2"].type="champ"   
+        ferme.etat["A3"].type="champ"   
+        ferme.etat["B3"].type="tourbe" 
+        inputTextNonValables=["toto","A1:f","A1:l","B3:c","A1:c,c:2"]
+        
+        for it in inputTextNonValables:
+            print('rrraaa',it)
+            (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
+            self.assertTrue(choixPossibles=='inputtext') 
+            self.assertTrue(encore) 
+            print(message)
+            
+        jensuisla
+        inputTextValablesEtRessources=[
+            ("A1:P",{'b':13,'r':2}),#1 pièce
+            ("A1:P,C2:P",{'b':8,'r':0}),#2 pièce
+            ("A1:P,C2:E",{'b':11,'r':2}),#1 pièce, 1 etable
+            ]
+        for it,reste in inputTextValablesEtRessources:
+            #je me remets les ressources
+            joueur.ressources['b']=18
+            joueur.ressources['r']=4   
+            #et la ferme    
+            ferme.etat["A1"].type="vide"
+            ferme.etat["A2"].type="vide"
+            ferme.etat["B2"].type="tourbe"
+            ferme.etat["C2"].type="vide"  
+
+            (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
+            print(choixPossibles,message)  
+            self.assertTrue(choixPossibles==-1) 
+            self.assertFalse(encore)
+            self.assertTrue(util.sontEgaux(joueur.ressources,reste))
+            #on remets le personnage artificiellement 
+            joueur.personnages.append(joueur.personnagesPlaces.pop())              
+                       
+        
         #cuisson seule
         #semaille et cuisson
         #test plan dispo ressource etc...

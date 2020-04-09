@@ -126,7 +126,7 @@ class Partie(object):
         self.plateau["actionsSpeciales"]=dict()
         self.plateau["tour"]=1
         self.plateau["actionsSpeciales"]=genererActionsSpeciales(self)
-        if nombre==2:
+        if nombre==2 or nombre==1:
             self.plateau["cases"][1]=CarteAction(self,"a40",visible=False)
             self.plateau["cases"][2]=CarteAction(self,"a40",visible=False)
             self.plateau["cases"][3]=CarteAction(self,"a40",visible=False)

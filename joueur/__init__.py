@@ -14,7 +14,6 @@ class Joueur(object):
         self.courDeFerme=CourDeFerme(partie)
         self.cartesEnMain=[]
         self.cartesDevantSoi={}
-        self.cartesActivables=[]
         self.personnages=[Personnage("b1",1,self.couleur),Personnage("c1",2,self.couleur)]
         self.personnagesPlaces=[]
         self.ressources={
@@ -64,7 +63,7 @@ class Joueur(object):
         
         #on regarde si on a des cases activables
         for k,v in self.cartesDevantSoi.items():
-            if not v.activer == util.dummy:
+            if not v.effet == util.dummy:
                 if self.jeRemplisLesConditions(v.condition):
                     casesJouables.append(v)
                 else:
@@ -78,7 +77,7 @@ class Joueur(object):
             casesJouables.append(Carte(self.partie,"c1",**deck['utilitaire']["c1"]))
             
             
-        casesJouables=casesJouables+self.cartesActivables+actionsSpeJouables
+        casesJouables=casesJouables+actionsSpeJouables
         self.partie.choixPossibles=casesJouables
 #         choix=util.printPossibilities(self.partie,"QUE VOULEZ VOUS FAIRE?",casesJouables)
 #         if choix==-1:
@@ -164,6 +163,8 @@ class Joueur(object):
         rep=len(self.personnages)==0
         return rep
     
+        
+    
     def quePuisJeSemer(self):
         #methode modifiable si certaines cartes sont jouees
         return ['c','l']
@@ -245,7 +246,6 @@ class Joueur(object):
         dico['courDeFerme']=self.courDeFerme.save()
         dico['cartesEnMain']=[c.save() for c in self.cartesEnMain]
         dico['cartesDevantSoi']=[v.save() for c,v in self.cartesDevantSoi.items()]
-        dico['cartesActivables']=[c.save() for c in self.cartesActivables]
         dico['ressources']=self.ressources
         dico['personnages']=[p.save() for p in self.personnages]
         dico['personnagesPlaces']=[p.save() for p in self.personnagesPlaces]
@@ -257,7 +257,6 @@ def loadJoueur(dico,partie):
     j.courDeFerme.load(dico['courDeFerme']) 
     j.cartesEnMain=[loadCarte(c,partie) for c in dico["cartesEnMain"]]
     j.cartesDevantSoi  = [loadCarte(c,partie) for c in dico["cartesDevantSoi"]]
-    j.cartesActivables=[]
     j.ressources=dico['ressources']
     j.personnages=[loadPersonnage(p) for p in dico['personnages']]
     j.personnagesPlaces=[loadPersonnage(p) for p in dico['personnagesPlaces']]

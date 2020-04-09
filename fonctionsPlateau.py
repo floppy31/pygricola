@@ -279,7 +279,8 @@ def choixAmenagementMineurOuMajeur(partie,choix,possibilites,carte):
         typeCarte="aménagement majeur"
         if not carteJouee.devoile is None:
             plateau['majeurs'][carteJouee.devoile].visible=True
-            
+    #on paye le cout de la carte
+    joueur.mettreAJourLesRessources(carteJouee.cout)
     partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "réalise l'",typeCarte,carteJouee.uid))
     personnage=joueur.personnages.pop()
     joueur.personnagesPlaces.append(personnage)                  
@@ -534,7 +535,7 @@ def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
 
 
 def possibiliteConstructionOuSpectacle(partie,carte,Fake=False):
-    possibilites=["Spectacle"]
+    possibilites=["u6"]
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
     cout=joueur.prixDeLaPiece()
@@ -545,7 +546,7 @@ def possibiliteConstructionOuSpectacle(partie,carte,Fake=False):
             for direction in voiz.keys():
                 if voiz[direction]: #si not None
                     if ferme.etat[voiz[direction]].type=='vide':
-                        possibilites.append("construire en {}".format(voiz[direction]))
+                        possibilites.append(['u7',voiz[direction]])
     if (not Fake):
         partie.phraseChoixPossibles="Que voulez vous faire? :"
         partie.sujet=carte
@@ -563,7 +564,7 @@ def constructionOuSpectacle(partie,choix,possibilites,carte):
         ferme=joueur.courDeFerme
         cout=joueur.prixDeLaPiece()   
         typeMaison=ferme.enQuoiEstLaMaison(False)
-        case=possibilites[choix].split("construire en ")[-1]
+        case=possibilites[choix][1]
         ferme.etat[case].type=typeMaison  
         partie.messagesPrincipaux.append("{} construit 1 pièce en {}".format(partie.joueurQuiJoue().nom,case))
 
@@ -610,7 +611,7 @@ def jePeuxFaireConstructionDePieceEtOuEtable(partie,carte):
 ##################################################################################  
 
     
-def jePeuxFaireSemailleEtOuCuisson(partie):    
+def jePeuxFaireSemailleEtOuCuisson(partie,carte):    
     return jePeuxSemer(partie) or jePeuxCuireDuPain(partie)
 
 def jePeuxSemer(partie):
@@ -644,7 +645,7 @@ def demanderPlanSemailleEtOuCuisson(partie,carte):
 
         
 def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
-    #par ex c2:c,c3:l,d4:c,cuisson:4
+    #par ex C2:c,C3:l,c:4
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme                                  
     planCorrect=True
@@ -653,6 +654,7 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
     cerealesACuire=0
     msg=""
     cout={'b':0,'c':0,'l':0} #on ne peut semer que ces 3 trucs
+    cuissonPassee=False
     for tup in planStr.split(','):
         try:
             case=tup.split(':')[0]
@@ -662,9 +664,22 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
             msg="format de plan invalide {}".format(planStr)
             return ('inputtext',carte,True,msg)
         
-        if case == "cuisson":
-            cout['c']+=1
-            cerealesACuire+=1
+        if case == "c":
+            if cuissonPassee:
+                planCorrect=False
+                msg="plan invalide, il ne peux y avoir qu'une instruction de cuisson"
+                return ('inputtext',carte,True,msg)                
+            else:
+                try:
+                    if int(type)<1:
+                        nimportequoi #pour passer dans except
+                    cout['c']+=int(type)
+                    cerealesACuire=int(type)
+                    cuissonPassee=True
+                except:
+                    planCorrect=False
+                    msg="Pour la cuisson avec c:X, X doit être un entier strictement positif"
+                    return ('inputtext',carte,True,msg)
         else:
             if type in ['b','c','l']:
                 #la case doit exister 
@@ -689,13 +704,13 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
                     break                           
             else:
                 planCorrect=False
-                msg="la vous ne pouvez pas semer de ".format(util.short2Long(type))
+                msg="la vous ne pouvez pas semer de {}".format(util.short2Long[type])
                 break
     #si pour le moment on est bon
     if (planCorrect):
+        print ("sem",cout)
         if(joueur.jePeuxJouer(cout)):
             #on est OK
-            
             #on cuit les céréales
             cout['n']=-joueur.pouvoirCuisson(cerealesACuire)
             joueur.mettreAJourLesRessources(cout)
@@ -709,6 +724,7 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
         else:
             planCorrect=False
             msg="vous ne pouvez pas payer le cout {} ".format(cout)
+            return ('inputtext',carte,True,msg)
      
     else:
         #on est pas bon
