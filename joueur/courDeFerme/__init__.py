@@ -120,12 +120,17 @@ class CourDeFerme(object):
         for i in range(len(self.paturages.casesDesPaturages)):
             print("Paturage en : {}, d une capacite de {} animaux".format(str(self.paturages.casesDesPaturages[i]), str(self.paturages.capacite[i])))
     
-   
+    def mettrePersonnage(self,perso,case):
+        perso.localisation=case
+        self.etat[case].occupants.append(perso)   
 
         
     def save(self):
         #TODO: doit retourner un dico ou ordered dico
-        return [alias[self.etat[case].type] for case in parseList]
+        rep=[]
+        for case in parseList:
+            rep.append((alias[self.etat[case].type] ,len(self.etat[case].occupants)))
+        return rep
     
     def load(self,dico):
         print('loadFerme',dico)
@@ -150,6 +155,7 @@ class Tuile(object):
     def __init__(self, type):
         self.type=type
         self.ressources=util.rVide()
+        self.occupants=[]
     def __str__(self):
            return str(self.type)
     @property   
@@ -169,6 +175,7 @@ class Tuile(object):
             print("ERREUR vous ne pouvez semer que sur un champ")
             qsfqdfdf
             
+
 
         
 class Paturage(object):

@@ -131,6 +131,26 @@ class FonctionsPlateau(unittest.TestCase):
         #rachat      
         
         pass   
+    def test_AsFoireDuTravail(self):
+        #2,3,4,5 joueurs
+        
+        #plus de place
+        
+        #rachat      
+        
+        pass   
+    
+    def test_AsTravailClandestin(self):
+        #2,3,4,5 joueurs
+        
+        #plus de place
+        
+        #rachat      
+        
+        pass       
+    
+
+
     
     def test_AsTourbe(self):
         #1 ère fois
@@ -271,7 +291,9 @@ class FonctionsPlateau(unittest.TestCase):
             self.assertFalse(encore)
             self.assertTrue(util.sontEgaux(joueur.ressources,reste))
             #on remets le personnage artificiellement 
-            joueur.personnages.append(joueur.personnagesPlaces.pop())              
+            perso=joueur.personnagesPlaces.pop()
+            joueur.personnages.append(perso)
+            ferme.mettrePersonnage(perso,perso.localisationInit) 
                
 
        
@@ -330,11 +352,21 @@ class FonctionsPlateau(unittest.TestCase):
         self.assertFalse(carte.libre)
 
     def test_Labourage(self):
-        #1er labour
+        p=Partie()
+        p.initialiser(1,[])  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()
         
-        #labour impossible
+        carte=p.plateau["cases"][10] #bof mais a priori c'est elle         #1er labour
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(len(choixPossibles)==5)# 5 endroits vides au début
+        self.assertTrue(joueur.courDeFerme.compter('champ')==0)
+        (choixPossibles,sujet,encore,message)=sujet.effet(0,choixPossibles) 
+        self.assertTrue(joueur.courDeFerme.compter('champ')==1)
+        self.assertFalse(encore)
         
-        pass
+        
+        
 
     def test_Naissance(self):
         p=Partie()
@@ -499,41 +531,55 @@ class FonctionsPlateau(unittest.TestCase):
         ferme.etat["A1"].type="champ"   
         ferme.etat["A2"].type="champ"   
         ferme.etat["A3"].type="champ"   
+        ferme.etat["A3"].ressources['c']=1  
         ferme.etat["B3"].type="tourbe" 
-        inputTextNonValables=["toto","A1:f","A1:l","B3:c","A1:c,c:2"]
+        inputTextNonValables=["toto","A1:f","A1:l","B3:c","A1:c,c:2","A3:c"]
         
         for it in inputTextNonValables:
-            print('rrraaa',it)
             (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
             self.assertTrue(choixPossibles=='inputtext') 
             self.assertTrue(encore) 
             print(message)
             
-        jensuisla
+        joueur.ressources['c']=5
+        joueur.ressources['l']=5
+        
         inputTextValablesEtRessources=[
-            ("A1:P",{'b':13,'r':2}),#1 pièce
-            ("A1:P,C2:P",{'b':8,'r':0}),#2 pièce
-            ("A1:P,C2:E",{'b':11,'r':2}),#1 pièce, 1 etable
+            ("A1:c",{'c':4,'l':5},{'A1':'3c'}),
+            ("A1:l,c:2",{'c':3,'l':4,'n':9},{'A1':'2l'}),
+            ("A1:c,A2:l,c:4",{'c':0,'l':4,'n':16},{'A1':'3c','A2':'2l'}),
+
             ]
-        for it,reste in inputTextValablesEtRessources:
+        for it,reste,etatChamp in inputTextValablesEtRessources:
             #je me remets les ressources
-            joueur.ressources['b']=18
-            joueur.ressources['r']=4   
+            joueur.ressources['c']=5
+            joueur.ressources['l']=5
+            joueur.ressources['n']=0
             #et la ferme    
-            ferme.etat["A1"].type="vide"
-            ferme.etat["A2"].type="vide"
-            ferme.etat["B2"].type="tourbe"
-            ferme.etat["C2"].type="vide"  
+            ferme.etat["A1"].type="champ"   
+            ferme.etat["A1"].ressources=util.rVide()
+            ferme.etat["A2"].type="champ"   
+            ferme.etat["A2"].ressources=util.rVide()
+            ferme.etat["A3"].type="champ"   
+            ferme.etat["A3"].ressources=util.rVide()
+            ferme.etat["B3"].type="tourbe" 
+            ferme.etat["B3"].ressources=util.rVide()
 
             (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
-            print(choixPossibles,message)  
             self.assertTrue(choixPossibles==-1) 
             self.assertFalse(encore)
             self.assertTrue(util.sontEgaux(joueur.ressources,reste))
             #on remets le personnage artificiellement 
-            joueur.personnages.append(joueur.personnagesPlaces.pop())              
-                       
-        
+            perso=joueur.personnagesPlaces.pop()
+            joueur.personnages.append(perso)
+            ferme.mettrePersonnage(perso,perso.localisationInit) 
+            for k,v in etatChamp.items():
+                nb=int(v[0])
+                type=v[1]
+                print("eee",ferme.etat[k].ressources[type],nb)
+                self.assertTrue(ferme.etat[k].ressources[type]==nb)     
+                
+      
         #cuisson seule
         #semaille et cuisson
         #test plan dispo ressource etc...

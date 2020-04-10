@@ -153,6 +153,10 @@ class Carte:
             return (-1,self,encore,"")
     
     def mettrePersonnage(self,perso):
+        print('titi',perso.localisationInit,self.partie.joueurQuiJoue().courDeFerme.etat[perso.localisationInit])
+        print('titi',self.partie.joueurQuiJoue().courDeFerme.etat[perso.localisationInit].occupants)
+
+        self.partie.joueurQuiJoue().courDeFerme.etat[perso.localisationInit].occupants.pop()
         perso.localisation=self
         self.occupants.append(perso)
         self.libre=False

@@ -138,7 +138,9 @@ def naissancePuisMineur(partie,choix,possibilites,carte):
     emplacements=set(emplacements)
     emplacementsMaisons=set(ferme.tousLes('maison'))
     
-    nouveauNe=Personnage(emplacementsMaisons.difference(emplacements).pop(),nbJoueurs+1,joueur.couleur)
+    locBebe=emplacementsMaisons.difference(emplacements).pop()
+    nouveauNe=Personnage(locBebe,nbJoueurs+1,joueur.couleur)
+    ferme.mettrePersonnage(nouveauNe,locBebe)
     carte.mettrePersonnage(nouveauNe)
     nouveauNe.consomationNourriture=1
     joueur.personnagesPlaces.append(nouveauNe)
@@ -714,7 +716,8 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
             #on cuit les céréales
             cout['n']=-joueur.pouvoirCuisson(cerealesACuire)
             joueur.mettreAJourLesRessources(cout)
-
+            for case,type in validTup:
+                ferme.etat[case].semer(type)
             partie.messagesPrincipaux.append("{} sème {} cereale(s), {} légume(s) et {} bois, et cuit {} céréale(s) pour {} pn".format(
                 partie.joueurQuiJoue().nom,cout['c']-cerealesACuire,cout['l'],cout['b'],cerealesACuire,-cout['n']))                                                      
             personnage=partie.joueurQuiJoue().personnages.pop()

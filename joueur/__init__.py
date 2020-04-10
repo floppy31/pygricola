@@ -14,7 +14,14 @@ class Joueur(object):
         self.courDeFerme=CourDeFerme(partie)
         self.cartesEnMain=[]
         self.cartesDevantSoi={}
-        self.personnages=[Personnage("b1",1,self.couleur),Personnage("c1",2,self.couleur)]
+        p1=Personnage("B1",1,self.couleur)
+        
+        
+        self.courDeFerme.mettrePersonnage(p1,"B1")
+        print("RRR",self.courDeFerme.etat["B1"].occupants)
+        p2=Personnage("C1",2,self.couleur)
+        self.courDeFerme.mettrePersonnage(p1,"C1")
+        self.personnages=[p1,p2]
         self.personnagesPlaces=[]
         self.ressources={
             'b':10,
@@ -106,7 +113,26 @@ class Joueur(object):
     
     def pouvoirCuisson(self,ncereal):
         #combien j'ai de bouffe au max si je cuis ncereal
-        return 2*ncereal
+        pn=0
+        dicoResteCuisson={'M14':1,'M16':2}
+                
+        while(ncereal>0):
+            #on cuit d'abord avec le meilleur four
+            if self.aiJeJoue("M14") and dicoResteCuisson['M14']>0 :
+                pn+=5
+                ncereal-=1
+                dicoResteCuisson['M14']-=1
+            elif self.aiJeJoue("M16") and dicoResteCuisson['M16']>0 :
+                pn+=4
+                ncereal-=1
+                dicoResteCuisson['M16']-=1
+            elif self.aiJeJoue("M8") or self.aiJeJoue("M9") or self.aiJeJoue("M10") or self.aiJeJoue("M11"):
+                pn+=3
+                ncereal-=1
+            elif self.aiJeJoue("M0") or self.aiJeJoue("M1"):
+                pn+=2
+                ncereal-=1            
+        return pn
             
     #doit retourner, soit -1 action fini, soit le sujet s'il y a encore des possibilites
     def jouer(self,choix):
@@ -212,10 +238,10 @@ class Joueur(object):
         else:
             return{'f':-3}
                  
-    def combienJaiJoueDe(self,string):
+    def combienJaiJoueDe(self,lettre):
         count=0
-        for c in self.cartesDevantSoi:
-            if type(c)==string:
+        for uid,c in self.cartesDevantSoi.items():
+            if uid[0]==lettre:
                 count+=1
         return count
         
@@ -246,6 +272,9 @@ class Joueur(object):
         dico['courDeFerme']=self.courDeFerme.save()
         dico['cartesEnMain']=[c.save() for c in self.cartesEnMain]
         dico['cartesDevantSoi']=[v.save() for c,v in self.cartesDevantSoi.items()]
+        dico['mineursJoues']=self.combienJaiJoueDe('m')
+        dico['majeursJoues']=self.combienJaiJoueDe('M')
+        dico['savoirFaireJoues']=self.combienJaiJoueDe('s')
         dico['ressources']=self.ressources
         dico['personnages']=[p.save() for p in self.personnages]
         dico['personnagesPlaces']=[p.save() for p in self.personnagesPlaces]

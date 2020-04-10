@@ -42,17 +42,6 @@ def cloture(partie):
         if choix == 1:
             ferme.paturages.diviserUnPaturage()
 
-
-                       
-    
-
-
-      
-
-    
-    
-
-    
         
 def jePeuxRenover(partie):
     joueur=partie.joueurs[partie.quiJoue]
@@ -62,9 +51,6 @@ def jePeuxRenover(partie):
     cout={'r':1,typeMaison:nbMaison}
     return joueur.jePeuxJouer(cout)
 
-
-        
-        
 def renoPuisMajeur(partie):
     pass
 
