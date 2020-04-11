@@ -1,3 +1,4 @@
+from pygricola.traduction import trad
 
 
 def rVide():
@@ -13,7 +14,24 @@ def estVide(r):
 def dummy():
     pass
 
-
+def traduire(stri):
+    if isinstance(stri,list):
+        s=""
+        for i in stri:
+            if i in trad.keys():
+                s+="{} ".format(trad[i]['fr'])
+            elif i[0] in ['A','B','C']:
+                s+=i
+            else:
+                s+='NO TRAD'+i
+        return s
+    elif isinstance(stri,str):
+        if stri in trad.keys():
+            return "{} ".format(trad[stri]['fr'])
+        elif stri[0] in ['A','B','C']:
+            return stri
+        else:
+            return 'PAS DE TRADUCTION str'+stri
 
 
 
@@ -25,6 +43,13 @@ def dummy():
 
 idx=0
 
+
+def tradUidOrSelf(o):
+    if hasattr(o, 'uid'):
+        return traduire(o.uid)
+    else:
+        return o
+        
 
 
 def customInput(partie,msg):
@@ -53,13 +78,7 @@ def printPossibilities(partie,message,possibilites,annulable=True):
         while(not choixValide):
             
             for p in possibilites:
-                if hasattr(p, 'display'):
-                    nom=p.display
-                elif hasattr(p, 'nom'):
-                    nom=p.nom
-                else:
-                    nom=p
-                print("{} : {}".format(possibilites.index(p),nom))
+                print("{} : {}".format(possibilites.index(p),tradUidOrSelf(p)))
             if annulable:
                 print('a pour anuler:')     
             g = customInput(partie,message+"   ") 
@@ -79,7 +98,7 @@ def printPossibilities(partie,message,possibilites,annulable=True):
                 print('Vous avez fait un choix invalide!!',g,' Recommencez')
         
         
-        stri="Vous avez choisi {}\n Vous confirmez?(o/n)   ".format(possibilites[choix])
+        stri="Vous avez choisi {}\n Vous confirmez?(o/n)   ".format(tradUidOrSelf(possibilites[choix]))
         conf = customInput(partie,stri) 
         if(conf=='o'):
             confirmation=True
@@ -92,18 +111,18 @@ def printPossibilities(partie,message,possibilites,annulable=True):
 
 
 short2Long={
-    'b':'bois',
-    'a':'argile',
-    'p':'pierre',
-    'r':'roseau',
-    'n':'pn',
-    'f':'feu',
-    'c':'cereale',
-    'l':'legume',
-    'm':'mouton',
-    's':'sanglier',
-    'v':'boeuf',
-    'h':'cheval',
+    'b':'rb',
+    'a':'ra',
+    'p':'rp',
+    'r':'rr',
+    'n':'rn',
+    'f':'rf',
+    'c':'rc',
+    'l':'rl',
+    'm':'rm',
+    's':'rs',
+    'v':'rv',
+    'h':'rh',
     }
 long2Short={
     'bois':'b',
@@ -122,7 +141,6 @@ long2Short={
 
 
 def ajouter(a,b):
-    
     somme={}
     for k in list(set(a.keys()).union(set(b.keys()))):
         if k not in a.keys():
@@ -131,21 +149,52 @@ def ajouter(a,b):
             somme[k]=a[k]
         else:
             somme[k]=a[k]+b[k]
-    print("somme",a,b,somme)
     return somme.copy()
 
-def jouable(a,b):
+def sontEgaux(a,b):
+    egaux=True
+    for k in list(set(a.keys()).union(set(b.keys()))):
+        if k not in a.keys():
+            if b[k]!=0:
+                egaux=False
+                break
+        elif k not in b.keys():
+            if a[k]!=0:
+                egaux=False
+                break
+        else:
+            if a[k]!=b[k]:
+                egaux=False
+                break
+    if not egaux:
+        print('sontEgaux',a,b)
+    
+    return egaux
+
+
+def jouable(constA,constB):
     #true if a>=b
     #valable pour cout et condition
+    a=ajouter(constA,rVide())
+    b=ajouter(constB,rVide())
     res=True
     raison="OK"
+    ressourcesProbleme=[]
     for k in a.keys():
-        if k in b.keys():
-            if (b[k]>0):
-                if a[k]<b[k]:
-                    res=False
-                    raison="non jouable {} {} {}".format(k,a[k],b[k])
-                    break
+        #print('dbg',k)
+        
+        if (b[k]>0):
+            if a[k]<b[k]:
+                res=False
+                raison=["p15",k,a[k],b[k]]
+                ressourcesProbleme.append(k)  
+    #s'il n'y a qu'un probleme de combustible
+    if ressourcesProbleme==['f']:
+        diffBois=b['f']-a['f']
+        if not (a['b']-diffBois)<b['b']:
+            raison="utilisation du bois"
+            res=True
+                        
     return res,raison
 
 def prettyGain(a):

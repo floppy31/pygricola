@@ -2,7 +2,7 @@ import pygricola.util as util
 from partie import Partie
 listeReponse=[] #/pour prédefinir les premières reponses tapes au clavier
 #permet de jouer les premier coup automatiquemetn
-nJoueurs=2
+nJoueurs=3
 p=Partie()
 p.initialiser(nJoueurs,listeReponse)    
 p.demarragePartie()
@@ -19,7 +19,10 @@ while(True):
             casesJouablesStr=sujet.possibilites()
             p.phraseChoixPossibles="QUE VOULEZ VOUS FAIRE?"
             choix=util.printPossibilities(p,p.phraseChoixPossibles,p.choixPossibles,annulable=False)
-            (choixPossibles,sujet,encore,message)=p.choixPossibles[choix].jouer()
+            
+            (choixPossibles,sujet,encore,message)=p.jouerUid(p.choixPossibles[choix].uid)
+
+#             (choixPossibles,sujet,encore,message)=p.choixPossibles[choix].jouer()
             
             while(choixPossibles=='inputtext'):
                 g=input(print(p.phraseChoixPossibles))
