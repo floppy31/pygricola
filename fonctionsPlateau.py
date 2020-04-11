@@ -1,12 +1,11 @@
 import pygricola.util as util
-
 ####cette condition est particulière
 ####si la carte à une methode possibilités, on l'appelle avec Fake=True
 ####si la liste est vide, on ne peux pas faire l'action
+####par ex ni on ne peux ni jouer de mineur ni de majeur, on ne peux pas faire la case
 def possibilitesNonVide(partie,carte):
     if not type(carte._possibilites)==dict:
         pos=carte._possibilites(partie,carte,Fake=True)
-        print('posnonvide',pos)
         if len(pos)==0:
             partie.messagesDetail.append("{} : possibilites vides".format(carte.uid) )
         return len(pos)>0
@@ -40,7 +39,7 @@ def betail(partie,choix,possibilites,carte):
     joueur.personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
     joueur.mettreAJourLesRessources(cout)
-    partie.messagesPrincipaux.append("{} ~p1~ {}".format(partie.joueurQuiJoue().nom,possibilites[choix]))
+    partie.messagesPrincipaux.append([joueur.nom,"p1",possibilites[choix]])
 
     return (-1,carte,False,"") #on ne peux plus en jouer  
               
@@ -175,10 +174,21 @@ def possibilitesAmenagementMineur(partie,carte,Fake=False):
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
     for c in  joueur.cartesEnMain:
-        if joueur.jeRemplisLesConditions(c.condition):
-             if joueur.jePeuxJouer(c.cout):
-                        possibilites.append(c)
-    possibilites.append('u3')
+        #ici c'est condition achat... on ne veut pas appeler poss non vide de la carte à acheter
+        if joueur.jeRemplisLesConditions(c.conditionAchat):
+            #cout de la carte + de l'action (pour foire du travail)
+            if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
+                possibilites.append(c)
+            else:
+                partie.messagesDetail.append(["p10",c.uid])
+        else:
+            partie.messagesDetail.append(["p9",c.uid])
+    #si on appelle cette methode via l'action spéciale 
+    #on n'ajoute pas la possibilité u3 (ne rien faire)
+    #ainsi on ne peux pas faire l'action spéciale si on ne peux construire aucun
+    #ammenagement grace à possibiliteNonVide
+    if not hasattr(carte,"carteQuiMePorte"):
+        possibilites.append('u3')
     if (not Fake):                    
         partie.phraseChoixPossibles="Choissisez un aménagement mineur:"
         partie.sujet=carte
@@ -190,19 +200,20 @@ def choixAmenagementMineur(partie,choix,possibilites,carte):
     plateau=partie.plateau
     if carteJouee=="u3":
         #on ne fait pas de mineur
-        partie.messagesPrincipaux.append("{} {}".format(joueur.nom, "ne fais pas de mineur"))
+        partie.messagesPrincipaux.append([joueur.nom, "p16"])
     else:    
         carteJouee.jouer()
         joueur.cartesDevantSoi[carteJouee.uid]=carteJouee
         joueur.cartesEnMain.remove(carteJouee)
-        partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "~p3~",carteJouee.nom))
+        partie.messagesPrincipaux.append([joueur.nom,"p3",carteJouee.uid])
         
     if carte.uid=="a1":#premier joueur + mineur
         partie.premierJoueur=joueur.id
     elif carte.uid=="a14":#naissance + mineur
         pass
     else:
-        if isinstance(carte,ActionSpeciale):
+        #si c'est une action speciale
+        if hasattr(carte,"carteQuiMePorte"):
             joueur.mettreAJourLesRessources(carte.cout)
             carte.carteQuiMePorte.changerEtat(partie.quiJoue)
             return (-1,carte,False,"")     
@@ -220,9 +231,10 @@ def possibilitesAmenagementMajeur(partie,carte,Fake=False):
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
     for k,c in plateau["majeurs"].items():
-        if joueur.jeRemplisLesConditions(c.condition):
-             if joueur.jePeuxJouer(c.cout):
-                        possibilites.append(c)
+        if c.visible:
+            if joueur.jeRemplisLesConditions(c.condition):
+                if joueur.jePeuxJouer(c.cout):
+                    possibilites.append(c)
     if (not Fake):                    
         partie.phraseChoixPossibles="Choissisez un aménagement majeur:"
         partie.sujet=carte
@@ -235,7 +247,7 @@ def choixAmenagementMajeur(partie,choix,possibilites,carte):
     plateau=partie.plateau
     joueur.cartesDevantSoi[carteJouee.uid]=carteJouee
     del plateau["majeurs"][carteJouee.uid]
-    partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "réalise l'aménagement majeur",carteJouee.nom))
+    partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.uid, "p14",carteJouee.uid))
     
 
     if isinstance(carte,ActionSpeciale):
@@ -710,7 +722,6 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
                 break
     #si pour le moment on est bon
     if (planCorrect):
-        print ("sem",cout)
         if(joueur.jePeuxJouer(cout)):
             #on est OK
             #on cuit les céréales
@@ -736,188 +747,4 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
     
     
 
-
-##################################################################################
-#---------------------------------------Archives--------------------------
-##################################################################################              
-                
-
-# 
-# def possibilitesConstructionDePiece(partie,carte):
-#     possibilites=["je ne veux pas construire de pièce"]
-#     joueur=partie.joueurQuiJoue()
-#     ferme=joueur.courDeFerme   
-#     typeMaison=ferme.enQuoiEstLaMaison()
-#     cout=joueur.prixDeLaPiece()
-#     #normalement ce if est toujours vrai
-#     if joueur.jePeuxJouer(cout):
-#         for c in ferme.tousLes('maison'):
-#             voiz=ferme.voisin(c)
-#             for direction in voiz.keys():
-#                 if voiz[direction]: #si not None
-#                     if ferme.etat[voiz[direction]].type=='vide':
-#                         possibilites.append(voiz[direction])   
-#                             
-#     partie.phraseChoixPossibles="Où voulez vous construire un pièce en {}? :".format(ferme.enQuoiEstLaMaison(False))
-#     partie.sujet=carte
-#     return possibilites   
-# 
-# def possibilitesConstructionEtable(partie,carte):
-#     possibilites=["pas d'étable","1 étable","2 étables","3 étables","4 étables"]
-#     joueur=partie.joueurQuiJoue()
-#     ferme=joueur.courDeFerme   
-#     #je peux construire combien d'étables?
-#     #il me semble qu'il n'y a aucune reduction ici pour le cout des etables
-#     nbois=  joueur.ressources['b']
-#     casesVides=ferme.compter("vide")
-#     #min entre nb etable qu'on peut construire, etables encore dispo, et place dispo
-#     nbEtablesPossibles = int(min(nbois/2,ferme.compterEtablesDispo(),casesVides))
-#     possibilites=possibilites[0:nbEtablesPossibles+1]
-#     partie.phraseChoixPossibles="Combien d'étables voulez vous construire?"
-#     partie.sujet=carte   
-#     partie.choixPossibles=possibilites
-#     return partie.choixPossibles
-#     
-# def possibilitesEmplacementEtable(partie,carte):
-#     pass
-#     
-# def constructionEtable(partie,choix,possibilites,carte):
-#     nbEtables=choix
-#     for e in range(nbEtables):
-#         possibles=ferme.tousLes('vide')
-#         choix=util.printPossibilities(partie,"Ou placer cette etable? :",possibles,False)
-#         ferme.etat[possibles[choix]].type="etable"
-#         joueur.mettreAJourLesRessources({'b':2})     
-#         
-#         
-#         
-# def constructionDePiece(partie,choix,possibilites,carte):
-#     joueur=partie.joueurQuiJoue()
-#     ferme=joueur.courDeFerme   
-#     typeMaison=ferme.enQuoiEstLaMaison()
-#     
-#     
-#     if possibilites[choix]=='oui' or possibilites[choix]=='non':
-#         #dans ce cas la question était "voulez vous encore construire une pièce
-#         if possibilites[choix]=='oui':
-#             #on réappelle
-#             pos=possibilitesConstructionDePiece(partie,carte)
-#             partie.phraseChoixPossibles="Où voulez vous construire un pièce en {}? :".format(ferme.enQuoiEstLaMaison(False))
-#             partie.sujet=carte
-#             partie.choixPossibles=pos
-#             return (pos,carte,True)
-#         else:
-#             #c'est non
-#             #dans ce cas on change la methode de la carte
-#             carte._possibilites=possibilitesConstructionEtable
-#             carte._effet=constructionEtable
-#             pos=carte._possibilites(partie,carte)
-#             return (pos,carte,True)
-#             #on passe à la suite
-#     elif possibilites[choix]=="je ne veux pas construire de pièce":
-#         #dans ce cas on change la methode de la carte
-#         carte._possibilites=possibilitesConstructionEtable
-#         carte._effet=constructionEtable   
-#         pos=carte._possibilites(partie,carte)   
-#         return (pos,carte,True)
-#     else:
-#         #dans ce cas la question était 'ou voulez vous construire et donc possibilites[choix]
-#         #est une case        
-#         cout=joueur.prixDeLaPiece()
-#         joueur.mettreAJourLesRessources(cout)
-#         ferme.etat[possibilites[choix]].type=ferme.enQuoiEstLaMaison(False)
-#         #on peut encore construire une pièce?
-#         if jePeuxContruireUnePiece(partie):
-#             #si oui je pose la question
-#             partie.phraseChoixPossibles="Voulez vous encore construire une pièce?"
-#             partie.sujet=carte   
-#             partie.choixPossibles=["oui","non"]
-#             return (partie.choixPossibles,carte,True)
-#         else:
-#             #dans ce cas on change la methode de la carte
-#             carte._possibilites=possibilitesConstructionEtable
-#             carte._effet=constructionEtable   
-#             pos=carte._possibilites(partie,carte)   
-#             return (pos,carte,True)            
-    #quand on est là on a fini de construire des pièces
-    
-#     pos=possibilitesConstructionEtable(partie,carte)
-#     return (pos,carte,True)
-#     #combien j'ai d'etables
-#     if(ferme.compterEtablesDispo()>0):
-#         #je peux construire combien d'étables?
-#         #il me semble qu'il n'y a aucune reduction ici pour le cout des etables
-#         nbois=  joueur.ressources['b']
-#         casesVides=ferme.compter("vide")
-#         #min entre nb etable qu'on peut construire, etables encore dispo, et place dispo
-#         nbEtablesPossibles = int(min(nbois/2,ferme.compterEtablesDispo(),casesVides))
-#         possibles=["pas d'étable","1 étable","2 étables","3 étables","4 étables"]
-#         possibles=possibles[0:nbEtablesPossibles+1]
-#         choix=util.printPossibilities(partie,"Combien d'étables :",possibles,False)
-#         nbEtables=choix
-#         for e in range(nbEtables):
-#             possibles=ferme.tousLes('vide')
-#             choix=util.printPossibilities(partie,"Ou placer cette etable? :",possibles,False)
-#             ferme.etat[possibles[choix]].type="etable"
-#             joueur.mettreAJourLesRessources({'b':2})        
-#     #pour constructions multiples
-#     jeVeuxConstruire=True
-#     while jeVeuxConstruire:
-#         cout=joueur.prixDeLaPiece()
-#         if joueur.jePeuxJouer(cout):
-#             #ou placer la piece
-#             emplacementsPossibles=[]
-#             for c in ferme.tousLes('maison'):
-#                 voiz=ferme.voisin(c)
-#                 for direction in voiz.keys():
-#                     if voiz[direction]: #si not None
-#                         if ferme.etat[voiz[direction]].type=='vide':
-#                             emplacementsPossibles.append(voiz[direction])   
-#             choix=util.printPossibilities(partie,"Où voulez vous construire? :",emplacementsPossibles,False)
-#             if choix == -1:
-#                 return -1
-#             else:
-#                 
-#                 joueur.mettreAJourLesRessources(cout)
-#                 ferme.etat[emplacementsPossibles[choix]].type=ferme.enQuoiEstLaMaison(False)
-#                 
-#                 #on recalcule à cause de certaines cartes
-#                 cout=joueur.prixDeLaPiece()
-#                 if joueur.jePeuxJouer(cout):
-#                     emplacementsPossibles=[]
-#                     for c in ferme.tousLes('maison'):
-#                         voiz=ferme.voisin(c)
-#                         for direction in voiz.keys():
-#                             if voiz[direction]: #si not None
-#                                 if ferme.etat[voiz[direction]].type=='vide':
-#                                     emplacementsPossibles.append(voiz[direction])  
-#                     if  len(emplacementsPossibles)>0:
-#                         #je peux encore construire
-#                         ouinon=['oui','non']
-#                         choix=util.printPossibilities(partie,"Construire une autre pièce? :",ouinon,False)
-#                         if ouinon[choix]=='non':
-#                             jeVeuxConstruire=False 
-#                     else:
-#                         jeVeuxConstruire=False 
-#                 else:
-#                     jeVeuxConstruire=False        
-#     
-#     
-#     #combien j'ai d'etables
-#     if(ferme.compterEtablesDispo()>0):
-#         #je peux construire combien d'étables?
-#         #il me semble qu'il n'y a aucune reduction ici pour le cout des etables
-#         nbois=  joueur.ressources['b']
-#         casesVides=ferme.compter("vide")
-#         #min entre nb etable qu'on peut construire, etables encore dispo, et place dispo
-#         nbEtablesPossibles = int(min(nbois/2,ferme.compterEtablesDispo(),casesVides))
-#         possibles=["pas d'étable","1 étable","2 étables","3 étables","4 étables"]
-#         possibles=possibles[0:nbEtablesPossibles+1]
-#         choix=util.printPossibilities(partie,"Combien d'étables :",possibles,False)
-#         nbEtables=choix
-#         for e in range(nbEtables):
-#             possibles=ferme.tousLes('vide')
-#             choix=util.printPossibilities(partie,"Ou placer cette etable? :",possibles,False)
-#             ferme.etat[possibles[choix]].type="etable"
-#             joueur.mettreAJourLesRessources({'b':2})
 

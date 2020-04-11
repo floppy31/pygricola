@@ -4,7 +4,7 @@ import unittest
 import pygricola.util as util
 from pygricola.partie import Partie
 import pygricola.fonctionsPlateau as fct
-from pygricola.carte import Carte,AmenagementMajeur,deck
+from pygricola.carte import Carte,AmenagementMajeur,AmenagementMineur,deck
 from pygricola.carte.action import CarteAction
 import pygricola.util as util
 
@@ -132,12 +132,45 @@ class FonctionsPlateau(unittest.TestCase):
         
         pass   
     def test_AsFoireDuTravail(self):
-        #2,3,4,5 joueurs
+        p=Partie()
+        p.initialiser(3,[])  
+        joueur=p.joueurs[0]
+        joueur2=p.joueurs[1]
+        joueur.ressources=util.rVide()
+        joueur2.ressources=util.rVide()
+        for CAS in p.plateau["actionsSpeciales"]:
+            for l in CAS.listeActionSpeciale:
+                if l.uid=='b3':
+                    carte=l        
+        #possibilitesVides
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        print(choixPossibles,sujet,encore,message)
+        self.assertTrue(len(choixPossibles)==0)
+        #je me mets un mineur en main et les ressources pour l'acheter
+        joueur.cartesEnMain.append(AmenagementMineur(p,'m0',**deck['mineurs']['m0']))
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(len(choixPossibles)==0)
+        joueur.ressources['a']=1
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        #je peux pas payer le feu
+        self.assertTrue(len(choixPossibles)==0)
         
-        #plus de place
-        
-        #rachat      
-        
+        joueur.ressources['f']=1
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        #maintenant ok
+        self.assertTrue(len(choixPossibles)==1)
+        joueur.ressources['f']=0
+        joueur.ressources['b']=1
+        #on teste avec 1 bois
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(len(choixPossibles)==1)
+
+        #on la joue
+        (choixPossibles,sujet,encore,message)=carte.effet(0,p.choixPossibles) 
+        print(choixPossibles,sujet,encore,message)
+        self.assertFalse(encore)
+        self.assertTrue(util.sontEgaux(joueur.ressources,util.rVide()))
+
         pass   
     
     def test_AsTravailClandestin(self):
@@ -167,7 +200,6 @@ class FonctionsPlateau(unittest.TestCase):
                     carte=l
         p.sujet=carte
         (choixPossibles,sujet,encore,message)=carte.jouer()
-        print((choixPossibles,sujet,encore,message))
         #pas encore joué
         self.assertTrue(util.sontEgaux(joueur.ressources,{'f':0}))
         #3 tourbes au début
@@ -286,7 +318,6 @@ class FonctionsPlateau(unittest.TestCase):
             ferme.etat["C2"].type="vide"  
 
             (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
-            print(choixPossibles,message)  
             self.assertTrue(choixPossibles==-1) 
             self.assertFalse(encore)
             self.assertTrue(util.sontEgaux(joueur.ressources,reste))
@@ -576,7 +607,6 @@ class FonctionsPlateau(unittest.TestCase):
             for k,v in etatChamp.items():
                 nb=int(v[0])
                 type=v[1]
-                print("eee",ferme.etat[k].ressources[type],nb)
                 self.assertTrue(ferme.etat[k].ressources[type]==nb)     
                 
       
@@ -594,7 +624,34 @@ class FonctionsPlateau(unittest.TestCase):
         #verif le premier joueur a bien changé
         pass
                 
-         
+class Util(unittest.TestCase):
+    
+    
+    #TODO: tester avec loge et cheval
+    def test_BoisFeu(self):
+        r1=util.rVide()
+        r1['b']=1
+        r2=util.rVide()
+        r2['f']=1
+        r3=util.rVide()
+        r3['b']=3
+        r3['f']=3
+        r4=util.rVide()
+        r4['f']=6     
+        result,raison=util.jouable(r1,r1)
+        self.assertTrue(result)
+        result,raison=util.jouable(r1,r2)
+        self.assertTrue(result)
+        result,raison=util.jouable(r2,r1)
+        self.assertFalse(result)
+        result,raison=util.jouable(r3,r4)
+        self.assertTrue(result)        
+        result,raison=util.jouable(r4,r3)
+        self.assertFalse(result)    
+        
+        
+        
+           
  
         
 unittest.main()

@@ -149,7 +149,6 @@ def ajouter(a,b):
             somme[k]=a[k]
         else:
             somme[k]=a[k]+b[k]
-    print("somme",a,b,somme)
     return somme.copy()
 
 def sontEgaux(a,b):
@@ -168,23 +167,50 @@ def sontEgaux(a,b):
                 egaux=False
                 break
     if not egaux:
-        print(a,b)
+        print('sontEgaux',a,b)
     
     return egaux
 
 
-def jouable(a,b):
+def jouable(constA,constB):
+    #on les copie 
+    a=constA.copy()
+    b=constB.copy()
     #true if a>=b
     #valable pour cout et condition
     res=True
     raison="OK"
-    for k in a.keys():
+    sortedKeys=list(a.keys())
+    sortedKeys.sort(reverse=True)
+#    print('--------------jouable-----------')
+    boisATransformer=0
+    #il faut traiter f avent b
+    for k in sortedKeys:
+        #print('dbg',k)
         if k in b.keys():
             if (b[k]>0):
-                if a[k]<b[k]:
-                    res=False
-                    raison="coût non jouable {} {} {}".format(k,a[k],b[k])
-                    break
+                if k=='b':
+                    test=((a[k]+boisATransformer)<b[k])
+                else:
+                    test=a[k]<b[k]
+                #print(k,a[k],b[k],boisATransformer)
+                if test:
+                    #bois peut servir de combustible
+                    if k != 'f':
+                        res=False
+                        raison=["p15",k,a[k],b[k]]
+                        break
+                    else:
+                        boisATransformer=b[k]-a[k]
+                        #print('trans',boisATransformer)
+                        if a['b']<boisATransformer:
+                            res=False
+                            raison=["p15",k,a[k],b[k]]
+                            break 
+                        else:
+                            a['b']-=boisATransformer                           
+                            
+                        
     return res,raison
 
 def prettyGain(a):

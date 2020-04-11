@@ -18,9 +18,8 @@ class Joueur(object):
         
         
         self.courDeFerme.mettrePersonnage(p1,"B1")
-        print("RRR",self.courDeFerme.etat["B1"].occupants)
         p2=Personnage("C1",2,self.couleur)
-        self.courDeFerme.mettrePersonnage(p1,"C1")
+        self.courDeFerme.mettrePersonnage(p2,"C1")
         self.personnages=[p1,p2]
         self.personnagesPlaces=[]
         self.ressources={
@@ -47,7 +46,6 @@ class Joueur(object):
         actionsSpeJouables=[]
         for CAS in self.partie.plateau["actionsSpeciales"]:
             for aS in CAS.listeActionSpeciale:
-                print("joueur",aS)
                 if self.jePeuxFaireActionSpeciale(aS):
                     actionsSpeJouables.append(aS)
                 else:
@@ -86,30 +84,6 @@ class Joueur(object):
             
         casesJouables=casesJouables+actionsSpeJouables
         self.partie.choixPossibles=casesJouables
-#         choix=util.printPossibilities(self.partie,"QUE VOULEZ VOUS FAIRE?",casesJouables)
-#         if choix==-1:
-#             self.listerPossibilites()
-#             
-#         #ACTION CONFIRMEE
-#         #si c'est un action ou on ne joue pas de pion (as ou utilisation d'un foyer)
-#         if casesJouables[choix].sansPion :
-#             casesJouables[choix].activer()
-#             self.mettreAJourLesRessources(casesJouables[choix].cout)
-#             self.listerPossibilites()
-#         elif casesJouables[choix] in actionsSpeJouables:
-#             pass
-#         else:
-#         
-#             personage=self.personnages.pop()
-#             self.personnagesPlaces.append(personnage)    
-#             caseJouee=casesJouables[choix].jouer(personage)
-#             print('je joue sur la case:',caseJouee)
-#             self.mettreAJourLesRessources(caseJouee.cout)
-#             self.tourFini= len(self.personnages)==0
-# #             carteJouee=casesJouables[choix].effet(faire=True)
-# #             carteJouee.jouer()
-#                       
-#         return actionPossibles   
     
     def pouvoirCuisson(self,ncereal):
         #combien j'ai de bouffe au max si je cuis ncereal
@@ -178,9 +152,8 @@ class Joueur(object):
             return False
         else:
             #on traita ça comme un cout
-            
             if type(cond)==dict:
-                return util.jouable(self.ressources,cond,True)
+                return util.jouable(self.ressources,cond)
             else:
                 #sinon on appelle la fonction
                 return cond
@@ -249,14 +222,28 @@ class Joueur(object):
         #on n affiche que si ca bouge
         jePrint=False
         sauv=self.ressources.copy()
+        sortedKeys=list(self.ressources.keys())
+        sortedKeys.sort(reverse=True)
+        boisATransformer=0
 
-        for r in self.ressources.keys():
+        for r in sortedKeys:
             if r in rDict.keys():
                 self.ressources[r]-=rDict[r]
                 jePrint=True
                 if self.ressources[r]<0:
-                    print('RESSOURCES < 0 !!!')
-                    exit
+                    if r=='f':
+                        #on mets les feu à 0
+                        boisATransformer=0-self.ressources[r]
+                        self.ressources[r]=0
+                        if 'b' in rDict.keys():
+                            rDict['b']+=boisATransformer
+                        else:
+                            rDict['b']=boisATransformer
+                        
+                    else:
+                        print('RESSOURCES < 0 !!!')
+                        print(r,self.ressources,rDict)
+                        planter
         if jePrint:
             print("cout: ",rDict)
             print("avant:")

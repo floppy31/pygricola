@@ -4,6 +4,7 @@ from pygricola.carte.action import CarteAction,CaseAppro
 
 from pygricola.carte import deck,loadCarte,genererActionsSpeciales,AmenagementMajeur
 import pygricola.fonctionsPlateau as fct
+from pygricola.traduction import trad
 
 import pygricola.util as util
 import json
@@ -84,7 +85,8 @@ class Partie(object):
     #je separe la fonction d'init... a cause de save/load
     #on a besoin de creer un objet partie sans tout réinitialiser
     def initialiser(self,nombreJoueurs,listeReponse,streamName=""):   
-        print("sn:",streamName) 
+        if not streamName=="":
+            print("sn:",streamName) 
         self.nombreJoueurs=nombreJoueurs
         self.streamName=streamName
         self.listeReponse=listeReponse       
@@ -340,7 +342,7 @@ class Partie(object):
         vis=[]
         for i in range(1,31):
             if self.plateau['cases'][i].visible:
-                vis.append(self.plateau['cases'][i].uid)
+                vis.append(trad[self.plateau['cases'][i].uid]['fr'])
         return vis
     
     #pour l'affichage

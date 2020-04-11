@@ -82,21 +82,30 @@ class Carte:
     
     @property   
     def condition(self):
-        print('carte condition')
         #si la condition est dict vide on appelle possibilitesNonVide qui est le défaut
         if self._condition=={}:
-            print('carte conditionA')
             reponse=fct.possibilitesNonVide(self.partie,self)     
         #si c'est un dico non vide
         elif type(self._condition)==dict:
-            print('carte conditionB')
             reponse=self._condition and fct.possibilitesNonVide(self.partie,self)  
         else:
             #sino on appelle la condition
-            print('carte conditionC')
             reponse= self._condition(self.partie,self)
-        print("reponse",reponse)
         return reponse        
+    #pour le cas de l'achat de foyer simple par ex:
+    #il a une methode possibilite, mais on a pas envie de l'appeler quand on souhaite l'acheter
+    #sans ça si on a rien pour cuire par ex, condition de foyer appelle posNovide qui est vide
+    #alors qu'on voudrait quand même pouvoir l'acheter....
+    @property   
+    def conditionAchat(self):
+        #si c'est un dico non vide
+        if type(self._condition)==dict:
+            reponse=self._condition
+        else:
+            #sino on appelle la condition
+            reponse= self._condition(self.partie,self)
+        return reponse         
+    
     @property   
     def option(self):
         if type(self._option)==dict:
@@ -122,13 +131,11 @@ class Carte:
         encore=True # on va encore pouvoir jouer après
         #on regarde si la carte a une fonction possibilite
         if not type(self._possibilites)==dict:
-            print("jouerDBG1")
             choixPossibles=self._possibilites(self.partie,self)
             self.partie.choixPossibles=choixPossibles
             self.sujet=self
             return (choixPossibles,self,encore,"")
         else:
-            print("jouerDBG2",self.uid)
             self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid))
             self.partie.joueurQuiJoue().mettreAJourLesRessources(self.cout)
             self._cout=util.rVide()
@@ -153,9 +160,6 @@ class Carte:
             return (-1,self,encore,"")
     
     def mettrePersonnage(self,perso):
-        print('titi',perso.localisationInit,self.partie.joueurQuiJoue().courDeFerme.etat[perso.localisationInit])
-        print('titi',self.partie.joueurQuiJoue().courDeFerme.etat[perso.localisationInit].occupants)
-
         self.partie.joueurQuiJoue().courDeFerme.etat[perso.localisationInit].occupants.pop()
         perso.localisation=self
         self.occupants.append(perso)
@@ -251,7 +255,6 @@ class ActionSpeciale(Carte):
             jelaiprisemoi
         else:
             impossible
-        print('cout actionspe dbg',self.carteQuiMePorte.etat,self._cout,cout)
         coutTot=util.ajouter(self._cout,cout)
         return coutTot
     
@@ -505,15 +508,13 @@ majeursDict["M23"]={
 
 
 mineursDict={}
-# mineursDict["foyer simple"]={
-#     'nom':'Foyer simple',
-#     'description':"Vous pouvez transformer à tout moment...",
-#     'cout':{'a':1},
-#     'effet':cuisson,
-#     'option':{'cuissonDict':{'l':2,'m':1,'s':2,'v':3},'cuissonPain':{'c':2}},    
-#     'sansPion':True,
-#     'possibilites':possibilitesCuisson,
-#     }
+mineursDict["m0"]={
+    'cout':{'a':1},
+    'effet':cuisson,
+    'option':{'cuissonDict':{'l':2,'m':1,'s':2,'v':3},'cuissonPain':{'c':2}},    
+    'sansPion':True,
+    'possibilites':possibilitesCuisson,
+    }
 
 savoirFaireDict={}
 
