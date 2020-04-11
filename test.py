@@ -19,7 +19,10 @@ while(True):
             casesJouablesStr=sujet.possibilites()
             p.phraseChoixPossibles="QUE VOULEZ VOUS FAIRE?"
             choix=util.printPossibilities(p,p.phraseChoixPossibles,p.choixPossibles,annulable=False)
-            (choixPossibles,sujet,encore,message)=p.choixPossibles[choix].jouer()
+            
+            (choixPossibles,sujet,encore,message)=p.jouerUid(p.choixPossibles[choix].uid)
+
+#             (choixPossibles,sujet,encore,message)=p.choixPossibles[choix].jouer()
             
             while(choixPossibles=='inputtext'):
                 g=input(print(p.phraseChoixPossibles))

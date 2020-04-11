@@ -135,16 +135,13 @@ class FonctionsPlateau(unittest.TestCase):
         p=Partie()
         p.initialiser(3,[])  
         joueur=p.joueurs[0]
-        joueur2=p.joueurs[1]
         joueur.ressources=util.rVide()
-        joueur2.ressources=util.rVide()
         for CAS in p.plateau["actionsSpeciales"]:
             for l in CAS.listeActionSpeciale:
                 if l.uid=='b3':
                     carte=l        
         #possibilitesVides
         (choixPossibles,sujet,encore,message)=carte.jouer()
-        print(choixPossibles,sujet,encore,message)
         self.assertTrue(len(choixPossibles)==0)
         #je me mets un mineur en main et les ressources pour l'acheter
         joueur.cartesEnMain.append(AmenagementMineur(p,'m0',**deck['mineurs']['m0']))
@@ -167,21 +164,35 @@ class FonctionsPlateau(unittest.TestCase):
 
         #on la joue
         (choixPossibles,sujet,encore,message)=carte.effet(0,p.choixPossibles) 
-        print(choixPossibles,sujet,encore,message)
         self.assertFalse(encore)
         self.assertTrue(util.sontEgaux(joueur.ressources,util.rVide()))
-
-        pass   
+        self.assertTrue(carte.carteQuiMePorte.etat==joueur.id)
     
     def test_AsTravailClandestin(self):
-        #2,3,4,5 joueurs
-        
-        #plus de place
-        
-        #rachat      
-        
-        pass       
-    
+        p=Partie()
+        p.initialiser(3,[])  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()
+        for CAS in p.plateau["actionsSpeciales"]:
+            for l in CAS.listeActionSpeciale:
+                if l.uid=='b4':
+                    carte=l        
+        #possibilitesVides
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(len(choixPossibles)==0)
+        #si je me mets 1 pn et 1 bois c'est idem
+        joueur.ressources['b']=1
+        joueur.ressources['n']=1
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(len(choixPossibles)==0)
+        #mais avec 2 argiles c'est ok
+        joueur.ressources['a']=2
+        (choixPossibles,sujet,encore,message)=carte.jouer()
+        self.assertTrue(len(choixPossibles)==1)        
+        #on la joue
+        (choixPossibles,sujet,encore,message)=carte.effet(0,p.choixPossibles) 
+        self.assertFalse(encore)
+        self.assertTrue(util.sontEgaux(joueur.ressources,util.rVide()))               
 
 
     
@@ -648,10 +659,41 @@ class Util(unittest.TestCase):
         self.assertTrue(result)        
         result,raison=util.jouable(r4,r3)
         self.assertFalse(result)    
+        self.assertTrue(util.jouable({'b':1,'f':1},{'b':1})[0])  
+        self.assertFalse(util.jouable({'b':1},{'b':1,'f':1})[0])  
         
-        
-        
-           
+class PartieDeTest(unittest.TestCase):
+    def test_alpha(self):
+        p=Partie()
+        p.initialiser(2,[])  
+        p.demarragePartie()
+        p.demarrageTour()        
+        listeRep=[ "a2","a9","a8","a5",
+                  "a0",'C2:P,C3:E', #1 action
+                  "b5",'A3', #idem abattre en A3
+                  "a5",
+                  "a6"
+                  ]
+        p.initChoix()
+        choixPossibles=-1
+        for id in listeRep:
+            print('--------',id,choixPossibles)
+            #pour ne pas faire ça si p.jouerUidRenvoie inputtext
+            if choixPossibles==-1:
+                sujet=p.joueurQuiJoue()
+                sujet.possibilites()
+                (choixPossibles,sujet,encore,message)=p.jouerUid(id)
+            elif(choixPossibles=='inputtext'):
+                (choixPossibles,sujet,encore,message)=sujet.effet(id,[])
+            else:
+                (choixPossibles,sujet,encore,message)=sujet.effet(p.choixPossibles.index(id),p.choixPossibles)
+            print(p.messagesPrincipaux[-1])
+            if choixPossibles==-1:
+                suivant=p.joueurSuivant()
+                p.initChoix()
+                if suivant==-1:
+                    p.finDuTour()
+                    p.demarrageTour()    
  
         
 unittest.main()

@@ -195,7 +195,7 @@ class Amenagement(Carte):
         
     @property
     def display(self):
-        return ["p5",self.uid]            
+        return [self.uid]            
  
 
 class AmenagementMineur(Amenagement):
@@ -256,7 +256,7 @@ class ActionSpeciale(Carte):
         else:
             impossible
         coutTot=util.ajouter(self._cout,cout)
-        return coutTot
+        return coutTot.copy()
     
     @property
     def display(self):

@@ -201,6 +201,13 @@ def choixAmenagementMineur(partie,choix,possibilites,carte):
     if carteJouee=="u3":
         #on ne fait pas de mineur
         partie.messagesPrincipaux.append([joueur.nom, "p16"])
+    elif hasattr(carte,"carteQuiMePorte"):
+            joueur.mettreAJourLesRessources(util.ajouter(carte.cout,carteJouee.cout))
+            carte.carteQuiMePorte.changerEtat(partie.quiJoue)
+            joueur.cartesDevantSoi[carteJouee.uid]=carteJouee
+            joueur.cartesEnMain.remove(carteJouee)
+            partie.messagesPrincipaux.append([joueur.nom,"p3",carteJouee.uid])            
+            return (-1,carte,False,"")     
     else:    
         carteJouee.jouer()
         joueur.cartesDevantSoi[carteJouee.uid]=carteJouee
@@ -209,14 +216,8 @@ def choixAmenagementMineur(partie,choix,possibilites,carte):
         
     if carte.uid=="a1":#premier joueur + mineur
         partie.premierJoueur=joueur.id
-    elif carte.uid=="a14":#naissance + mineur
-        pass
-    else:
-        #si c'est une action speciale
-        if hasattr(carte,"carteQuiMePorte"):
-            joueur.mettreAJourLesRessources(carte.cout)
-            carte.carteQuiMePorte.changerEtat(partie.quiJoue)
-            return (-1,carte,False,"")     
+
+
     personnage=joueur.personnages.pop()
     joueur.personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
@@ -232,8 +233,8 @@ def possibilitesAmenagementMajeur(partie,carte,Fake=False):
     plateau=partie.plateau
     for k,c in plateau["majeurs"].items():
         if c.visible:
-            if joueur.jeRemplisLesConditions(c.condition):
-                if joueur.jePeuxJouer(c.cout):
+            if joueur.jeRemplisLesConditions(c.conditionAchat):
+                if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
                     possibilites.append(c)
     if (not Fake):                    
         partie.phraseChoixPossibles="Choissisez un aménagement majeur:"
@@ -242,18 +243,19 @@ def possibilitesAmenagementMajeur(partie,carte,Fake=False):
     
 def choixAmenagementMajeur(partie,choix,possibilites,carte):
     carteJouee=possibilites[choix]
-    carteJouee.jouer()
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
     joueur.cartesDevantSoi[carteJouee.uid]=carteJouee
     del plateau["majeurs"][carteJouee.uid]
-    partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.uid, "p14",carteJouee.uid))
-    
-
-    if isinstance(carte,ActionSpeciale):
-        joueur.mettreAJourLesRessources(carte.cout)
+    partie.messagesPrincipaux.append([joueur.nom,"p14",carteJouee.uid])
+    #si c'est une action speciale
+    if hasattr( carte,"carteQuiMePorte"):
+        joueur.mettreAJourLesRessources(util.ajouter(carte.cout,carteJouee.cout))
         carte.carteQuiMePorte.changerEtat(partie.quiJoue)
         
+        return (-1,carte,False,"")
+    else:
+        carteJouee.jouer()
         return (-1,carte,False,"")
 ##################################################################################
 #---------------------------------------MINEUR OU MAJEUR--------------------------

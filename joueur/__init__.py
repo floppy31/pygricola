@@ -108,37 +108,37 @@ class Joueur(object):
                 ncereal-=1            
         return pn
             
-    #doit retourner, soit -1 action fini, soit le sujet s'il y a encore des possibilites
-    def jouer(self,choix):
-        if choix==-1:
-            return self
-        else:
-            #ACTION CONFIRMEE
-            #si c'est un action ou on ne joue pas de pion (as ou utilisation d'un foyer)
-            if self.partie.casesJouables[choix].sansPion :
-                self.partie.casesJouables[choix].activer()
-                self.mettreAJourLesRessources(self.partie.casesJouables[choix].cout)
-                self.possibilites()
-#     TODO        elif self.casesJouables[choix] in actionsSpeJouables:
-#                 pass
-            else:
-            
- 
-                (choixPossibles,caseJouee)=self.partie.casesJouables[choix].jouer()
-                if choixPossibles==-1:
-                    print('je joue sur la case:',caseJouee)
-                    
-                    rcode=-1
-                    self.mettreAJourLesRessources(caseJouee.cout)
-                    personnage=self.personnages.pop()
-                    self.personnagesPlaces.append(personnage)                   
-                    caseJouee.mettrePersonnage(personnage)
-                    
-                    if self.jaiFini():
-                        self.partie.quiAFini.append(self.partie.quiJoue)
-                    return rcode
-                else:
-                    return (choixPossibles,caseJouee)
+#     #doit retourner, soit -1 action fini, soit le sujet s'il y a encore des possibilites
+#     def jouer(self,choix):
+#         if choix==-1:
+#             return self
+#         else:
+#             #ACTION CONFIRMEE
+#             #si c'est un action ou on ne joue pas de pion (as ou utilisation d'un foyer)
+#             if self.partie.casesJouables[choix].sansPion :
+#                 self.partie.casesJouables[choix].activer()
+#                 self.mettreAJourLesRessources(self.partie.casesJouables[choix].cout)
+#                 self.possibilites()
+# #     TODO        elif self.casesJouables[choix] in actionsSpeJouables:
+# #                 pass
+#             else:
+#             
+#  
+#                 (choixPossibles,caseJouee)=self.partie.casesJouables[choix].jouer()
+#                 if choixPossibles==-1:
+#                     print('je joue sur la case:',caseJouee)
+#                     
+#                     rcode=-1
+#                     self.mettreAJourLesRessources(caseJouee.cout)
+#                     personnage=self.personnages.pop()
+#                     self.personnagesPlaces.append(personnage)                   
+#                     caseJouee.mettrePersonnage(personnage)
+#                     
+#                     if self.jaiFini():
+#                         self.partie.quiAFini.append(self.partie.quiJoue)
+#                     return rcode
+#                 else:
+#                     return (choixPossibles,caseJouee)
      
     def jePeuxJouer(self,cout): #cout ou condition
         (result,message)=util.jouable(self.ressources,cout)

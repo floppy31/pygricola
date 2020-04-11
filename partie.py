@@ -175,8 +175,14 @@ class Partie(object):
         for uid,v in deck['majeurs'].items():
             self.plateau["majeurs"][uid]=AmenagementMajeur(self,uid,**v)
                     
-        
-                
+    #jouer par rapport à un uid et pas un indice
+    def jouerUid(self,uid):
+        for c in self.choixPossibles:
+            if c.uid==uid:
+                print('jouerUid',uid)
+                return c.jouer()
+        print('jouerUID ERR',uid,self.choixPossibles)
+          
          
     def genererCourDeferme(self):
         pTourbes=['B2','B3','B4']
@@ -247,7 +253,6 @@ class Partie(object):
         self.quiJoue=self.premierJoueur        
         
     def initChoix(self):
-        print('INIT CHOIX!!')
         sujet=self.joueurQuiJoue()
         self.sujet=sujet
         self.choixPossibles=[]
@@ -329,12 +334,14 @@ class Partie(object):
                 while(len(self.joueurs[id].personnagesPlaces)>0):
                     p=self.joueurs[id].personnagesPlaces.pop()
                     p.retourMaison()
+                    self.joueurs[id].courDeFerme.mettrePersonnage(p,p.localisationInit)
                     self.joueurs[id].personnages.append(p)
             #on remets les actions spéciales
             for CAS in self.plateau["actionsSpeciales"]:
                 CAS.changerEtat(-2)
             self.quiAFini.clear()
             self.plateau['tour']+=1
+            self.initChoix()
         return self.plateau['tour']
 
     

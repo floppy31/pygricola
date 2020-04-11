@@ -173,43 +173,27 @@ def sontEgaux(a,b):
 
 
 def jouable(constA,constB):
-    #on les copie 
-    a=constA.copy()
-    b=constB.copy()
     #true if a>=b
     #valable pour cout et condition
+    a=ajouter(constA,rVide())
+    b=ajouter(constB,rVide())
     res=True
     raison="OK"
-    sortedKeys=list(a.keys())
-    sortedKeys.sort(reverse=True)
-#    print('--------------jouable-----------')
-    boisATransformer=0
-    #il faut traiter f avent b
-    for k in sortedKeys:
+    ressourcesProbleme=[]
+    for k in a.keys():
         #print('dbg',k)
-        if k in b.keys():
-            if (b[k]>0):
-                if k=='b':
-                    test=((a[k]+boisATransformer)<b[k])
-                else:
-                    test=a[k]<b[k]
-                #print(k,a[k],b[k],boisATransformer)
-                if test:
-                    #bois peut servir de combustible
-                    if k != 'f':
-                        res=False
-                        raison=["p15",k,a[k],b[k]]
-                        break
-                    else:
-                        boisATransformer=b[k]-a[k]
-                        #print('trans',boisATransformer)
-                        if a['b']<boisATransformer:
-                            res=False
-                            raison=["p15",k,a[k],b[k]]
-                            break 
-                        else:
-                            a['b']-=boisATransformer                           
-                            
+        
+        if (b[k]>0):
+            if a[k]<b[k]:
+                res=False
+                raison=["p15",k,a[k],b[k]]
+                ressourcesProbleme.append(k)  
+    #s'il n'y a qu'un probleme de combustible
+    if ressourcesProbleme==['f']:
+        diffBois=b['f']-a['f']
+        if not (a['b']-diffBois)<b['b']:
+            raison="utilisation du bois"
+            res=True
                         
     return res,raison
 
