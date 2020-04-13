@@ -23,14 +23,14 @@ class Joueur(object):
         self.personnages=[p1,p2]
         self.personnagesPlaces=[]
         self.ressources={
-            'b':10,
-            'a':10,
-            'p':10,
-            'r':10,
-            'n':10,
-            'f':10,
-            'c':10,
-            'l':10,
+            'b':0,
+            'a':0,
+            'p':0,
+            'r':0,
+            'n':2,
+            'f':0,
+            'c':0,
+            'l':0,
             'm':0,
             's':0,
             'v':0,
@@ -68,11 +68,19 @@ class Joueur(object):
         
         #on regarde si on a des cases activables
         for k,v in self.cartesDevantSoi.items():
+            
             if not v.effet == util.dummy:
-                if self.jeRemplisLesConditions(v.condition):
-                    casesJouables.append(v)
-                else:
-                    self.partie.messagesDetail.append(["p9",v] )
+                #si le hook est vide
+                #je pars du principe qu'une carte est soit activable soit elle a un hook
+                peutSactiver=True
+                if hasattr(v, "hook"):
+                    if not v.hook==():
+                        peutSactiver=False
+                if peutSactiver:
+                    if self.jeRemplisLesConditions(v.condition):
+                        casesJouables.append(v)
+                    else:
+                        self.partie.messagesDetail.append(["p9",v] )
         #manger cru        
         #cereale
         if self.ressources['c']>0:
@@ -159,8 +167,13 @@ class Joueur(object):
                 return cond
     
     def jaiFini(self):
-        rep=len(self.personnages)==0
-        return rep
+        print("joueur reste",len(self.personnages))
+        rep=len(self.personnages)
+        if rep==0:
+            print(self.nom,"J'ai fini!!!!!!!!!!!!!!!!!!!!!!")
+            if self.id not in self.partie.quiAFini:
+                self.partie.quiAFini.append(self.id)
+        return rep==0
     
         
     
@@ -218,13 +231,14 @@ class Joueur(object):
                 count+=1
         return count
         
-    def mettreAJourLesRessources(self,rDict):
+    def mettreAJourLesRessources(self,rDictReadOnly,actionDunePersonne=False):
         #on n affiche que si ca bouge
         jePrint=False
         sauv=self.ressources.copy()
         sortedKeys=list(self.ressources.keys())
         sortedKeys.sort(reverse=True)
         boisATransformer=0
+        rDict=rDictReadOnly.copy()
 
         for r in sortedKeys:
             if r in rDict.keys():
@@ -244,6 +258,26 @@ class Joueur(object):
                         print('RESSOURCES < 0 !!!')
                         print(r,self.ressources,rDict)
                         planter
+                        
+        if actionDunePersonne:
+            bonus=util.rVide()
+            #on appelle les hooks ressourcesActionPersonne
+            for cuid,c in self.cartesDevantSoi.items():
+                if hasattr(c, 'hook'):
+                    if c.hook !=():
+                        print(c.uid,'a un hook',c.hook[0])
+                        if c.hook[0]=='ressourcesActionPersonne':
+                            #si le hook est jouable
+                            if c.hookStatus==0:
+                                print("hook sur ressourcesActionPersonne",'avec',c.uid,c.hookStatus)
+                                #si le hook me concerne
+                                if(c.hook[1]=="s"):
+                                    bonus=util.ajouter(bonus,c.bonusRessources(rDictReadOnly))
+                
+                                    
+            print("ajout des bonus ressourcesActionPersonne",bonus)
+            self.ressources=util.ajouter(self.ressources,bonus)                       
+                        
         if jePrint:
             print("cout: ",rDict)
             print("avant:")

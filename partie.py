@@ -44,7 +44,7 @@ def cloture(partie):
             ferme.paturages.diviserUnPaturage()
 
         
-def jePeuxRenover(partie):
+def jePeuxRenover(partie, carte ):
     joueur=partie.joueurs[partie.quiJoue]
     ferme=joueur.courDeFerme   
     typeMaison=ferme.enQuoiEstLaMaison()
@@ -80,6 +80,7 @@ class Partie(object):
         self.choixPossibles=[] #on garde ça en memoire
         self.phraseChoixPossibles="" #on garde ça en memoire
         self.sujet="" #on garde ça en memoire
+        self.uidSave="" #on garde ça en memoire pour les hook
         self.messagesDetail=[] #pour debug
         
     #je separe la fonction d'init... a cause de save/load
@@ -130,7 +131,7 @@ class Partie(object):
             self.plateau["cases"][6]=CarteAction(self,"a27",cout={'n':2},visible=True)       
         elif nombre==4:
             self.plateau["cases"][1]=CaseAppro(self,"a28",{'n':-1},visible=True)
-            self.plateau["cases"][2]=CarteAction(self,"a29",cout=fct.coutSavoirFaire2,visible=True)
+            self.plateau["cases"][2]=CarteAction(self,"a29",cout=fct.coutSavoirFaire2,possibilites=fct.possibilitesSavoirFaire,effet=fct.choixSavoirFaire,visible=True)
             self.plateau["cases"][3]=CaseAppro(self,"a30",{'a':-2},visible=True)
             self.plateau["cases"][4]=CaseAppro(self,"a31",{'b':-2},visible=True)
             self.plateau["cases"][5]=CaseAppro(self,"a32",{'b':-1},visible=True)
@@ -149,7 +150,7 @@ class Partie(object):
         self.plateau["cases"][8]=CarteAction(self,"a1",visible=True,possibilites=fct.possibilitesAmenagementMineur,effet=fct.choixAmenagementMineur)
         self.plateau["cases"][9]=CarteAction(self,"a2",cout={'c':-1},visible=True)
         self.plateau["cases"][10]=CarteAction(self,"a3",visible=True,effet=fct.labourage,possibilites=fct.possibilitesLabourage)
-        self.plateau["cases"][11]=CarteAction(self,"a4",cout=fct.coutSavoirFaire1,visible=True)
+        self.plateau["cases"][11]=CarteAction(self,"a4",cout=fct.coutSavoirFaire1,possibilites=fct.possibilitesSavoirFaire,effet=fct.choixSavoirFaire,visible=True)
         self.plateau["cases"][12]=CarteAction(self,"a5",cout={'n':-2},visible=True)
         self.plateau["cases"][13]=CaseAppro(self,"a6",{'b':-3},visible=True)
         self.plateau["cases"][14]=CaseAppro(self,"a7",{'a':-1},visible=True)
@@ -181,8 +182,12 @@ class Partie(object):
             if c.uid==uid:
                 print('jouerUid',uid)
                 return c.jouer()
-        print('jouerUID ERR',uid,self.choixPossibles)
-          
+            
+        print('jouerUID ERR',uid)
+        dbg=""
+        for c in   self.choixPossibles:
+            dbg+=c.uid  +', '
+        print(dbg)
          
     def genererCourDeferme(self):
         pTourbes=['B2','B3','B4']
@@ -203,7 +208,7 @@ class Partie(object):
         ordreActions[5]=CarteAction(self,"a14",visible=False,effet=fct.naissancePuisMineur,condition=fct.jePeuxNaitre)
         ordreActions[6]=CarteAction(self,"a15",visible=False,effet=renoPuisMajeur,condition=jePeuxRenover)
         ordreActions[7]=CaseAppro(self,"a16",{'p':-1},visible=False)
-        ordreActions[8]=CaseAppro(self,"a17",{'l':-1},visible=False)
+        ordreActions[8]=CarteAction(self,"a17",cout={'l':-1},visible=False)
         ordreActions[9]=CaseAppro(self,"a18",{'s':-1},visible=False)
         ordreActions[10]=CaseAppro(self,"a19",{'b':-1},visible=False)
         ordreActions[11]=CaseAppro(self,"a20",{'p':-1},visible=False)
@@ -235,15 +240,35 @@ class Partie(object):
 
         print("début du tour : {}".format(self.plateau['tour']))
         self.messagesPrincipaux.append("début du tour : {}".format(self.plateau['tour']))
+        #on appelle les hook 
+        for jid,j in self.joueurs.items():
+            for cuid,c in j.cartesDevantSoi.items():
+                if hasattr(c, 'hook'):
+                    if c.hook != ():
+                        print(c.uid,'a un hook',c.hook[0])
+                        if c.hook[0]=="debutTour":
+                            #si le hook est jouable
+                            if c.hookStatus==0:
+                                print("hook sur debutTour avec",c.uid,c.hookStatus)
+                                #si le hook me concerne
+                                if(c.hook[1]=="s"):
+                                    #si il y a plusieurs possibilites
+                                    choixPossibles=c.possibilites()
+                                    if len(choixPossibles)>1:
+                                        self.partie.choixPossibles=choixPossibles
+                                        self.partie.sujet=self
+                                        print('IM HERE',choixPossibles)
+                                        return (choixPossibles,c,True,"hook")
+                                    else:
+                                    #sinon
+                                        c.effet(0,choixPossibles)
+                            else:
+                                print("JOUER,HOOK UTILISE")              
+        
         #on reappro les cases
         
         self.plateau['cases'][self._offset+self.plateau['tour']].visible=True
         
-#         ##############"TO DEBUG
-#         for c in self.plateau['cases'].keys():
-#             self.plateau['cases'][c].visible=True
-        ##############"TO DEBUG
-
         
         for i in range(1,self._offset+self.plateau['tour']+1):
             self.plateau['cases'][i].reappro()
@@ -264,7 +289,7 @@ class Partie(object):
         return self.joueurs[self.quiJoue]
         
     def joueurSuivant(self):
-        
+  
         if (len(self.quiAFini)>self.nombreJoueurs-1):
             return -1 #le tour est fini
         else:
@@ -336,6 +361,14 @@ class Partie(object):
                     p.retourMaison()
                     self.joueurs[id].courDeFerme.mettrePersonnage(p,p.localisationInit)
                     self.joueurs[id].personnages.append(p)
+                #on réinit les hooks qui sont valables une fois par tour
+                for uid,c in self.joueurs[id].cartesDevantSoi.items():
+                    if hasattr(c, 'hook'):
+                        if c.hook != ():
+                            case,type,freq=c.hook
+                            if freq=='t':
+                                print('#######recharge de ',c.uid)
+                                c.hookStatus=0
             #on remets les actions spéciales
             for CAS in self.plateau["actionsSpeciales"]:
                 CAS.changerEtat(-2)

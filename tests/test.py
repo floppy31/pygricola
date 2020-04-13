@@ -4,9 +4,43 @@ import unittest
 import pygricola.util as util
 from pygricola.partie import Partie
 import pygricola.fonctionsPlateau as fct
-from pygricola.carte import Carte,AmenagementMajeur,AmenagementMineur,deck
+from pygricola.carte import Carte,AmenagementMajeur,AmenagementMineur,deck,SavoirFaire
 from pygricola.carte.action import CarteAction
 import pygricola.util as util
+
+
+
+def simulerPartie(listeRep,p):
+        p.demarragePartie()
+        p.demarrageTour()        
+        p.initChoix()
+        choixPossibles=-1
+        sujet="" #fake init
+        for id in listeRep:
+            print('--------simulerPartie:',id,choixPossibles,sujet)
+            #pour ne pas faire ça si p.jouerUidRenvoie inputtext
+            if choixPossibles==-1:
+                sujet=p.joueurQuiJoue()
+                sujet.possibilites()
+                (choixPossibles,sujet,encore,message)=p.jouerUid(id)
+            elif(choixPossibles=='inputtext'):
+                (choixPossibles,sujet,encore,message)=sujet.effet(id,[])
+            else:
+                print('--simulerPartie',sujet,id,p.choixPossibles.index(id),p.choixPossibles)
+                (choixPossibles,sujet,encore,message)=sujet.effet(p.choixPossibles.index(id),p.choixPossibles)
+                #boucle sur la résolution des hook
+                if choixPossibles==-2:
+                    sujet=p.joueurQuiJoue()
+                    sujet.possibilites()
+                    (choixPossibles,sujet,encore,message)=p.jouerUid(p.uidSave)
+            if choixPossibles==-1:
+                suivant=p.joueurSuivant()
+                p.initChoix()
+                if suivant==-1:
+                    print('--------simulerPartie: fin du tour')
+                    p.finDuTour()
+                    p.demarrageTour()     
+        return p   
 
 
 
@@ -417,15 +451,15 @@ class FonctionsPlateau(unittest.TestCase):
         #test de la carte naissance puis aménagement mineur
         nPuisMineur=CarteAction(p,"a14",visible=False,possibilites=fct.possibilitesAmenagementMineur,effet=fct.naissancePuisMineur,condition=fct.jePeuxNaitre)
         p.sujet=nPuisMineur
-        self.assertFalse(fct.jePeuxNaitre(p))
+        self.assertFalse(fct.jePeuxNaitre(p,nPuisMineur))
         #je rajoute une maison 
         joueur.courDeFerme.etat["A1"].type="maisonBois"
-        self.assertTrue(fct.jePeuxNaitre(p))
+        self.assertTrue(fct.jePeuxNaitre(p,nPuisMineur))
         (choixPossibles,sujet,encore,message)=nPuisMineur.jouer()
         self.assertTrue(choixPossibles==['u3'])#ne peux pas jouer de mineur
         (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)
         #je ne peux plus naitre
-        self.assertFalse(fct.jePeuxNaitre(p))
+        self.assertFalse(fct.jePeuxNaitre(p,nPuisMineur))
         joueur.courDeFerme.etat["A2"].type="maisonBois"
         #TODO
         #ajouter un mineur et le jouer avec naissance puis mineur
@@ -664,36 +698,310 @@ class Util(unittest.TestCase):
         
 class PartieDeTest(unittest.TestCase):
     def test_alpha(self):
-        p=Partie()
-        p.initialiser(2,[])  
-        p.demarragePartie()
-        p.demarrageTour()        
         listeRep=[ "a2","a9","a8","a5",
-                  "a0",'C2:P,C3:E', #1 action
                   "b5",'A3', #idem abattre en A3
                   "a5",
                   "a6"
                   ]
-        p.initChoix()
-        choixPossibles=-1
-        for id in listeRep:
-            print('--------',id,choixPossibles)
-            #pour ne pas faire ça si p.jouerUidRenvoie inputtext
-            if choixPossibles==-1:
-                sujet=p.joueurQuiJoue()
-                sujet.possibilites()
-                (choixPossibles,sujet,encore,message)=p.jouerUid(id)
-            elif(choixPossibles=='inputtext'):
-                (choixPossibles,sujet,encore,message)=sujet.effet(id,[])
-            else:
-                (choixPossibles,sujet,encore,message)=sujet.effet(p.choixPossibles.index(id),p.choixPossibles)
-            print(p.messagesPrincipaux[-1])
-            if choixPossibles==-1:
-                suivant=p.joueurSuivant()
-                p.initChoix()
-                if suivant==-1:
-                    p.finDuTour()
-                    p.demarrageTour()    
+        p=Partie()
+        p.initialiser(2,[])  
+        partieSimulee=simulerPartie(listeRep,p)
+
  
+class TestMineurs(unittest.TestCase):
+    def test_alpha(self): 
+        pass
+ 
+class TestSavoirFaire(unittest.TestCase):
+    def test_cout(self):
+        p=Partie()
+        p.initialiser(4,[])  
+        listeRep=['a4','s8','a29','s10']
+        p.joueurs[0].cartesEnMain.append(SavoirFaire(p,'s8',**deck['savoirFaires']['s8']))
+        p.joueurs[1].cartesEnMain.append(SavoirFaire(p,'s10',**deck['savoirFaires']['s10']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(p.joueurs[0].ressources,{'n':2}))
+        self.assertTrue(util.sontEgaux(p.joueurs[1].ressources,{'n':2}))
+
+#     def test_s6(self): 
+#         p=Partie()
+#         p.initialiser(2,[])  
+#         listeRep=['a4','s6','a1']
+#         p.joueurs[0].cartesEnMain.append(SavoirFaire(p,'s6',**deck['savoirFaires']['s6']))
+#         
+#         partieSimulee=simulerPartie(listeRep,p)
+
+
+    
+    def test_s8(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s8','a5']
+        p.joueurs[0].cartesEnMain.append(SavoirFaire(p,'s8',**deck['savoirFaires']['s8']))
         
+        partieSimulee=simulerPartie(listeRep,p)
+        joueur=partieSimulee.joueurs[0]  
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':4,'l':1}))
+        
+    def test_s10(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s10','a5',
+                  'a5','l','a2',
+                  'a4','s8','a5','c'] #fin du tour 6]
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s10',**deck['savoirFaires']['s10']))
+        joueur.cartesEnMain.append(SavoirFaire(p,'s8',**deck['savoirFaires']['s8']))
+        p.plateau['tour']=5
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':7,'l':2,'c':3}))   
+
+    def test_s11(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s11','a2']
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s11',**deck['savoirFaires']['s11']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':2,'l':1,'c':1}))         
+
+    def test_s12(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s12','a6','a7']
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s12',**deck['savoirFaires']['s12']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'a':4,'b':3,'n':2}))   
+
+    def test_s13(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        #on rend visible 1 legume artificiellement
+        for num,case in p.plateau["cases"].items():
+            if case.uid=='a17':
+                print('rrrrrrrrrrrrrrrrrrrrrrr',case.cout)
+                case.visible=True
+        listeRep=['a4','s13','a17']
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s13',**deck['savoirFaires']['s13']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'l':2,'c':1,'n':2}))   
+
+    def test_s14(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s14','a6']
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s14',**deck['savoirFaires']['s14']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'b':3,'n':3}))      
+        
+    def test_s15(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s15','a7']
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s15',**deck['savoirFaires']['s15']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'a':3,'n':2}))           
+        print("-----------PHASE2")
+        #meme chose en ajoutant artificiellement 1 bois sur argile
+        p=Partie()
+        p.initialiser(1,[])  
+        for num,case in p.plateau["cases"].items():
+            if case.uid=='a7':
+                case.cout['b']=-1        
+                print('rrrr',case.cout)
+        listeRep=['a4','s15','a7']
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s15',**deck['savoirFaires']['s15']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'b':1,'a':1,'n':2}))                       
+ 
+    def test_s16(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s16','a6']
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s16',**deck['savoirFaires']['s16']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'b':4,'n':2}))    
+
+    def test_s17(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s17','a6',
+                  'a7','a6',
+                  'a7','a6',
+                  'a7','a6',
+                  'a7','a6',
+                  'a7','a6']
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s17',**deck['savoirFaires']['s17']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(joueur.ressources['r']==4)    
+
+    def test_s18(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s18','a2',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9']
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s18',**deck['savoirFaires']['s18']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(joueur.ressources['b']==5)    
+ 
+    def test_s19(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s19','a2',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',#6
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9', #13
+                  'a2','a9',                 
+                  ]
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s19',**deck['savoirFaires']['s19']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(joueur.ressources['b']==7)   
+    def test_s20(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s20','a2',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',#6
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9', #13
+                  'a2','a9',                 
+                  ]
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s20',**deck['savoirFaires']['s20']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(joueur.ressources['a']==7)   
+
+    def test_s21(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s21',
+                  's21','s21','s21','s21','s21','s21','s21','s21']
+        joueur=p.joueurs[0]
+        joueur.ressources['n']=8
+        joueur.cartesEnMain.append(SavoirFaire(p,'s21',**deck['savoirFaires']['s21']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':0,'r':2,'c':1,'p':1,
+                                                          'l':2,'b':1,'a':1}))  
+        self.assertTrue(partieSimulee.plateau['tour']==1)
+        self.assertTrue(len(joueur.personnages)==1)
+  
+    def test_s23(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s23',"a2","C5",
+                  'a2',"C4"]
+        joueur=p.joueurs[0]
+        joueur.courDeFerme.etat["C5"].type='vide'
+        joueur.courDeFerme.etat["C4"].type='vide'
+        joueur.cartesEnMain.append(SavoirFaire(p,'s23',**deck['savoirFaires']['s23']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':2,'c':2})) 
+        self.assertTrue(joueur.courDeFerme.compter('champ')==2) 
+
+
+    def test_s24(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s24','a2',
+                  'a2','a9',#+1
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',#+5  un boeuf
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',#+9  un boeuf         
+                  ]
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s24',**deck['savoirFaires']['s24']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(joueur.ressources['v']==2)   
+    def test_s25(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s25','a2',
+                  'a2','a9',#+1
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',#+5  
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',#+9     
+                  'a2','a9',
+                  'a2','a9',     
+                  ]
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s25',**deck['savoirFaires']['s25']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(joueur.ressources['m']==4)    
+    def test_s26(self): 
+        p=Partie()
+        p.initialiser(1,[])  
+        listeRep=['a4','s26','a2',
+                  'a2','a9',#+1
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',#+5  
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',
+                  'a2','a9',#+9     
+                  'a2','a9',
+                  'a2','a9',     
+                  ]
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s26',**deck['savoirFaires']['s26']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(joueur.ressources['s']==3)     
+ 
+    def test_s28(self): 
+        p=Partie()
+        p.initialiser(3,[])  
+        listeRep=['a4','s28',
+                  'a5','a6',
+                  'a2','p24'   
+                  ]
+        joueur=p.joueurs[0]
+        joueur.cartesEnMain.append(SavoirFaire(p,'s28',**deck['savoirFaires']['s28']))
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(p.joueurs[0].ressources,{'n':2,'c':2,'l':1})) 
+        self.assertTrue(util.sontEgaux(p.joueurs[1].ressources,{'n':5,'c':1})) 
+        self.assertTrue(util.sontEgaux(p.joueurs[2].ressources,{'n':3,'c':1,'b':3})) 
+
+
 unittest.main()

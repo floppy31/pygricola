@@ -151,6 +151,14 @@ def ajouter(a,b):
             somme[k]=a[k]+b[k]
     return somme.copy()
 
+def inverser(a):
+    reponse={}
+    for k in a.keys():
+        reponse[k]=-a[k]
+    return reponse
+
+
+
 def sontEgaux(a,b):
     egaux=True
     for k in list(set(a.keys()).union(set(b.keys()))):

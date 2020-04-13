@@ -69,7 +69,7 @@ def roseauPnOuPierrePn(partie,choix,possibilites,carte):
 ##################################################################################
 #---------------------------------------Naissances--------------
 ##################################################################################
-def jePeuxNaitre(partie):
+def jePeuxNaitre(partie,carte):
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
     nbPions=len(joueur.personnages)+len(joueur.personnagesPlaces)
@@ -84,7 +84,7 @@ def jePeuxJouerSavoirFaireOuNaissance(partie,carte):
     joueur=partie.joueurQuiJoue()
     savoirFaireOk=joueur.jePeuxJouer(cout)
     tourOk=partie.plateau["tour"]>4
-    return jePeuxNaitre(partie) or tourOk or savoirFaireOk
+    return jePeuxNaitre(partie,carte) or tourOk or savoirFaireOk
     
     
 def possibiliteSavoiFaireOuNaissance(partie,carte,Fake=False):
@@ -153,17 +153,52 @@ def naissancePuisMineur(partie,choix,possibilites,carte):
 #---------------------------------------SAVOIR FAIRE------------------------------
 ##################################################################################
 def coutSavoirFaire1(partie):
-    if partie.quiJoue in partie.joueurs.keys():
-        if partie.joueurs[partie.quiJoue].combienJaiJoueDe('SavoirFaire')==0:
-            return {}
+    joueur=partie.joueurQuiJoue()
+    if joueur.combienJaiJoueDe('s')==0:
+        return {}
     else:
         return {'n':1}
 
 def coutSavoirFaire2(partie):
-    if partie.joueurs[partie.quiJoue].combienJaiJoueDe('SavoirFaire')<2:
+    if partie.joueurs[partie.quiJoue].combienJaiJoueDe('s')<2:
         return {'n':1}
     else:
         return {'n':2}
+    
+def possibilitesSavoirFaire(partie,carte,Fake=False):
+    possibilites=[]   
+    joueur=partie.joueurQuiJoue()
+    for c in joueur.cartesEnMain:
+        if c.uid[0]=='s':
+            if joueur.jeRemplisLesConditions(c.conditionAchat):
+                #cout de la carte + de l'action (pour foire du travail)
+                if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):            
+                    possibilites.append(c.uid)
+
+    if (not Fake):                    
+        partie.phraseChoixPossibles="Choissisez un savoir faire:"
+        partie.sujet=carte
+    return possibilites                       
+    
+def choixSavoirFaire(partie,choix,possibilites,carte):
+    savoirFaireChoisiUid=possibilites[choix]
+    joueur=partie.joueurQuiJoue()
+    for c in joueur.cartesEnMain:
+        if c.uid==savoirFaireChoisiUid:
+            savoirFaireChoisi=c
+            break
+    #il faut le faire avant car le cout depends du nombre de savoir faire joues
+    joueur.mettreAJourLesRessources(util.ajouter(savoirFaireChoisi.cout,carte.cout))
+    joueur.cartesEnMain.remove(savoirFaireChoisi)
+    joueur.cartesDevantSoi[savoirFaireChoisi.uid]=savoirFaireChoisi        
+    savoirFaireChoisi.owner=joueur
+    personnage=joueur.personnages.pop()
+    joueur.personnagesPlaces.append(personnage)                  
+    carte.mettrePersonnage(personnage)    
+    partie.messagesPrincipaux.append([joueur.nom,"p20",'p2',savoirFaireChoisi.uid])
+    savoirFaireChoisi.effetInstantane()
+    return (-1,carte,False,"")
+
 
 ##################################################################################
 #---------------------------------------MINEUR          --------------------------
@@ -174,15 +209,16 @@ def possibilitesAmenagementMineur(partie,carte,Fake=False):
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
     for c in  joueur.cartesEnMain:
-        #ici c'est condition achat... on ne veut pas appeler poss non vide de la carte à acheter
-        if joueur.jeRemplisLesConditions(c.conditionAchat):
-            #cout de la carte + de l'action (pour foire du travail)
-            if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
-                possibilites.append(c)
+        if c.uid[0]=="m":
+            #ici c'est condition achat... on ne veut pas appeler poss non vide de la carte à acheter
+            if joueur.jeRemplisLesConditions(c.conditionAchat):
+                #cout de la carte + de l'action (pour foire du travail)
+                if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
+                    possibilites.append(c)
+                else:
+                    partie.messagesDetail.append(["p10",c.uid])
             else:
-                partie.messagesDetail.append(["p10",c.uid])
-        else:
-            partie.messagesDetail.append(["p9",c.uid])
+                partie.messagesDetail.append(["p9",c.uid])
     #si on appelle cette methode via l'action spéciale 
     #on n'ajoute pas la possibilité u3 (ne rien faire)
     #ainsi on ne peux pas faire l'action spéciale si on ne peux construire aucun
@@ -224,7 +260,7 @@ def choixAmenagementMineur(partie,choix,possibilites,carte):
     encore=False    
     return (-1,carte,False,"") #on ne peux plus en jouer
 
-    ##################################################################################
+##################################################################################
 #---------------------------------------Majeur          --------------------------
 ##################################################################################        
 def possibilitesAmenagementMajeur(partie,carte,Fake=False):
@@ -266,9 +302,17 @@ def possibilitesAmenagementMineurOuMajeur(partie,carte,Fake=False):
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
     for c in  joueur.cartesEnMain:
-        if joueur.jeRemplisLesConditions(c.condition):
-             if joueur.jePeuxJouer(c.cout):
-                        possibilites.append(c)
+        if c.uid[0]=="m":
+            #ici c'est condition achat... on ne veut pas appeler poss non vide de la carte à acheter
+            if joueur.jeRemplisLesConditions(c.conditionAchat):
+                #cout de la carte + de l'action (pour foire du travail)
+                if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
+                    possibilites.append(c)
+                else:
+                    partie.messagesDetail.append(["p10",c.uid])
+            else:
+                partie.messagesDetail.append(["p9",c.uid])
+                
                         
     for m in  plateau['majeurs'].keys():
         if plateau['majeurs'][m].visible:
@@ -573,8 +617,8 @@ def constructionOuSpectacle(partie,choix,possibilites,carte):
 
     if possibilites[choix]=="Spectacle":
         cout=carte.cout.copy()
-        carte._cout=util.rVide() #vidage de la carte???
-        TTTT
+        carte.vider() #vidage de la carte???
+        TTTT # appeller aussi les hook sur spectacle
         partie.messagesPrincipaux.append("{} va sur Spectacle".format(partie.joueurQuiJoue().nom))
     else:
         ferme=joueur.courDeFerme
