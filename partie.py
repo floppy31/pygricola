@@ -76,13 +76,29 @@ class Partie(object):
         self.premierJoueur=0
         self.quiAFini=[]
         self.messagesPrincipaux=[]
+
+        self.messagesDetail=[] #pour debug
+        self.log=logger
+        
         self.choixPossibles=[] #on garde ça en memoire
         self.phraseChoixPossibles="" #on garde ça en memoire
         self.sujet="" #on garde ça en memoire
-        self.uidSave="" #on garde ça en melogging.DEBUGumoire pour les hook
-        self.messagesDetail=[] #pour debug
-        self.log=logger
+        self.sujetSauvegarde="" #on garde ça en memoire
+        self.uidSave="" #on garde ça en melogging.DEBUGumoire pour les hook        
+        self.doitRepondre=self
 
+    #choixPossible ==-1 on va à la suite
+    #choixPossible ==-2 on boucle sur les hooks
+    #choixPossible ==liste non vide : on a un choix à faire
+    #sujet est la methode qui doit appeler effet ensuite
+    #doitRepondre est le joueur qui doit répondre à la question
+    def changerPointeurs(self,choixPossibles,sujet=self.sujetSauvegarde,phrase="p0",doitRepondre=self):
+        self.log.debug('changement de pointeurs \n{} {} {} {}'.format(sujet,choixPossibles,doitRepondre,phrase))
+        self.sujet=sujet
+        self.choixPossibles=choixPossibles
+        self.phrase=phrase
+        self.doitRepondre=doitRepondre
+        
 
     #je separe la fonction d'init... a cause de save/load
     #on a besoin de creer un objet partie sans tout réinitialiser

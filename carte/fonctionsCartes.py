@@ -51,8 +51,8 @@ def depiler(partie,choix,possibilites,carte):
                 del carte.option['pileTour'][partie.plateau['tour']]
                 print("depiler, il reste:",len(carte.option['pileTour'].keys()),'tours')
                 carte.owner.mettreAJourLesRessources(cout)
-                
-    return (-2,carte,True,carte.uid) 
+    partie.changerPointeurs(-2)            
+#     return (-2,carte,True,carte.uid) 
 
 def enleverPossibilitesOptions(partie,choix,possibilites,carte):
     res=selfCarte['possibilitesOptions'].pop(choix)
