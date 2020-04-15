@@ -20,9 +20,9 @@ def avoirMoinsDeXCartesEnMain(selfCarte):
     print("avoirMoinsDeXCartesEnMain",mesCartes,X)
     return mesCartes<=X
 
-def avoirXSavoirFaire(selfCarte):
-    X=selfCarte['option']['conditionSavoirFaire']
-    mesSavoirsfaire=selfCarte.parte.joueurQuiJoue().combienJaiJoueDe(s)
+def avoirXSavoirFaire(partie,carte):
+    X=carte.option['conditionSavoirFaire']
+    mesSavoirsfaire=partie.joueurQuiJoue().combienJaiJoueDe('s')
     print("avoirXSavoirFaire",mesSavoirsfaire,X)
     return mesSavoirsfaire>=X
 
@@ -37,7 +37,7 @@ def conditionEpicier(partie,carte):
 def depiler(partie,choix,possibilites,carte):
     #soit c'est une liste et on regarde dans pile
     #on prends les ressources dans un certain ordre
-    print('depiler-------------------------')
+    partie.log.debug(carte.uid)
     if 'pile' in carte.option.keys():
         if len(carte.option['pile'])>0:
             cout=carte.option['pile'].pop()
@@ -51,6 +51,8 @@ def depiler(partie,choix,possibilites,carte):
                 del carte.option['pileTour'][partie.plateau['tour']]
                 print("depiler, il reste:",len(carte.option['pileTour'].keys()),'tours')
                 carte.owner.mettreAJourLesRessources(cout)
+                
+    return (-2,carte,True,carte.uid) 
 
 def enleverPossibilitesOptions(partie,choix,possibilites,carte):
     res=selfCarte['possibilitesOptions'].pop(choix)
@@ -86,15 +88,17 @@ def possibilitesFake(partie,selfCarte,Fake=False):
     #genre pour l'epicier
     return ['fake']        
 
-def possibilitesRessourceSurAction(partie,selfCarte,Fake=False):
+def possibilitesRessourceSurAction(partie,carte,Fake=False):
     #on liste les actions visibles
     possibilites=[]
-    for i in range(1,31):
-        if selfCarte.partie.plateau['cases'][i].visible:
-            possibilites.append(selfCarte.partie.plateau['cases'][i].uid)
-    if (not Fake):                    
-        partie.phraseChoixPossibles=[selfCarte.uid,'p18']
-        partie.sujet=selfCarte
+    #si j'en ai encore
+    if len(carte.option['ressourceSurAction'])>0:
+        for i in range(1,31):
+            if carte.partie.plateau['cases'][i].visible:
+                possibilites.append(carte.partie.plateau['cases'][i].uid)
+        if (not Fake):                    
+            partie.phraseChoixPossibles=[carte.uid,'p18']
+            partie.sujet=carte
     return possibilites          
 
 def choixAchat(selfCarte):
@@ -105,16 +109,19 @@ def choixNaissanceOUPremier(selfCarte):
 
 def choixRessourceSurAction(partie,choix,possibilites,carte):
     uidChoisi=possibilites[choix]
-    joueur=partie.joueurQuiJoue()
+    joueur=carte.owner
     plateau=partie.plateau
     mess=""
+    optionRessource=carte.option['ressourceSurAction'].pop()
     for i in range(1,31):
-        if selfCarte.partie.plateau['cases'][i].uid==uidChoisi:
-            mess="{} {} {} {}".format("p19",optionRessource,"p20",uid)
-            print(mess)
-            selfCarte.partie.plateau['cases'][i].ressources=util.ajouter(
-                selfCarte.partie.plateau['cases'][i].ressources,optionRessource)
-    return (-1,carte,False,mess)
+        if partie.plateau['cases'][i].uid==uidChoisi:
+            mess=["p19",optionRessource,"p20",uidChoisi]
+            partie.log.debug(mess)
+            partie.plateau['cases'][i].coutBonus=util.ajouter(
+                partie.plateau['cases'][i].coutBonus,optionRessource)
+    carte.hookstatus=-1
+    partie.log.debug("{}".format(joueur.nom))
+    return (-2,carte,False,mess)
 
 
 def possibilitesOptions(selfCarte):

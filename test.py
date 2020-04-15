@@ -1,10 +1,19 @@
 import pygricola.util as util
 from partie import Partie
-listeReponse=[] #/pour prédefinir les premières reponses tapes au clavier
+
+
+import logging
+
+
+logger = logging.getLogger('root')
+fmt="##%(levelname)s## %(funcName)s():%(lineno)i: %(message)s"
+logging.basicConfig(format=fmt)
+logger.setLevel(logging.DEBUG)
+
 #permet de jouer les premier coup automatiquemetn
 nJoueurs=3
-p=Partie()
-p.initialiser(nJoueurs,listeReponse)    
+p=Partie(logger)
+p.initialiser(nJoueurs)    
 p.demarragePartie()
 p.demarrageTour()
 while(True):

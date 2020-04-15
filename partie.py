@@ -1,13 +1,14 @@
 from pygricola.joueur import Joueur ,loadJoueur
-from pygricola.carte.action import CarteAction,CaseAppro
 
 
-from pygricola.carte import deck,loadCarte,genererActionsSpeciales,AmenagementMajeur
+from pygricola.carte import deck,loadCarte,genererActionsSpeciales,AmenagementMajeur,CarteAction,CaseAppro
 import pygricola.fonctionsPlateau as fct
 from pygricola.traduction import trad
 
 import pygricola.util as util
 import json
+
+
 
 
 example={
@@ -66,7 +67,7 @@ def renoPuisCloture(partie):
 
 class Partie(object):
     
-    def __init__(self):
+    def __init__(self,logger):
         self._offset=16
         self.plateau = dict()
         self.joueurs = dict()
@@ -74,23 +75,21 @@ class Partie(object):
         self.nombreJoueurs=0
         self.premierJoueur=0
         self.quiAFini=[]
-        self.listeReponse=[]
-        self.streamName=""
         self.messagesPrincipaux=[]
         self.choixPossibles=[] #on garde ça en memoire
         self.phraseChoixPossibles="" #on garde ça en memoire
         self.sujet="" #on garde ça en memoire
-        self.uidSave="" #on garde ça en memoire pour les hook
+        self.uidSave="" #on garde ça en melogging.DEBUGumoire pour les hook
         self.messagesDetail=[] #pour debug
-        
+        self.log=logger
+
+
     #je separe la fonction d'init... a cause de save/load
     #on a besoin de creer un objet partie sans tout réinitialiser
-    def initialiser(self,nombreJoueurs,listeReponse,streamName=""):   
-        if not streamName=="":
-            print("sn:",streamName) 
+    def initialiser(self,nombreJoueurs):   
+
+        self.log.info('initialiser {} joueurs'.format(nombreJoueurs))
         self.nombreJoueurs=nombreJoueurs
-        self.streamName=streamName
-        self.listeReponse=listeReponse       
         self._initJoueurs()        
         self.initOrdre()
         (positionTourbes,positionForets)=self.genererCourDeferme()
@@ -101,7 +100,7 @@ class Partie(object):
             
         
     def _initJoueurs(self):
-
+        self.log.debug('_initJoueurs')
         bonusNourriture=[0,1,1,1,2]
         for j in range(self.nombreJoueurs):
 
@@ -111,6 +110,7 @@ class Partie(object):
 
         
     def _genererPlateau(self,nombre):
+        self.log.debug('_genererPlateau')
         self.plateau["cases"]=dict()
         self.plateau["actionsSpeciales"]=dict()
         self.plateau["tour"]=1
@@ -180,25 +180,29 @@ class Partie(object):
     def jouerUid(self,uid):
         for c in self.choixPossibles:
             if c.uid==uid:
-                print('jouerUid',uid)
+                self.log.debug('jouerUid : {}'.format(uid))
                 return c.jouer()
-            
-        print('jouerUID ERR',uid)
         dbg=""
         for c in   self.choixPossibles:
             dbg+=c.uid  +', '
-        print(dbg)
+        self.log.critical('jouerUid : {}'.format(dbg))
+
          
     def genererCourDeferme(self):
         pTourbes=['B2','B3','B4']
         pForets=['A1','A2','A3','A4','A5']  
+        self.log.debug('genererCourDeferme : \n tourbes {} \n forêts {}'.format(pTourbes,pForets))
+
         return(pTourbes,pForets)  
     
     def faireCourDeferme(self,positionTourbes,positionForets):
+        self.log.info('faireCourDeferme')
+
         for j in self.joueurs.keys():
             self.joueurs[j].courDeFerme.initTuiles(positionTourbes,positionForets)
         
     def faireActionSurTours(self):
+        self.log.info('faireActionSurTours')
         ordreActions={}
         
         ordreActions[1]=CarteAction(self,"a10",effet=fct.choixAmenagementMineurOuMajeur,possibilites=fct.possibilitesAmenagementMineurOuMajeur)
@@ -222,48 +226,56 @@ class Partie(object):
     
     
     def draft(self):
+        self.log.info('draft')
         pass
     
-    
-    def avancerJusquaLaProchaineInterraction(self):
-        pass
-    
+ 
     
     def demarragePartie(self):
         #boucle infinie
-        print("début de la partie")
+        self.log.info('----------------------\ndébut de la partie')
         self.messagesPrincipaux.append("début de la partie")
     
                 
     def demarrageTour(self):
 
-
-        print("début du tour : {}".format(self.plateau['tour']))
+        self.log.info("début du tour : {}".format(self.plateau['tour']))
         self.messagesPrincipaux.append("début du tour : {}".format(self.plateau['tour']))
         #on appelle les hook 
-        for jid,j in self.joueurs.items():
-            for cuid,c in j.cartesDevantSoi.items():
-                if hasattr(c, 'hook'):
-                    if c.hook != ():
-                        print(c.uid,'a un hook',c.hook[0])
-                        if c.hook[0]=="debutTour":
-                            #si le hook est jouable
-                            if c.hookStatus==0:
-                                print("hook sur debutTour avec",c.uid,c.hookStatus)
-                                #si le hook me concerne
-                                if(c.hook[1]=="s"):
-                                    #si il y a plusieurs possibilites
-                                    choixPossibles=c.possibilites()
-                                    if len(choixPossibles)>1:
-                                        self.partie.choixPossibles=choixPossibles
-                                        self.partie.sujet=self
-                                        print('IM HERE',choixPossibles)
-                                        return (choixPossibles,c,True,"hook")
-                                    else:
-                                    #sinon
-                                        c.effet(0,choixPossibles)
-                            else:
-                                print("JOUER,HOOK UTILISE")              
+        print("AAAAAAAA",self.choixPossibles,self.sujet)
+        
+        (choixPossibles,sujet,encore,message)=util.parcourirLesHooks(self,'debutTour',self.log)
+        print("BBB",choixPossibles,sujet,encore,message)
+        if choixPossibles != -1:
+            #on doit demander une action a un utilisateur
+            #c'est sujet.owner
+            return (choixPossibles,sujet,encore,message)
+        
+        print("CCC",choixPossibles,sujet,encore,message)
+#         for jid,j in self.joueurs.items():
+#             for cuid,c in j.cartesDevantSoi.items():
+#                 if hasattr(c, 'hook'):
+#                     if c.hook != ():
+#                         logger.debug(c.uid,'a un hook',c.hook[0])
+#                         if c.hook[0]=="debutTour":
+#                             #si le hook est jouable
+#                             if c.hookStatus==0:
+#                                 logger.debug(c.uid,'a un hook',c.hook[0])
+#                                 print("hook sur debutTour avec",c.uid,c.hookStatus)
+#                                 #si le hook me concerne
+#                                 if(c.hook[1]=="s"):
+#                                     #si il y a plusieurs possibilites
+#                                     choixPossibles=c.possibilites()
+#                                     if len(choixPossibles)>1:
+#                                         self.choixPossibles=choixPossibles
+#                                         self.sujet=self
+#                                         print('IM HERE',choixPossibles)
+#                                         return (choixPossibles,c,True,"hook")
+#                                     else:
+#                                     #sinon
+#                                         c.effet(0,choixPossibles)
+#                             else:
+#                                 print("JOUER,HOOK UTILISE")              
         
         #on reappro les cases
         
@@ -275,7 +287,9 @@ class Partie(object):
                      
                      
         print(self.printCasesVisibles())     
-        self.quiJoue=self.premierJoueur        
+        self.quiJoue=self.premierJoueur       
+        
+        return (-1,self.joueurQuiJoue(),True,"fin demarage tour") 
         
     def initChoix(self):
         sujet=self.joueurQuiJoue()

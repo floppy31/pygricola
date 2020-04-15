@@ -4,6 +4,7 @@ from pygricola.joueur.courDeFerme import CourDeFerme
 from pygricola.joueur.personnage import Personnage,loadPersonnage
 from pygricola.carte import deck,Carte,loadCarte
 
+
 class Joueur(object):
 
     def __init__(self, partie,nom,id,couleur):
@@ -40,6 +41,17 @@ class Joueur(object):
 
     def __str__(self):
            return 'nom: {}\n'.format(self.nom)
+       
+    def poserCarteDevantSoi(self,carte,Majeur=False):
+        self.cartesDevantSoi[carte.uid]=carte       
+        carte.owner=self 
+        if Majeur:
+            del self.partie.plateau["majeurs"][carte.uid]
+            if not carte.devoile is None:
+                self.partie.plateau['majeurs'][carte.devoile].visible=True
+        else:
+            self.cartesEnMain.remove(carte)
+        self.partie.log.info("{} pose {}".format(self.nom,carte.uid))
        
     def possibilites(self):
             
@@ -167,10 +179,11 @@ class Joueur(object):
                 return cond
     
     def jaiFini(self):
-        print("joueur reste",len(self.personnages))
+        #logger.debug('__init__ Partie')
+
+        self.partie.log.debug("joueur reste {}".format(len(self.personnages)))
         rep=len(self.personnages)
         if rep==0:
-            print(self.nom,"J'ai fini!!!!!!!!!!!!!!!!!!!!!!")
             if self.id not in self.partie.quiAFini:
                 self.partie.quiAFini.append(self.id)
         return rep==0
@@ -187,11 +200,11 @@ class Joueur(object):
         #la carte est libre
         if carte.carteQuiMePorte.etat==-1:
             #plus rachetable
-            self.partie.messagesDetail.append("{} plus rachetable".format(carte) )
+            self.partie.log.debug("{} plus rachetable".format(carte) )
             return False
         #c'est moi qui l'ai deja prise
         elif carte.carteQuiMePorte.etat==self.id:
-            self.partie.messagesDetail.append("j'ai déjà pris {}".format(carte) )
+            self.partie.log.debug("j'ai déjà pris {}".format(carte) )
             return False
         #carte.cout prend en compte le cout supplémentaire en cas de rachat
         coutOk=self.jePeuxJouer(carte.cout)
@@ -233,7 +246,6 @@ class Joueur(object):
         
     def mettreAJourLesRessources(self,rDictReadOnly,actionDunePersonne=False):
         #on n affiche que si ca bouge
-        jePrint=False
         sauv=self.ressources.copy()
         sortedKeys=list(self.ressources.keys())
         sortedKeys.sort(reverse=True)
@@ -255,8 +267,7 @@ class Joueur(object):
                             rDict['b']=boisATransformer
                         
                     else:
-                        print('RESSOURCES < 0 !!!')
-                        print(r,self.ressources,rDict)
+                        self.partie.log.critical('!!!!!!!!!!!!!!!!!!!RESSOURCES < 0 !!!\n{}\n{}\n{}'.format(r,self.ressources,rDict))
                         planter
                         
         if actionDunePersonne:
@@ -275,15 +286,11 @@ class Joueur(object):
                                     bonus=util.ajouter(bonus,c.bonusRessources(rDictReadOnly))
                 
                                     
-            print("ajout des bonus ressourcesActionPersonne",bonus)
+            self.partie.log.debug("ajout des bonus ressourcesActionPersonne",bonus)
             self.ressources=util.ajouter(self.ressources,bonus)                       
                         
-        if jePrint:
-            print("cout: ",rDict)
-            print("avant:")
-            print(sauv)
-            print("apres:")
-            print(self.ressources)   
+        self.partie.log.debug("\n cout: {}\n avant: {}\n après: {}".format(rDict,sauv,self.ressources))
+
             
     def save(self):
         dico={}

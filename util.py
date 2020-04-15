@@ -1,5 +1,38 @@
 from pygricola.traduction import trad
 
+def findCarte(carteList,uid):
+    for c in carteList:
+        if c.uid==uid:
+            return c
+    
+
+
+def parcourirLesHooks(partie,typeHook,logger):
+        for jid,j in partie.joueurs.items():
+            for cuid,c in j.cartesDevantSoi.items():
+                if hasattr(c, 'hook'):
+                    if c.hook != ():
+                        logger.debug("{} {} {}".format(c.uid,'a un hook',c.hook[0]))
+                        if c.hook[0]==typeHook:
+                            #si le hook est jouable
+                            if c.hookStatus==0:
+                                logger.debug("parcourirLesHooks sur debutTour avec {} {}".format(c.uid,c.hookStatus))
+                                #si le hook me concerne
+                                if(c.hook[1]=="s"):
+                                    #si il y a plusieurs possibilites
+                                    choixPossibles=c.possibilites()
+                                    if len(choixPossibles)>1:
+                                        partie.choixPossibles=choixPossibles
+                                        partie.sujet=c
+                                        logger.debug("parcourirLesHooks demande un choix utilisateur {} {}".format(c.uid,c.hookStatus))
+                                        return (choixPossibles,c,True,"hook")
+                                    else:
+                                    #sinon
+                                        logger.debug("parcourirLesHooks fait une action automatique")
+                                        return c.effet(0,choixPossibles)
+                            else:
+                                logger.debug("parcourirLesHooks: hook déjà consomé",c.uid,c.hookStatus) 
+        return (-1,partie,False,"fin hook") 
 
 def rVide():
     return {'b':0,'a':0,'p':0,'r':0,'n':0,'f':0,'c':0,'l':0,'m':0,'s':0,'v':0,'h':0}.copy()
@@ -161,6 +194,7 @@ def inverser(a):
 
 def sontEgaux(a,b):
     egaux=True
+    
     for k in list(set(a.keys()).union(set(b.keys()))):
         if k not in a.keys():
             if b[k]!=0:
@@ -175,7 +209,7 @@ def sontEgaux(a,b):
                 egaux=False
                 break
     if not egaux:
-        print('sontEgaux',a,b)
+        print('sontEgaux: NON!',a,b)
     
     return egaux
 

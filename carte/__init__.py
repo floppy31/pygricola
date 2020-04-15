@@ -3,6 +3,7 @@ import pygricola.fonctionsPlateau as fct
 from pygricola.traduction import trad
 import pygricola.carte.fonctionsCartes as fctCarte
 
+
 ##################################################################################
 #---------------------------------------Cuisson-------------------------
 ##################################################################################          
@@ -22,7 +23,7 @@ def possibilitesCuisson(partie,carte,Fake=False):
 def cuisson(partie,choix,possibilites,carte):
     #on recupere le dict cuisson dans option
     dictCuisson=carte.option['cuissonDict']
-    print('cuissonDBG',choix,possibilites,carte,possibilites[choix])
+    partie.log.debug('cuissonDBG {} {} {} {}'.format(choix,possibilites,carte,possibilites[choix]))
     possibilites[choix].jouer()
     return (-1,carte,True,"")
 ##################################################################################          
@@ -38,10 +39,10 @@ class Carte:
         if type(cout)==dict:
             self._cout=cout.copy()
             self._coutinit=cout  #on le garde en mémoire pour remettre le cout init quand on appelle vider
-
         else:
             self._cout=cout
-            
+        self.coutBonus=util.rVide() # a utiliser quand on ajoute des ressources à une case
+        #genre précurseur, contremaitre...
             
         if type(condition)==dict:
             self._condition=condition.copy()
@@ -56,19 +57,17 @@ class Carte:
         self.sansPion=sansPion
         self.phraseJouer='joue :'
         self.occupants=[]
-        
-#        super().__init__()
-    
+            
     def __str__(self):
            return self.uid
     
     def vider(self):
+        coutResultat=self.cout.copy()
         self._cout=self._coutinit
-
-#     @property   
-#     def nom(self):
-# #        return self.nomTrad('fr')
-#         return self.uid
+        res=util.ajouter(coutResultat,self.coutBonus)
+        self.coutBonus=util.rVide()
+        self.partie.log.debug('VIDER: {} {} {}'.format(res,self.cout,self._coutinit))        
+        return res
 
     
     def nomTrad(self,lang):
@@ -134,13 +133,11 @@ class Carte:
         elif type(self._possibilites)==list:
             return self._possibilites
         else:
-            print("carte possibilites:",self.partie,self)
+            self.partie.log.debug("{} {}".format(self.partie,self.uid))
             return self._possibilites(self.partie,self)        
 
-
-        
     def jouer(self):
-        print("JOUER",self.uid,self.cout) 
+        self.partie.log.debug("{} {}".format(self.uid,self.cout)) 
         #on parcourt les cartes jouees de tout le monde 
         for jid,j in self.partie.joueurs.items():
             for cuid,c in j.cartesDevantSoi.items():
@@ -184,10 +181,13 @@ class Carte:
             self.effet(0, [])
             return (-1,self.partie.joueurQuiJoue(),True,self.uid)
         else:
-            print("JOUERB",self.uid,self.cout) 
+            self.partie.log.debug("{} {}".format(self.uid,self.cout)) 
             self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid))
-            self.partie.joueurQuiJoue().mettreAJourLesRessources(self.cout,not self.sansPion)
-            self.vider()
+            
+            coutAAppliquer=self.vider()
+            self.partie.log.debug("{} {}".format(self.uid,coutAAppliquer)) 
+            self.partie.joueurQuiJoue().mettreAJourLesRessources(coutAAppliquer,not self.sansPion)
+#             self.vider()
             if self.sansPion==True:
                 if isinstance(self,ActionSpeciale):
                     #ici passe foire du travail
@@ -197,7 +197,7 @@ class Carte:
                     self.partie.initChoix()
                     return (-1,self,encore,"")
                 else:
-                    print('vous pouvez jouer encore')
+                    self.partie.log.debug('vous pouvez jouer encore')
                     self.partie.initChoix()
                     return (-1,self,encore,"")
 
@@ -224,13 +224,41 @@ def loadCarte(stri,partie):
     print('loadCarte',stri)
     pass
         
+class CarteAction(Carte):
+
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},visible=False,activer=True,sansPion=False):
+        self.visible=visible
+        self.activer=activer
+        self.libre=True
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,effet=effet,condition=condition,sansPion=sansPion)
         
-def byPassNaissance():
-    pass
+    def reappro(self):
+        pass
 
-def avoirXChamp(type,x):
-    pass
 
+    @property
+    def display(self):
+        return "Faire: {}".format(self.nom)
+
+        
+class CaseAppro(CarteAction):
+
+    def __init__(self,partie,uid,appro,possibilites={},effet={},cout={},visible=False,sansPion=False):
+        self.appro=appro
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,effet=effet,visible=visible,sansPion=sansPion)
+        
+    def reappro(self):
+        for k in self.appro.keys():
+            if k in self.cout.keys():
+                self.cout[k]+=self.appro[k]
+            else:
+                self.cout[k]=self.appro[k]
+                        
+                
+    @property
+    def display(self):
+        return "Prendre {} sur {}".format(util.prettyGain(self.cout),self.nom)  
+    
 
 class SavoirFaire(Carte):
 
@@ -274,7 +302,7 @@ class SavoirFaire(Carte):
                     gain=util.ajouter(gain,bonus)         
 
                 
-        print('bonusRessources',gain)
+        self.partie.log.debug(gain)
         return util.inverser(gain)
     
     def effetInstantane(self):
@@ -304,10 +332,15 @@ class Amenagement(Carte):
 
 class AmenagementMineur(Amenagement):
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},passableAGauche=False,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},passableAGauche=False,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy,hook=(),final=util.dummy):
         self.passableAGauche=passableAGauche
         super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
-
+        self.hook=hook
+        self.final=final
+        self.owner=None
+        self.hookStatus=0 #-1 pas jouable, 0 jouable, 
+        
+        
 class AmenagementMajeur(Amenagement):
 
     def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},option={},visible=False,devoile=None,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
@@ -335,9 +368,10 @@ class CarteActionSpeciale(Carte):
         #si l'ancien etat etait positif ou nul alors je mets -1 (fini)
         if self.etat>-1:
             self.etat=-1
-            print("AS: ",self.uid,"changement d'etat:",self.etat,"-->",-1)
+            self.partie.log.debug("AS: {} changement d'etat: {} --> -1".format(self.uid,self.etat))
         else:
-            print("AS: ",self.uid,"changement d'etat:",self.etat,"-->",nouveau)
+            self.partie.log.debug("AS: {} changement d'etat: {} --> {}".format(self.uid,self.etat,nouveau))
+            
             self.etat=nouveau
         
     
@@ -619,13 +653,13 @@ mineursDict["m0"]={
     'possibilites':possibilitesCuisson,
     'pointsVictoire':1,
     }
-mineursDict["m1"]={
-    'cout':{'a':2,'p':2},
-    'effet':fctCarte.prendre,
-    'option':{'n':-1},    
-    'hook':'o_cuisson',
-    'pointsVictoire':2, 
-    }
+# mineursDict["m1"]={
+#     'cout':{'a':2,'p':2},
+#     'effet':fctCarte.prendre,
+#     'option':{'n':-1},    
+#     'hook':'o_cuisson',
+#     'pointsVictoire':2, 
+#     }
 mineursDict["m2"]={
     'cout':{'b':2},
     'animaux':"abreuvoir",
@@ -633,11 +667,10 @@ mineursDict["m2"]={
     }
 mineursDict["m3"]={
     'condition':fctCarte.avoirXSavoirFaire,
-    'hook':'debutTour',
+    'hook':('debutTour','s','p'),
     'effet':fctCarte.choixRessourceSurAction,
     'possibilites':fctCarte.possibilitesRessourceSurAction,
-    'option':{'n':-1,'conditionSavoirFaire':3},  
-    'nbUtil':5,
+    'option':{'ressourceSurAction':[{'n':-1},{'n':-1},{'n':-1},{'n':-1},{'n':-1}],'conditionSavoirFaire':3},  
     'pointsVictoire':1, 
     }
 
