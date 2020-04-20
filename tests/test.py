@@ -2,7 +2,7 @@ import random
 import unittest
 
 import pygricola.util as util
-from pygricola.partie import Partie
+from pygricola.partie import Partie,avancer
 import pygricola.fonctionsPlateau as fct
 from pygricola.carte import Carte,CarteAction,AmenagementMajeur,AmenagementMineur,deck,SavoirFaire
 import pygricola.util as util
@@ -15,36 +15,51 @@ logging.basicConfig(format=fmt)
 logger.setLevel(logging.DEBUG)
 
 
-def simulerPartie(listeRep,p):
+
+def simulerPartieOLD(listeRep,p):
         p.demarragePartie()
         p.demarrageTour()        
         p.initChoix()
-        choixPossibles=-1
-        sujet="" #fake init
-        for id in listeRep:
-            logger.debug('--------simulerPartie:{} {} {}'.format(id,choixPossibles,sujet))
-            #pour ne pas faire ça si p.jouerUidRenvoie inputtext
-            if choixPossibles==-1:
-                sujet=p.joueurQuiJoue()
-                sujet.possibilites()
-                (choixPossibles,sujet,encore,message)=p.jouerUid(id)
-            elif(choixPossibles=='inputtext'):
-                (choixPossibles,sujet,encore,message)=sujet.effet(id,[])
-            else:
-                (choixPossibles,sujet,encore,message)=sujet.effet(p.choixPossibles.index(id),p.choixPossibles)
-                #boucle sur la résolution des hook
-                if choixPossibles==-2:
-                    sujet=p.joueurQuiJoue()
-                    sujet.possibilites()
-                    (choixPossibles,sujet,encore,message)=p.jouerUid(p.uidSave)
-            if choixPossibles==-1:
-                suivant=p.joueurSuivant()
-                p.initChoix()
-                if suivant==-1:
-                    logger.debug('--------simulerPartie: fin du tour')
-                    p.finDuTour()
-                    p.demarrageTour()     
+        p.sujet.possibilites()
+        while len(listeRep)>0:
+            id=listeRep.pop(0)
+            compteur=3
+            while type(p.choixPossibles)==int and compteur>0:
+                if p.choixPossibles==-1:
+                    p.sujet.possibilites()
+                else:
+                    eeee
+                
+                if p.choixPossibles==-1:
+                    suivant=p.joueurSuivant()
+                    p.initChoix()
+                    if suivant==-1:
+                        logger.debug('--------simulerPartie: fin du tour')
+                        p.finDuTour()
+                        p.traiterLesHooks()
+                        p.demarrageTour()  
+                        p.traiterLesHooks()    
+                
+                compteur-=1
+                print('\n\n\n\n\FFFF',p.choixPossibles)
+            print('\n\n\n\n\nKKKKKKKKKKK',id,p.choixPossibles)
+            p.jouerUid(id)
+            p.traiterLesHooks()  
         return p   
+
+
+def simulerPartie(listeRep,p,faireInit=True):
+    if faireInit: 
+        p.demarragePartie()
+        p.demarrageTour()        
+        p.pointerSurPremier()
+    
+    for id in listeRep:
+        p.log.info("\n\n\n\n\n\n================ID: {} \n========{}\n\n".format(id,p.pointeur))
+        pointeur=avancer(p,id)
+    if len(p.hooks)>0:
+        ddddd
+    return p   
 
 
 
@@ -65,14 +80,14 @@ class FonctionsPlateau(unittest.TestCase):
             for l in CAS.listeActionSpeciale:
                 if l.uid=='b5':
                     carte=l
-        p.sujet=carte
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        p.pointeur.sujet=carte
+        carte.jouer()
         #pas encore joué
         self.assertTrue(util.sontEgaux(joueur.ressources,{'b':0}))
         #5 forets au début
-        self.assertTrue(len(choixPossibles)==5)
+        self.assertTrue(len(p.choixPossibles)==5)
         caseAbattue=p.choixPossibles[0]
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)   
+        p.sujet.effet(0,p.choixPossibles)   
         self.assertTrue(util.sontEgaux(joueur.ressources,{'b':2}))
         
         #pas de Pn pour racheter
@@ -80,7 +95,7 @@ class FonctionsPlateau(unittest.TestCase):
         joueur.ressources['n']=2
         #toujours pas car je l'ai déja prise
         self.assertFalse(joueur.jePeuxFaireActionSpeciale(carte))
-        p.joueurSuivant()
+        p.pointerSurJoueurSuivant()
         #joueur2 sans pn
         self.assertFalse(joueur2.jePeuxFaireActionSpeciale(carte))        
         joueur2.ressources['n']=2
@@ -97,9 +112,10 @@ class FonctionsPlateau(unittest.TestCase):
         joueur2.cartesDevantSoi["M6"]=AmenagementMajeur(p,'M6',**deck['majeurs']['M6'])
         
         self.assertTrue(joueur2.jePeuxFaireActionSpeciale(carte)) 
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)         
+        carte.jouer()
+        p.sujet.effet(0,p.choixPossibles)         
         self.assertTrue(util.sontEgaux(joueur2.ressources,{'b':4,'h':1}))
-        p.joueurSuivant()
+        p.pointerSurJoueurSuivant()
         joueur3.ressources['n']=10
         #impossible de racheter  
         self.assertFalse(joueur3.jePeuxFaireActionSpeciale(carte)) 
@@ -120,14 +136,14 @@ class FonctionsPlateau(unittest.TestCase):
             for l in CAS.listeActionSpeciale:
                 if l.uid=='b6':
                     carte=l
-        p.sujet=carte
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        p.pointeur.sujet=carte
+        carte.jouer()
         #pas encore joué
         self.assertTrue(joueur.courDeFerme.compter('champ')==0)
         #5 forets au début
-        self.assertTrue(len(choixPossibles)==5)
+        self.assertTrue(len(p.choixPossibles)==5)
         
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)   
+        p.sujet.effet(0,p.choixPossibles)   
         self.assertTrue(joueur.courDeFerme.compter('champ')==1)
         self.assertTrue(joueur.courDeFerme.compter('foret')==4)
         #pas de Pn pour racheter
@@ -135,7 +151,7 @@ class FonctionsPlateau(unittest.TestCase):
         joueur.ressources['n']=2
         #toujours pas car je l'ai déja prise
         self.assertFalse(joueur.jePeuxFaireActionSpeciale(carte))
-        p.joueurSuivant()
+        p.pointerSurJoueurSuivant()
         #joueur2 sans pn
         self.assertFalse(joueur2.jePeuxFaireActionSpeciale(carte))        
         joueur2.ressources['n']=2
@@ -149,21 +165,25 @@ class FonctionsPlateau(unittest.TestCase):
         joueur2.courDeFerme.etat['A5'].type="foret"
         #je mets un champs en C5
         joueur2.courDeFerme.etat['C5'].type="champ"
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        carte.jouer()
         #les champs ne se touchent pas
         self.assertFalse(joueur2.jePeuxFaireActionSpeciale(carte)) 
         joueur2.courDeFerme.etat['B5'].type="champ"
         #il faut remettre à jour
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        carte.jouer()
                             
         self.assertTrue(joueur2.jePeuxFaireActionSpeciale(carte)) 
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(choixPossibles==["A5"]) 
+        carte.jouer()
+        self.assertTrue(p.choixPossibles==["A5"]) 
         
 
     def test_AsCheval(self):
         #2,3,4,5 joueurs
-        
+        p=Partie(logger)
+        p.initialiser(2)      
+        partieSimulee=simulerPartie(['b0'],p)
+        self.assertTrue(p.plateau["actionsSpeciales"][0].etat==0)
+    
         #plus de place
         
         #rachat      
@@ -179,30 +199,30 @@ class FonctionsPlateau(unittest.TestCase):
                 if l.uid=='b3':
                     carte=l        
         #possibilitesVides
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==0)
+        carte.possibilites()
+        self.assertTrue(len(p.choixPossibles)==0)
         #je me mets un mineur en main et les ressources pour l'acheter
         joueur.cartesEnMain.append(AmenagementMineur(p,'m0',**deck['mineurs']['m0']))
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==0)
+        carte.possibilites()
+        self.assertTrue(len(p.choixPossibles)==0)
         joueur.ressources['a']=1
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        carte.possibilites()
         #je peux pas payer le feu
-        self.assertTrue(len(choixPossibles)==0)
+        self.assertTrue(len(p.choixPossibles)==0)
         
         joueur.ressources['f']=1
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        carte.possibilites()
         #maintenant ok
-        self.assertTrue(len(choixPossibles)==1)
+        self.assertTrue(len(p.choixPossibles)==1)
         joueur.ressources['f']=0
         joueur.ressources['b']=1
         #on teste avec 1 bois
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==1)
+        carte.possibilites()
+        self.assertTrue(len(p.choixPossibles)==1)
 
         #on la joue
-        (choixPossibles,sujet,encore,message)=carte.effet(0,p.choixPossibles) 
-        self.assertFalse(encore)
+        carte.effet(0,p.choixPossibles) 
+        self.assertTrue(p.choixPossibles==-1)
         self.assertTrue(util.sontEgaux(joueur.ressources,util.rVide()))
         self.assertTrue(carte.carteQuiMePorte.etat==joueur.id)
     
@@ -216,20 +236,20 @@ class FonctionsPlateau(unittest.TestCase):
                 if l.uid=='b4':
                     carte=l        
         #possibilitesVides
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==0)
+        carte.jouer()
+        self.assertTrue(len(p.choixPossibles)==0)
         #si je me mets 1 pn et 1 bois c'est idem
         joueur.ressources['b']=1
         joueur.ressources['n']=1
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==0)
+        carte.jouer()
+        self.assertTrue(len(p.choixPossibles)==0)
         #mais avec 2 argiles c'est ok
         joueur.ressources['a']=2
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==1)        
+        carte.jouer()
+        self.assertTrue(len(p.choixPossibles)==1)        
         #on la joue
-        (choixPossibles,sujet,encore,message)=carte.effet(0,p.choixPossibles) 
-        self.assertFalse(encore)
+        carte.effet(0,p.choixPossibles) 
+        self.assertTrue(p.choixPossibles==-1)
         self.assertTrue(util.sontEgaux(joueur.ressources,util.rVide()))               
 
 
@@ -247,14 +267,14 @@ class FonctionsPlateau(unittest.TestCase):
             for l in CAS.listeActionSpeciale:
                 if l.uid=='b7':
                     carte=l
-        p.sujet=carte
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        p.pointeur.sujet=carte
+        carte.jouer()
         #pas encore joué
         self.assertTrue(util.sontEgaux(joueur.ressources,{'f':0}))
         #3 tourbes au début
-        self.assertTrue(len(choixPossibles)==3)
+        self.assertTrue(len(p.choixPossibles)==3)
         
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)   
+        p.sujet.effet(0,p.choixPossibles)   
         self.assertTrue(util.sontEgaux(joueur.ressources,{'f':3}))
         
         #pas de Pn pour racheter
@@ -262,7 +282,7 @@ class FonctionsPlateau(unittest.TestCase):
         joueur.ressources['n']=2
         #toujours pas car je l'ai déja prise
         self.assertFalse(joueur.jePeuxFaireActionSpeciale(carte))
-        p.joueurSuivant()
+        p.pointerSurJoueurSuivant()
         #joueur2 sans pn
         self.assertFalse(joueur2.jePeuxFaireActionSpeciale(carte))        
         joueur2.ressources['n']=2
@@ -276,9 +296,11 @@ class FonctionsPlateau(unittest.TestCase):
         #je mets le four a toure
         joueur2.cartesDevantSoi["M4"]=AmenagementMajeur(p,'M4',**deck['majeurs']['M4'])        
         self.assertTrue(joueur2.jePeuxFaireActionSpeciale(carte)) 
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)         
+
+        carte.jouer()
+        p.sujet.effet(0,p.choixPossibles)         
         self.assertTrue(util.sontEgaux(joueur2.ressources,{'f':4}))
-        p.joueurSuivant()
+        p.pointerSurJoueurSuivant()
         joueur3.ressources['n']=10
         #impossible de racheter  
         self.assertFalse(joueur3.jePeuxFaireActionSpeciale(carte)) 
@@ -292,12 +314,12 @@ class FonctionsPlateau(unittest.TestCase):
         joueur=p.joueurs[0]
         joueur.ressources=util.rVide()
         betail=CarteAction(p,"a38",visible=True,possibilites=fct.possibiliteBetail,effet=fct.betail)
-        p.sujet=betail
-        (choixPossibles,sujet,encore,message)=betail.jouer()
-        self.assertTrue(len(choixPossibles)==2)
+        p.pointeur.sujet=betail
+        betail.jouer()
+        self.assertTrue(len(p.choixPossibles)==2)
         p.joueurs[0].ressources['n']=1 
-        (choixPossibles,sujet,encore,message)=betail.jouer()
-        self.assertTrue(len(choixPossibles)==3)
+        betail.jouer()
+        self.assertTrue(len(p.choixPossibles)==3)
         #test de la carte 
         joueur.ressources['n']=1
         joueur.ressources['m']=0
@@ -305,11 +327,11 @@ class FonctionsPlateau(unittest.TestCase):
         joueur.ressources['b']=0
         
         #test mouton pn
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)
+        p.sujet.effet(0,p.choixPossibles)
         self.assertTrue(util.sontEgaux(joueur.ressources,{'n':2,'m':1}))
-
+        betail.jouer()
         #test beuf contre pn
-        (choixPossibles,sujet,encore,message)=sujet.effet(2,p.choixPossibles)
+        p.sujet.effet(2,p.choixPossibles)
         self.assertTrue(util.sontEgaux(joueur.ressources,{'n':1,'m':1,'v':1}))    
             
     def test_ConstructionDePieceEtOuEtable(self):
@@ -341,16 +363,14 @@ class FonctionsPlateau(unittest.TestCase):
         ferme.etat["A2"].type="vide"
         ferme.etat["B2"].type="tourbe"
         ferme.etat["C2"].type="vide"
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(p.choixPossibles==choixPossibles=='inputtext')
+        carte.jouer()
+        self.assertTrue(p.choixPossibles=='inputtext')
         inputTextNonValables=["toto","A1:f","B1:E","B1:P","B2:P","C2:P,C3:P,C4:P","C2:P,C4:P",
                               "A1:E,A2:E,C4:E,C2:E,C3:E"]
         
         for it in inputTextNonValables:
-            (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
-            self.assertTrue(choixPossibles=='inputtext') 
-            self.assertTrue(encore) 
-            print(message)
+            p.sujet.effet(it,p.choixPossibles) 
+            self.assertTrue(p.choixPossibles=='inputtext') 
         inputTextValablesEtRessources=[
             ("A1:P",{'b':13,'r':2}),#1 pièce
             ("A1:P,C2:P",{'b':8,'r':0}),#2 pièce
@@ -366,14 +386,14 @@ class FonctionsPlateau(unittest.TestCase):
             ferme.etat["B2"].type="tourbe"
             ferme.etat["C2"].type="vide"  
 
-            (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
-            self.assertTrue(choixPossibles==-1) 
-            self.assertFalse(encore)
+            p.sujet.effet(it,p.choixPossibles) 
+            self.assertTrue(p.choixPossibles==-1) 
             self.assertTrue(util.sontEgaux(joueur.ressources,reste))
             #on remets le personnage artificiellement 
             perso=joueur.personnagesPlaces.pop()
             joueur.personnages.append(perso)
             ferme.mettrePersonnage(perso,perso.localisationInit) 
+            p.pointeur.sujet=carte
                
 
        
@@ -403,31 +423,30 @@ class FonctionsPlateau(unittest.TestCase):
         self.assertTrue(carteEstDispo)
         
         #je ne peux faire que spectacle
-        p.sujet=carte
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==1)
-        self.assertTrue(choixPossibles[0]=="u6")
+        p.pointeur.sujet=carte
+        carte.jouer()
+        self.assertTrue(len(p.choixPossibles)==1)
+        self.assertTrue(p.choixPossibles[0]=="u6")
         joueur.ressources['b']=5 
         joueur.ressources['r']=2        
         ferme=joueur.courDeFerme
         ferme.etat["A1"].type="foret"
         ferme.etat["B2"].type="tourbe"
         ferme.etat["C2"].type="foret"  
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        carte.jouer()
         #on n'a pas de place pour la maison
-        self.assertTrue(len(choixPossibles)==1)
-        self.assertTrue(choixPossibles[0]=="u6")        
+        self.assertTrue(len(p.choixPossibles)==1)
+        self.assertTrue(p.choixPossibles[0]=="u6")        
         #par contre si je fais de la place
         ferme.etat["A1"].type="vide"
         ferme.etat["B2"].type="vide"
         ferme.etat["C2"].type="vide"
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==4)  #spectacle + 3 possibilites
+        carte.jouer()
+        self.assertTrue(len(p.choixPossibles)==4)  #spectacle + 3 possibilites
         sujet=carte
-        caseChoisie=choixPossibles[1][1] 
-        (choixPossibles,sujet,encore,message)=sujet.effet(1,choixPossibles) 
-        self.assertFalse(encore)
-        self.assertTrue(choixPossibles==-1)
+        caseChoisie=p.choixPossibles[1][1] 
+        p.sujet.effet(1,p.choixPossibles) 
+        self.assertTrue(p.choixPossibles==-1)
         self.assertTrue(util.sontEgaux(joueur.ressources,util.rVide() ))
         self.assertFalse(carte.libre)
 
@@ -438,12 +457,12 @@ class FonctionsPlateau(unittest.TestCase):
         joueur.ressources=util.rVide()
         
         carte=p.plateau["cases"][10] #bof mais a priori c'est elle         #1er labour
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==5)# 5 endroits vides au début
+        carte.jouer()
+        self.assertTrue(len(p.choixPossibles)==5)# 5 endroits vides au début
         self.assertTrue(joueur.courDeFerme.compter('champ')==0)
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,choixPossibles) 
+        p.sujet.effet(0,p.choixPossibles) 
         self.assertTrue(joueur.courDeFerme.compter('champ')==1)
-        self.assertFalse(encore)
+        self.assertTrue(p.choixPossibles==-1)
         
         
         
@@ -454,14 +473,14 @@ class FonctionsPlateau(unittest.TestCase):
         joueur=p.joueurs[0]
         #test de la carte naissance puis aménagement mineur
         nPuisMineur=CarteAction(p,"a14",visible=False,possibilites=fct.possibilitesAmenagementMineur,effet=fct.naissancePuisMineur,condition=fct.jePeuxNaitre)
-        p.sujet=nPuisMineur
+        p.pointeur.sujet=nPuisMineur
         self.assertFalse(fct.jePeuxNaitre(p,nPuisMineur))
         #je rajoute une maison 
         joueur.courDeFerme.etat["A1"].type="maisonBois"
         self.assertTrue(fct.jePeuxNaitre(p,nPuisMineur))
-        (choixPossibles,sujet,encore,message)=nPuisMineur.jouer()
-        self.assertTrue(choixPossibles==['u3'])#ne peux pas jouer de mineur
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)
+        nPuisMineur.jouer()
+        self.assertTrue(p.choixPossibles==['u3'])#ne peux pas jouer de mineur
+        p.sujet.effet(0,p.choixPossibles)
         #je ne peux plus naitre
         self.assertFalse(fct.jePeuxNaitre(p,nPuisMineur))
         joueur.courDeFerme.etat["A2"].type="maisonBois"
@@ -480,22 +499,22 @@ class FonctionsPlateau(unittest.TestCase):
         joueur.ressources=util.rVide()
         
         carte=p.plateau["cases"][17] #bof mais a priori c'est elle 
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        carte.jouer()
         #pas de ressources pas de possibilites
-        self.assertTrue(len(choixPossibles)==0)
+        self.assertTrue(len(p.choixPossibles)==0)
         #on teste la condition possibilites non vide
         self.assertFalse(joueur.jeRemplisLesConditions(carte.condition))
         #avec 2 argiles je peux faire seulement le foyer à 2
         joueur.ressources['a']=2
         self.assertTrue(joueur.jeRemplisLesConditions(carte.condition))
-        (choixPossibles,sujet,encore,message)=carte.jouer()
-        self.assertTrue(len(choixPossibles)==1)
-        self.assertTrue(choixPossibles[0].uid=="M0")
+        carte.jouer()
+        self.assertTrue(len(p.choixPossibles)==1)
+        self.assertTrue(p.choixPossibles[0].uid=="M0")
         sujet=carte
         #je le fais
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,p.choixPossibles)   
+        p.sujet.effet(0,p.choixPossibles)   
         #peux plus rejouer
-        self.assertFalse(encore) 
+        self.assertTrue(p.choixPossibles==-1) 
         #je n'ai plus de ressource
         self.assertTrue(util.sontEgaux(joueur.ressources,{}))
         #j'ai bien le majeur joué devant moi
@@ -503,34 +522,27 @@ class FonctionsPlateau(unittest.TestCase):
         #si je pouvais re jouer alors je ne pourrais pas activer le foyer 
         joueur.possibilites()    
         activable=False
-        for pos in p.choixPossibles:
-            if (pos.uid) =="M0":
-                activable=True
-        self.assertFalse(activable)     
+        sujet=util.findCarte(p.choixPossibles,"M0")
+        self.assertTrue(sujet==None)     
         #mais avec un mouton si!
         joueur.ressources['m']=1
         joueur.possibilites()    
-        activable=False
-        for pos in p.choixPossibles:
-            if (pos.uid) =="M0":
-                activable=True
-                sujet=pos
-        self.assertTrue(activable)     
+        sujet=util.findCarte(p.choixPossibles,"M0")
+
+        self.assertTrue(sujet.uid=="M0")     
         #que puis-je activer
-        cuissonPossibles=sujet.possibilites()
-        self.assertTrue(cuissonPossibles[0].uid=="um") #cuire un mouton
-        (choixPossibles,sujet,encore,message)=sujet.effet(0,cuissonPossibles)   
-        #on peut encore jouer
-        self.assertTrue(encore) 
+        sujet.possibilites()
+        self.assertTrue(p.choixPossibles[0].uid=="um") #cuire un mouton
+        p.sujet.effet(0,p.choixPossibles)   
         #on a gagné 2 pn et perdu le mouton
         self.assertTrue(util.sontEgaux(joueur.ressources,{'n':2}))
         #on passe au joueur suivant
-        p.joueurSuivant()
+        p.pointerSurJoueurSuivant()
         joueur=p.joueurs[1]
         joueur.possibilites() 
         joueur.ressources=util.rVide()
         joueur.ressources['a']=2
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        carte.jouer()
         self.assertFalse(joueur.jeRemplisLesConditions(carte.condition))        
         #par contre si je me mets 1 argile en plus je peux 
         joueur.ressources['a']=3
@@ -539,9 +551,9 @@ class FonctionsPlateau(unittest.TestCase):
         joueur.ressources['p']=1
         #je peux jouer 4 trucs (foyer à 3, four a tourbe, four en brique, et abatoir à chevaux 1
         joueur.possibilites() #on réinitialise
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        carte.jouer()
         uidPossibles=["M1","M2","M4","M14"]
-        for am in choixPossibles:
+        for am in p.choixPossibles:
             uidPossibles.remove(am.uid)
         self.assertTrue(len(uidPossibles)==0)  
         
@@ -554,9 +566,9 @@ class FonctionsPlateau(unittest.TestCase):
         joueur=p.joueurs[0]
         joueur.ressources=util.rVide()
         rPnOuPPn=CarteAction(p,"a26",possibilites=fct.possibiliteRoseauPnOuPierrePn,effet=fct.roseauPnOuPierrePn,visible=True)
-        p.sujet=rPnOuPPn
-        (choixPossibles,sujet,encore,message)=rPnOuPPn.jouer()
-        (choixPossibles,sujet,encore,message)=sujet.effet(1,p.choixPossibles)
+        p.pointeur.sujet=rPnOuPPn
+        rPnOuPPn.jouer()
+        p.sujet.effet(1,p.choixPossibles)
         self.assertTrue(util.sontEgaux(joueur.ressources,{'n':1,'r':1}))
         
     def test_SemailleCuisson(self):
@@ -605,9 +617,9 @@ class FonctionsPlateau(unittest.TestCase):
             if c.uid==carte.uid:
                 carteEstDispo=True       
         self.assertTrue(carteEstDispo)        
-        (choixPossibles,sujet,encore,message)=carte.jouer()
+        carte.jouer()
 
-        self.assertTrue(p.choixPossibles==choixPossibles=='inputtext')
+        self.assertTrue(p.choixPossibles=='inputtext')
         ferme.etat["A1"].type="champ"   
         ferme.etat["A2"].type="champ"   
         ferme.etat["A3"].type="champ"   
@@ -616,10 +628,8 @@ class FonctionsPlateau(unittest.TestCase):
         inputTextNonValables=["toto","A1:f","A1:l","B3:c","A1:c,c:2","A3:c"]
         
         for it in inputTextNonValables:
-            (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
-            self.assertTrue(choixPossibles=='inputtext') 
-            self.assertTrue(encore) 
-            print(message)
+            p.sujet.effet(it,p.choixPossibles) 
+            self.assertTrue(p.choixPossibles=='inputtext') 
             
         joueur.ressources['c']=5
         joueur.ressources['l']=5
@@ -645,9 +655,8 @@ class FonctionsPlateau(unittest.TestCase):
             ferme.etat["B3"].type="tourbe" 
             ferme.etat["B3"].ressources=util.rVide()
 
-            (choixPossibles,sujet,encore,message)=sujet.effet(it,p.choixPossibles) 
-            self.assertTrue(choixPossibles==-1) 
-            self.assertFalse(encore)
+            p.sujet.effet(it,p.choixPossibles) 
+            self.assertTrue(p.choixPossibles==-1) 
             self.assertTrue(util.sontEgaux(joueur.ressources,reste))
             #on remets le personnage artificiellement 
             perso=joueur.personnagesPlaces.pop()
@@ -657,6 +666,7 @@ class FonctionsPlateau(unittest.TestCase):
                 nb=int(v[0])
                 type=v[1]
                 self.assertTrue(ferme.etat[k].ressources[type]==nb)     
+            p.pointeur.sujet=carte
                 
       
         #cuisson seule
@@ -665,7 +675,12 @@ class FonctionsPlateau(unittest.TestCase):
         #test sans cuisson
         pass    
         
-    def test_Tour(self):    
+    def test_Tour_1(self): 
+        listeRep=['a2','b0','b6','A1','b7','B2','a9','a6','a8',]
+        p=Partie(logger)
+        p.initialiser(2)  
+        partieSimulee=simulerPartie(listeRep,p)   
+        print() 
         # simuler un tour avec plusieurs joueurs, des nombres différents de personnages
         # fin du tour au bon moment
         
@@ -718,63 +733,212 @@ class PartieDeTest(unittest.TestCase):
 
  
 class TestMineurs(unittest.TestCase):
+    
+    def test_m0(self): 
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur0=p.joueurs[0]
+        joueur1=p.joueurs[1]
+        joueur1.ressources['m']=1
+        joueur1.cartesEnMain.append(AmenagementMineur(p,'m0',**deck['mineurs']['m0']))
+        partieSimulee=simulerPartie(['a2','a7','a5','a1','m0','m0','um'],p)    
+        self.assertTrue(util.sontEgaux(joueur0.ressources,{'c':1,'n':4}))
+        self.assertTrue(util.sontEgaux(joueur1.ressources,{'n':4}))
+        self.assertTrue(p.quiJoue==1)
+                        
     def test_m3(self): 
         p=Partie(logger)
         p.initialiser(2)  
         joueur=p.joueurs[0]
+        joueur2=p.joueurs[1]
         joueur.ressources=util.rVide()
         joueur.cartesEnMain.append(AmenagementMineur(p,'m3',**deck['mineurs']['m3']))
-        for CAS in p.plateau["actionsSpeciales"]:
-            for l in CAS.listeActionSpeciale:
-                if l.uid=='b3':
-                    travailCland=l        
-        #possibilitesVides
-        (choixPossibles,sujet,encore,message)=travailCland.jouer()
-        print(choixPossibles,sujet,encore,message)
-        self.assertTrue(len(choixPossibles)==0)
-        #je me mets 3 savoir faire
         joueur.cartesDevantSoi['s24']=SavoirFaire(p,'s24',**deck['savoirFaires']['s24'])
         joueur.cartesDevantSoi['s25']=SavoirFaire(p,'s25',**deck['savoirFaires']['s25'])
         joueur.cartesDevantSoi['s26']=SavoirFaire(p,'s26',**deck['savoirFaires']['s26'])
-        #et un feu
         joueur.ressources['f']=1
-        (choixPossibles,sujet,encore,message)=travailCland.jouer()
+        partieSimulee=simulerPartie(['b3','m3','a2','a6','a7','a5','a6'],p)
         
-        self.assertTrue(len(choixPossibles)==1)
-        (choixPossibles,sujet,encore,message)=travailCland.effet(0,p.choixPossibles) 
-        self.assertTrue(len(joueur.cartesDevantSoi.keys())==4)
-        #on l'a joué on passe au suivant
-        p.joueurSuivant()
-        p.initChoix()
-        p.jouerUid('a2')
-        p.joueurSuivant()
-        p.initChoix()
-        p.jouerUid('a6')
-        p.joueurSuivant()
-        p.initChoix()
-        p.jouerUid('a7')
-        p.joueurSuivant()
-        p.initChoix()        
-        p.jouerUid('a5')
-        suivant=p.joueurSuivant()
-        self.assertTrue(suivant==-1) #on a fini le tour
-        p.finDuTour()
-        (choixPossibles,sujet,encore,message)=p.demarrageTour()  
-        print('TOTOTOTOAAAAAAAAAAAAAAAAA',p.choixPossibles,sujet,encore,message)         
-        choix=util.findCarte(p.choixPossibles,'a5')
-        sujet.effet(p.choixPossibles.index(choix),p.choixPossibles)
-        print('TOTOTOTOAAAAAAAAAAAAAAAAA',p.choixPossibles,sujet,encore,message) 
-        sujet.possibilites()
+    def test_m7(self):
+        #1 ère fois
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur2=p.joueurs[1]
+        joueur.ressources=util.rVide()
+        m7=AmenagementMineur(p,'m7',**deck['mineurs']['m7'])
+        self.assertFalse(joueur.jePeuxJouer(m7.cout))
+        joueur.ressources['b']=1
+        self.assertTrue(joueur.jePeuxJouer(m7.cout))
+        joueur.ressources['a']=1
+        joueur.ressources['b']=0
+        self.assertTrue(joueur.jePeuxJouer(m7.cout))
+        #on remet le bois pour tester le cout multiple
+        joueur.ressources['b']=1
+       
+        joueur.cartesEnMain.append(m7)
+        partieSimulee=simulerPartie(['a1','m7_cout0','r'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'r':1,'a':1}))
+        self.assertFalse(joueur.aiJeJoue('m7'))
+        self.assertTrue(util.findCarte(joueur2.cartesEnMain,'m7'))
 
-         #je mets le pn sur le journalier
+
+
+    def test_m11(self):
+        #1 ère fois
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur2=p.joueurs[1]
+        joueur.ressources=util.rVide()
+        m11=AmenagementMineur(p,'m11',**deck['mineurs']['m11'])
+        self.assertFalse(joueur.jePeuxJouer(m11.cout))
+        joueur.ressources['b']=5
+        joueur.ressources['r']=1
+        self.assertTrue(joueur.jePeuxJouer(m11.cout))
+        ferme=joueur.courDeFerme        
+        ferme.etat["A1"].type="champ"   
+        ferme.etat["B2"].type="champ"   
+        ferme.etat["C2"].type="champ"   
+        self.assertFalse(joueur.jeRemplisLesConditions(m11.condition))
+        ferme.etat["A1"].type="vide" 
+        joueur.cartesEnMain.append(m11)
+        partieSimulee=simulerPartie(['a1','m11','a6'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{}))
+        print(ferme.etat['A1'].type)
+        self.assertTrue(ferme.etat['A1'].type=="maisonBois")
+        self.assertFalse(joueur.aiJeJoue('m11'))
+        self.assertTrue(util.findCarte(joueur2.cartesEnMain,'m11'))        
+        self.assertTrue(util.sontEgaux(joueur2.ressources,{'n':3,'b':3}))
         
-#         (choixPossibles,sujet,encore,message)=carte.jouer()
-#         self.assertTrue(len(choixPossibles)==0)
-#         joueur.ressources['a']=1
-#         (choixPossibles,sujet,encore,message)=carte.jouer()
-#         #je peux pas payer le feu
-#         self.assertTrue(len(choixPossibles)==0)
-         
+        #teste avec choix
+        #1 ère fois
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur2=p.joueurs[1]
+        joueur.ressources=util.rVide()
+        m11=AmenagementMineur(p,'m11',**deck['mineurs']['m11'])
+        self.assertFalse(joueur.jePeuxJouer(m11.cout))
+        joueur.ressources['b']=5
+        joueur.ressources['r']=1
+        self.assertTrue(joueur.jePeuxJouer(m11.cout))
+        ferme=joueur.courDeFerme        
+        ferme.etat["A1"].type="champ"   
+        ferme.etat["B2"].type="champ"   
+        ferme.etat["C2"].type="champ"   
+        self.assertFalse(joueur.jeRemplisLesConditions(m11.condition))
+        ferme.etat["A1"].type="vide" 
+        ferme.etat["B2"].type="vide" 
+        joueur.cartesEnMain.append(m11)
+        partieSimulee=simulerPartie(['a1','m11','B2','a6'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{}))
+        self.assertFalse(joueur.aiJeJoue('m11'))
+        self.assertTrue(util.findCarte(joueur2.cartesEnMain,'m11'))        
+        self.assertTrue(util.sontEgaux(joueur2.ressources,{'n':3,'b':3}))        
+        self.assertTrue(ferme.etat['A1'].type=="vide")
+        self.assertTrue(ferme.etat['B2'].type=="maisonBois")
+        self.assertTrue(util.findCarte(joueur2.cartesEnMain,'m11'))
+
+    def test_m12(self):
+        #1 ère fois
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur2=p.joueurs[1]
+        joueur.ressources=util.rVide()
+        m12=AmenagementMineur(p,'m12',**deck['mineurs']['m12'])
+        self.assertFalse(joueur.jePeuxJouer(m12.cout))
+        joueur.ressources['a']=4
+        joueur.ressources['r']=1
+        self.assertTrue(joueur.jePeuxJouer(m12.cout))
+        ferme=joueur.courDeFerme        
+        ferme.etat["A1"].type="champ"   
+        ferme.etat["B2"].type="champ"   
+        ferme.etat["C2"].type="champ"           
+        self.assertFalse(joueur.jeRemplisLesConditions(m12.condition))
+        ferme.etat["B1"].type="maisonArgile" 
+        ferme.etat["C1"].type="maisonArgile"
+        ferme.etat["A1"].type="vide" 
+        joueur.cartesEnMain.append(m12)
+        partieSimulee=simulerPartie(['a1','m12','a6'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{}))
+        self.assertTrue(ferme.etat['A1'].type=="maisonArgile")
+        self.assertFalse(joueur.aiJeJoue('m12'))
+        self.assertTrue(util.findCarte(joueur2.cartesEnMain,'m12'))        
+        self.assertTrue(util.sontEgaux(joueur2.ressources,{'n':3,'b':3}))
+        
+    def test_m13(self):
+        #1 ère fois
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur2=p.joueurs[1]
+        joueur.ressources=util.rVide()
+        m13=AmenagementMineur(p,'m13',**deck['mineurs']['m13'])
+        self.assertFalse(joueur.jePeuxJouer(m13.cout))
+        joueur.ressources['p']=3
+        joueur.ressources['r']=1
+        self.assertTrue(joueur.jePeuxJouer(m13.cout))
+        ferme=joueur.courDeFerme        
+        ferme.etat["A1"].type="champ"   
+        ferme.etat["B2"].type="champ"   
+        ferme.etat["C2"].type="champ"           
+        self.assertFalse(joueur.jeRemplisLesConditions(m13.condition))
+        ferme.etat["B1"].type="maisonPierre" 
+        ferme.etat["C1"].type="maisonPierre"
+        ferme.etat["A1"].type="vide" 
+        joueur.cartesEnMain.append(m13)
+        partieSimulee=simulerPartie(['a1','m13','a6'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{}))
+        self.assertTrue(ferme.etat['A1'].type=="maisonPierre")
+        self.assertFalse(joueur.aiJeJoue('m13'))
+        self.assertTrue(util.findCarte(joueur2.cartesEnMain,'m13'))        
+        self.assertTrue(util.sontEgaux(joueur2.ressources,{'n':3,'b':3}))
+  
+  
+    def test_m15(self):
+        #1 ère fois
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()
+        m15=AmenagementMineur(p,'m15',**deck['mineurs']['m15'])
+        self.assertFalse(joueur.jePeuxJouer(m15.cout))
+        joueur.ressources['b']=3
+        self.assertTrue(joueur.jePeuxJouer(m15.cout))    
+        self.assertFalse(joueur.jeRemplisLesConditions(m15.condition))
+        #A FINIR!!
+
+    def test_m23(self):
+        #1 ère fois
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur2=p.joueurs[1]
+        joueur.ressources['b']=1
+        m23=AmenagementMineur(p,'m23',**deck['mineurs']['m23'])
+        joueur.cartesEnMain.append(m23)
+        joueur.cartesDevantSoi['s24']=SavoirFaire(p,'s24',**deck['savoirFaires']['s24'])
+        joueur.cartesDevantSoi['s25']=SavoirFaire(p,'s25',**deck['savoirFaires']['s25'])
+        joueur.cartesDevantSoi['s26']=SavoirFaire(p,'s26',**deck['savoirFaires']['s26'])
+        partieSimulee=simulerPartie(['a1','m23','a6'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'b':1,'n':2}))
+        self.assertTrue(util.sontEgaux(joueur2.ressources,{'n':3,'b':2}))
+        
+    def test_m25(self):
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur.ressources['b']=2
+        m25=AmenagementMineur(p,'m25',**deck['mineurs']['m25'])
+        joueur.cartesEnMain.append(m25)
+        joueur.poserCarteDevantSoi(p.plateau['majeurs']['M0'],Majeur=True)
+        
+        partieSimulee=simulerPartie(['a1','m25','a5','b7','B3','r','a9','a7','a6'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'b':6,'f':4,'n':2,'a':1,'r':1}))
+        
+        
 class TestSavoirFaire(unittest.TestCase):
     def test_cout(self):
         p=Partie(logger)
@@ -785,6 +949,12 @@ class TestSavoirFaire(unittest.TestCase):
         partieSimulee=simulerPartie(listeRep,p)
         self.assertTrue(util.sontEgaux(p.joueurs[0].ressources,{'n':2}))
         self.assertTrue(util.sontEgaux(p.joueurs[1].ressources,{'n':2}))
+
+    def test_simple(self):
+        p=Partie(logger)
+        p.initialiser(2)  
+        listeRep=['a2']
+        partieSimulee=simulerPartie(listeRep,p)
 
 #     def test_s6(self): 
 #         p=Partie(logger)
@@ -800,6 +970,7 @@ class TestSavoirFaire(unittest.TestCase):
         p=Partie(logger)
         p.initialiser(1)  
         listeRep=['a4','s8','a5']
+        
         p.joueurs[0].cartesEnMain.append(SavoirFaire(p,'s8',**deck['savoirFaires']['s8']))
         
         partieSimulee=simulerPartie(listeRep,p)
@@ -843,7 +1014,6 @@ class TestSavoirFaire(unittest.TestCase):
         #on rend visible 1 legume artificiellement
         for num,case in p.plateau["cases"].items():
             if case.uid=='a17':
-                print('rrrrrrrrrrrrrrrrrrrrrrr',case.cout)
                 case.visible=True
         listeRep=['a4','s13','a17']
         joueur=p.joueurs[0]
@@ -874,8 +1044,8 @@ class TestSavoirFaire(unittest.TestCase):
         p.initialiser(1)  
         for num,case in p.plateau["cases"].items():
             if case.uid=='a7':
-                case.cout['b']=-1        
-                print('rrrr',case.cout)
+                case.coutBonus['b']=-1        
+                print('\n\n\nrrrr\n\n\n',case.cout,case.appro,case.coutBonus)
         listeRep=['a4','s15','a7']
         joueur=p.joueurs[0]
         joueur.cartesEnMain.append(SavoirFaire(p,'s15',**deck['savoirFaires']['s15']))

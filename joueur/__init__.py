@@ -7,11 +7,12 @@ from pygricola.carte import deck,Carte,loadCarte
 
 class Joueur(object):
 
-    def __init__(self, partie,nom,id,couleur):
+    def __init__(self, partie,nom,id,couleur,djangoUid):
         self.partie=partie
         self.nom=nom
         self.id=id
         self.couleur=couleur
+        self.djangoUid=djangoUid
         self.courDeFerme=CourDeFerme(partie)
         self.cartesEnMain=[]
         self.cartesDevantSoi={}
@@ -37,21 +38,40 @@ class Joueur(object):
             'v':0,
             'h':0,
             }
-
+    @property
+    def uid(self):
+        return self.nom
 
     def __str__(self):
            return 'nom: {}\n'.format(self.nom)
-       
+    
+#     def effet(self,choix,possibilites):
+#         self.partie.jouerUid(choix)
+    
     def poserCarteDevantSoi(self,carte,Majeur=False):
-        self.cartesDevantSoi[carte.uid]=carte       
-        carte.owner=self 
-        if Majeur:
-            del self.partie.plateau["majeurs"][carte.uid]
-            if not carte.devoile is None:
-                self.partie.plateau['majeurs'][carte.devoile].visible=True
+        
+        #si la carte est passable à gauche on la pose pas devant soit mais on la pass
+        
+        if not Majeur and carte.passableAGauche:
+            carte.owner=self 
+            carte.effetInstantane()
+            idGauche=(self.id+1)%self.partie.nombreJoueurs
+            self.partie.joueurs[idGauche].cartesEnMain.append(carte)
+            self.partie.log.info("{} passe à gauche".format(carte.uid))
         else:
-            self.cartesEnMain.remove(carte)
-        self.partie.log.info("{} pose {}".format(self.nom,carte.uid))
+            
+            self.cartesDevantSoi[carte.uid]=carte       
+            carte.owner=self 
+            if Majeur:
+                del self.partie.plateau["majeurs"][carte.uid]
+                if not carte.devoile is None:
+                    self.partie.plateau['majeurs'][carte.devoile].visible=True
+            else:
+                #permet de jouer des cartes directement genre pour les tests
+                if carte in self.cartesEnMain:
+                    self.cartesEnMain.remove(carte)
+            carte.effetInstantane()
+            self.partie.log.info("{} pose {}".format(self.nom,carte.uid))
        
     def possibilites(self):
             
@@ -103,7 +123,9 @@ class Joueur(object):
             
             
         casesJouables=casesJouables+actionsSpeJouables
-        self.partie.choixPossibles=casesJouables
+        self.partie.log.debug("fin de joueur possibilites")
+        self.partie.changerPointeurs(casesJouables,self,'p0',djangoJoueur=self.djangoUid)     
+        
     
     def pouvoirCuisson(self,ncereal):
         #combien j'ai de bouffe au max si je cuis ncereal
@@ -162,8 +184,7 @@ class Joueur(object):
      
     def jePeuxJouer(self,cout): #cout ou condition
         (result,message)=util.jouable(self.ressources,cout)
-        if message!="OK":
-            self.partie.messagesDetail.append(message )
+        self.partie.messagesDetail.append(message )
         return result
          
     def jeRemplisLesConditions(self,cond):
@@ -245,6 +266,7 @@ class Joueur(object):
         return count
         
     def mettreAJourLesRessources(self,rDictReadOnly,actionDunePersonne=False):
+        
         #on n affiche que si ca bouge
         sauv=self.ressources.copy()
         sortedKeys=list(self.ressources.keys())
@@ -271,23 +293,13 @@ class Joueur(object):
                         planter
                         
         if actionDunePersonne:
-            bonus=util.rVide()
-            #on appelle les hooks ressourcesActionPersonne
-            for cuid,c in self.cartesDevantSoi.items():
-                if hasattr(c, 'hook'):
-                    if c.hook !=():
-                        print(c.uid,'a un hook',c.hook[0])
-                        if c.hook[0]=='ressourcesActionPersonne':
-                            #si le hook est jouable
-                            if c.hookStatus==0:
-                                print("hook sur ressourcesActionPersonne",'avec',c.uid,c.hookStatus)
-                                #si le hook me concerne
-                                if(c.hook[1]=="s"):
-                                    bonus=util.ajouter(bonus,c.bonusRessources(rDictReadOnly))
-                
-                                    
-            self.partie.log.debug("ajout des bonus ressourcesActionPersonne",bonus)
-            self.ressources=util.ajouter(self.ressources,bonus)                       
+            self.partie.recolterLesHooksInterractifs('ressourcesActionPersonne',{'ressources':rDictReadOnly})
+            if self.aiJeJoue('m25'):
+                for k,v in rDictReadOnly.items():
+                    if k in ['b','a','p','r']:
+                        if v<-3:
+                            self.partie.log.info('special m25')
+                            self.ressources['f']+=1
                         
         self.partie.log.debug("\n cout: {}\n avant: {}\n après: {}".format(rDict,sauv,self.ressources))
 

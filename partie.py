@@ -12,11 +12,11 @@ import json
 
 
 example={
-    0:('Romain','blue'),
-    1:('Daniel','yellow'),
-    2:('Gauthier','red'),
-    3:('Damien','green'),
-    4:('Anouck','violet'),
+    0:('Romain','blue',1212),
+    1:('Daniel','yellow',1345),
+    2:('Gauthier','red',5434),
+    3:('Damien','green',3432),
+    4:('Anouck','violet',8990),
       }
 
 recoltes=[4,7,9,11,13,14]
@@ -65,6 +65,123 @@ def naissanceSansPieceLibre(partie):
 def renoPuisCloture(partie):
     pass
 
+# def avancer2(p,id):
+#     logger=p.log
+#     logger.debug('--------simulerPartie: {} {}'.format(id,p.sujet))
+#     p.sujet.effet(p.choixPossibles.index(id),p.choixPossibles)
+# 
+#     if p.choixPossibles==-2:
+#         comptStop=3
+#         while p.choixPossibles==-2 and comptStop>0:
+#             
+#             print('---------------SIMULERDBG1:',comptStop,p.sujet,p.sujetSauvegarde,id,p.choixPossibles)
+#             p.sujet.jouer()
+#             comptStop=comptStop-1       
+#                 
+#             print('---------------SIMULERDBG2',id,p.sujet,p.sujetSauvegarde)
+#     
+#     if p.choixPossibles==-1:
+#         suivant=p.joueurSuivant()
+#         p.initChoix()
+#         if suivant==-1:
+#             logger.debug('--------simulerPartie: fin du tour')
+#             p.finDuTour()
+#             
+           
+
+def avancer(p,id):
+    log=p.log
+    log.debug('avancer {}'.format(id)) 
+    #on ne traite les hook que si il n'y a pas d'autre choix à faire
+    if len(p.hooks)>0:
+        hookResolu,typeResolu=p.hooks.pop()
+        p.pointerSurHook(hookResolu)
+        log.debug('traitement du hook \n {}'.format(p.pointeur)) 
+        
+        
+        p.pointeur.sujet.effet(p.choixPossibles.index(id),p.choixPossibles)
+#         hookResolu,typeResolu=p.hooks.pop()
+        hookASuivre,typeASuivre=p.pointerDernierHook()
+        log.debug('hook traité: a suivre: {}'.format(hookASuivre)) 
+        if hookASuivre==False:
+            if typeResolu=='debutTour':
+                p.pointerSurPremier()
+                return p.pointeur
+            elif typeResolu=='finTour':
+                return p.recolteOuDemmarageTour()
+                ffff
+            elif typeResolu=='instant':
+                return p.suivantOuEncore()
+            else:
+                return p.suivantOuEncore()
+        else:
+            return hookASuivre
+    
+    #quand on arrive ici on a un nouvelle iterraction id
+    if type(p.choixPossibles)==list:
+        if len(p.choixPossibles)<2:
+            log.debug('avancer: TODO!!!!')
+        log.debug('jouerUid')    
+        p.jouerUid(id)
+    elif(p.choixPossibles=='inputtext'):
+        log.debug('inputtext')
+        p.sujet.effet(id,[])
+    #on doit traiter un hook interractif    
+#     elif(p.choixPossibles=='hook'):
+#         hook=p.traiterUnHook()
+#         p.changerPointeur(hook.possibilities,hook.sujet,doitRepondre=hook.joueur)
+#         p.sujet.effet(p.choixPossibles.index(id),p.choixPossibles)
+    else:
+        print(p.choixPossibles)
+        ee
+    #a cet endroit là s'il y a des hook interractifs, il sont dans la partie
+    log.debug('fini de jouer le coup, possibilites: {}'.format(p.choixPossibles))
+    hook,t=p.pointerDernierHook()
+    if hook==False:        
+        log.debug('pas de hooks')
+        #le joueur joue encore?
+        #si non
+        if p.choixPossibles==-1:
+            p.suivantOuEncore()
+            return p.pointeur
+
+        else:
+            log.debug('{} doit refaire un choix'.format(p.pointeur.djangoJoueur))
+            return p.pointeur
+    else:
+        log.debug('hook prêt')
+        return hook
+
+        
+
+
+class Pointeur(object):
+    def __init__(self,sujet,possibilites,djangoJoueur,phrase="p0",alert=""):
+        self.sujet=sujet
+        self.possibilites=possibilites
+        self.djangoJoueur=djangoJoueur
+        self.phrase=phrase
+        self.alert=alert
+        self.jouerEgalEffet=False
+    
+    def __str__(self):
+        stri="sujet:{}\njoueur:{}\nphrase {}\npossibilites:{}".format(self.sujet,self.djangoJoueur,self.phrase,self.possibilites)
+        return stri    
+    def save(self):
+        dico={'sujet':self.sujet.uid if hasattr(self.sujet, "uid")  else self.sujet,
+                'djangoJoueur':self.djangoJoueur,
+                'phrase':self.phrase,
+                'alert':self.alert}
+        uidList=[]
+        for pos in self.possibilites:
+            if hasattr(pos, 'uid'):
+                uidList.append(pos.uid)
+            else:
+                uidList.append(pos)
+        dico['possibilites']=uidList
+        return dico
+
+
 class Partie(object):
     
     def __init__(self,logger):
@@ -80,25 +197,136 @@ class Partie(object):
         self.messagesDetail=[] #pour debug
         self.log=logger
         
-        self.choixPossibles=[] #on garde ça en memoire
-        self.phraseChoixPossibles="" #on garde ça en memoire
-        self.sujet="" #on garde ça en memoire
-        self.sujetSauvegarde="" #on garde ça en memoire
-        self.uidSave="" #on garde ça en melogging.DEBUGumoire pour les hook        
-        self.doitRepondre=self
+#         self.choixPossibles=-1 #on garde ça en memoire
+#         self.phraseChoixPossibles="" #on garde ça en memoire
+#         self.sujet="" #on garde ça en memoire
+#         self.sujetSauvegarde="" #on garde ça en memoire
+#         self.uidSave="" #on garde ça en melogging.DEBUGumoire pour les hook        
+#         self.doitRepondre=self
+        self.pointeur=Pointeur("","","","","")
+        self.alert=""
+        self.hooks=[]
+        self.listeCoupsJoues=[]
 
+
+    @property
+    def choixPossibles(self):
+        return self.pointeur.possibilites
+    @property
+    def sujet(self):
+        return self.pointeur.sujet
     #choixPossible ==-1 on va à la suite
     #choixPossible ==-2 on boucle sur les hooks
     #choixPossible ==liste non vide : on a un choix à faire
     #sujet est la methode qui doit appeler effet ensuite
     #doitRepondre est le joueur qui doit répondre à la question
-    def changerPointeurs(self,choixPossibles,sujet=self.sujetSauvegarde,phrase="p0",doitRepondre=self):
-        self.log.debug('changement de pointeurs \n{} {} {} {}'.format(sujet,choixPossibles,doitRepondre,phrase))
-        self.sujet=sujet
-        self.choixPossibles=choixPossibles
-        self.phrase=phrase
-        self.doitRepondre=doitRepondre
+    def changerPointeurs(self,possibilites,sujet,phrase="p0",djangoJoueur=None,alert=None,Fake=False,jouerEgalEffet=False):
         
+        if type(possibilites)==int or type(possibilites)==str:
+            self.pointeur.possibilites=possibilites
+        else:
+            self.pointeur.possibilites=possibilites.copy()
+        self.pointeur.jouerEgalEffet=jouerEgalEffet
+        #si c'est Fake on ne change pas les autres
+        if not Fake:
+            self.pointeur.djangoJoueur=djangoJoueur
+            #si on specifie un sujet, on le change
+            if sujet:
+                self.pointeur.sujet=sujet
+
+            self.pointeur.phrase=phrase
+            self.pointeur.alert=alert
+            self.log.debug("changement de pointeurs {}".format(self.pointeur))
+    
+    def suivantOuEncore(self):
+        #c'est finit on passe au suivant
+        suivant=self.pointerSurJoueurSuivant()
+        if suivant==-1:
+            self.log.debug('--------simulerPartie: fin du tour')
+            self.finDuTour()
+            self.hooks=self.recolterLesHooksInterractifs('finTour')            
+            hook,t=self.pointerDernierHook()
+            if hook==False:
+                self.recolteOuDemmarageTour()
+                return self.pointeur
+            else:           
+                return hook
+        else:
+            return self.pointeur     
+        
+               
+    def recolteOuDemmarageTour(self):
+        self.log.debug("recolteOuDemmarageTour !!!!!!!!!!!!")
+        if False:
+            recolte
+        else:
+            self.demarrageTour()
+            self.hooks=self.recolterLesHooksInterractifs('debutTour')
+            hook,t=self.pointerDernierHook()
+            if hook==False:
+                self.pointerSurPremier()
+                return self.pointeur
+            else:
+                return hook
+    
+    def pointerSurHook(self,hook):
+        self.pointeur=hook
+
+
+    def recolterLesHooksInterractifs(self,typeHook,opts={}):
+        hooks=[]
+        self.log.debug("parcourirLesHooks !!!!!!!!!!!!")
+        for jid,j in self.joueurs.items():
+            
+            for cuid,c in j.cartesDevantSoi.items():
+                if hasattr(c, 'hook'):
+                    if c.hook != ():
+                        self.log.debug("{} {} {}".format(c.uid,'a un hook',c.hook[0]))
+                        if c.hook[0]==typeHook:
+                            #si le hook est jouable
+                            if c.hookStatus==0:
+                                #si le hook me concerne
+                                if(c.hook[1]=="s"):
+                                    #si il y a plusieurs possibilites
+                                    if hasattr(c._possibilites, '__call__'):
+                                        c.possibilites(Fake=False)
+                                        #partie.choixPossibles
+                                        #soit une liste soit un int
+                                        if self.choixPossibles==-1:
+                                            self.log.debug("parcourirLesHooks fait une action automatique")
+                                            c.effet(0,self.choixPossibles)
+                                        elif type(self.choixPossibles)==list:
+                                            if len(self.choixPossibles)>1:
+                                                self.log.debug("parcourirLesHooks demande un choix utilisateur {} {}".format(c.uid,c.hookStatus))
+                                                hooks.append((Pointeur(c,self.choixPossibles,c.owner.djangoUid),typeHook))
+                                            else:
+                                            #sinon
+                                                self.log.debug("parcourirLesHooks fait une action automatique car un seul choix")
+                                                c.effet(0,self.choixPossibles)
+                                        else: 
+                                            UNKNOWN
+                                    else:
+                                        self.log.debug("hook recherche ses possibilites")
+                                        if len(c._possibilites)==0:
+                                            if 'bonusRessources' in c.option.keys() or 'bonusRessourcesStrict' in c.option.keys():
+                                                c.bonusRessources(opts['ressources'])
+                                            else:
+                                                c.effet(0,c._possibilites)
+                                        elif len(c._possibilites)==1:
+                                            c.effet(0,c._possibilites)
+                                        else:
+                                            self.log.debug("parcourirLesHooks demande un choix utilisateur {} {}".format(c.uid,c.hookStatus))
+                                            hooks.append((Pointeur(c,c._possibilites,c.owner.djangoUid),typeHook))
+                                elif (c.hook[1]=="o"):    
+                                    if self.joueurQuiJoue()==c.owner:
+                                        pass
+                                    else:
+                                        c.effet(0,c._possibilites)
+                                        
+                            else:
+                                self.log.debug("parcourirLesHooks: hook déjà consomé",c.uid,c.hookStatus) 
+         
+        return  hooks        
 
     #je separe la fonction d'init... a cause de save/load
     #on a besoin de creer un objet partie sans tout réinitialiser
@@ -120,8 +348,8 @@ class Partie(object):
         bonusNourriture=[0,1,1,1,2]
         for j in range(self.nombreJoueurs):
 
-            (n,c)=example[j]
-            self.joueurs[j]=Joueur(partie=self,id=j,nom=n,couleur=c)
+            (n,c,duid)=example[j]
+            self.joueurs[j]=Joueur(partie=self,id=j,nom=n,couleur=c,djangoUid=duid)
             self.joueurs[j].ressources['n']+=bonusNourriture[j]
 
         
@@ -141,24 +369,24 @@ class Partie(object):
         elif nombre ==3:
             self.plateau["cases"][1]=CarteAction(self,"a40",visible=False)
             self.plateau["cases"][2]=CarteAction(self,"a40",visible=False)
-            self.plateau["cases"][3]=CaseAppro(self,"a24",{'a':-1},visible=True)
-            self.plateau["cases"][4]=CaseAppro(self,"a25",{'b':-2},visible=True)
+            self.plateau["cases"][3]=CaseAppro(self,"a24",appro={'a':-1},cout={},visible=True)
+            self.plateau["cases"][4]=CaseAppro(self,"a25",appro={'b':-2},cout={},visible=True)
             self.plateau["cases"][5]=CarteAction(self,"a26",possibilites=fct.possibiliteRoseauPnOuPierrePn,effet=fct.roseauPnOuPierrePn,visible=True)
             self.plateau["cases"][6]=CarteAction(self,"a27",cout={'n':2},visible=True)       
         elif nombre==4:
-            self.plateau["cases"][1]=CaseAppro(self,"a28",{'n':-1},visible=True)
+            self.plateau["cases"][1]=CaseAppro(self,"a28",appro={'n':-1},cout={},visible=True)
             self.plateau["cases"][2]=CarteAction(self,"a29",cout=fct.coutSavoirFaire2,possibilites=fct.possibilitesSavoirFaire,effet=fct.choixSavoirFaire,visible=True)
-            self.plateau["cases"][3]=CaseAppro(self,"a30",{'a':-2},visible=True)
-            self.plateau["cases"][4]=CaseAppro(self,"a31",{'b':-2},visible=True)
-            self.plateau["cases"][5]=CaseAppro(self,"a32",{'b':-1},visible=True)
+            self.plateau["cases"][3]=CaseAppro(self,"a30",appro={'a':-2},cout={},visible=True)
+            self.plateau["cases"][4]=CaseAppro(self,"a31",appro={'b':-2},cout={},visible=True)
+            self.plateau["cases"][5]=CaseAppro(self,"a32",appro={'b':-1},cout={},visible=True)
             self.plateau["cases"][6]=CarteAction(self,"a33",cout={'n':-1,'p':-1,'r':-1},visible=True)
         elif nombre ==5:
-            self.plateau["cases"][1]=CaseAppro(self,"a34",{'n':-1},possibilites=fct.possibiliteConstructionOuSpectacle,effet=fct.constructionOuSpectacle,visible=True)
+            self.plateau["cases"][1]=CaseAppro(self,"a34",appro={'n':-1},cout={},possibilites=fct.possibiliteConstructionOuSpectacle,effet=fct.constructionOuSpectacle,visible=True)
             self.plateau["cases"][2]=CarteAction(self,"a35",condition=fct.jePeuxJouerSavoirFaireOuNaissance,possibilites=fct.possibiliteSavoiFaireOuNaissance,effet=fct.savoiFaireOuNaissance,visible=True)
-            self.plateau["cases"][3]=CaseAppro(self,"a36",{'a':-3},visible=True)
-            self.plateau["cases"][4]=CaseAppro(self,"a37",{'b':-4},visible=True)
+            self.plateau["cases"][3]=CaseAppro(self,"a36",appro={'a':-3},cout={},visible=True)
+            self.plateau["cases"][4]=CaseAppro(self,"a37",appro={'b':-4},cout={},visible=True)
             self.plateau["cases"][5]=CarteAction(self,"a38",visible=True,possibilites=fct.possibiliteBetail,effet=fct.betail)
-            self.plateau["cases"][6]=CaseAppro(self,"a39",{'r':-1},cout={'b':-1,'p':-1},visible=True)        #il y a 30 case
+            self.plateau["cases"][6]=CaseAppro(self,"a39",appro={'r':-1},cout={'b':-1,'p':-1},visible=True)        #il y a 30 case
         #6 1eres sont celles qui dependent du nombre de joueur
         #
 
@@ -168,10 +396,10 @@ class Partie(object):
         self.plateau["cases"][10]=CarteAction(self,"a3",visible=True,effet=fct.labourage,possibilites=fct.possibilitesLabourage)
         self.plateau["cases"][11]=CarteAction(self,"a4",cout=fct.coutSavoirFaire1,possibilites=fct.possibilitesSavoirFaire,effet=fct.choixSavoirFaire,visible=True)
         self.plateau["cases"][12]=CarteAction(self,"a5",cout={'n':-2},visible=True)
-        self.plateau["cases"][13]=CaseAppro(self,"a6",{'b':-3},visible=True)
-        self.plateau["cases"][14]=CaseAppro(self,"a7",{'a':-1},visible=True)
-        self.plateau["cases"][15]=CaseAppro(self,"a8",{'r':-1},visible=True)
-        self.plateau["cases"][16]=CaseAppro(self,"a9",{'n':-1},visible=True)
+        self.plateau["cases"][13]=CaseAppro(self,"a6",appro={'b':-3},cout={},visible=True)
+        self.plateau["cases"][14]=CaseAppro(self,"a7",appro={'a':-1},cout={},visible=True)
+        self.plateau["cases"][15]=CaseAppro(self,"a8",appro={'r':-1},cout={},visible=True)
+        self.plateau["cases"][16]=CaseAppro(self,"a9",appro={'n':-1},cout={},visible=True)
         self.plateau["cases"][17]=self.actionSurTours[1]
         self.plateau["cases"][18]=self.actionSurTours[2]
         self.plateau["cases"][19]=self.actionSurTours[3]
@@ -194,14 +422,25 @@ class Partie(object):
                     
     #jouer par rapport à un uid et pas un indice
     def jouerUid(self,uid):
+        self.listeCoupsJoues.append(uid)
+        rienFait=True
         for c in self.choixPossibles:
-            if c.uid==uid:
-                self.log.debug('jouerUid : {}'.format(uid))
-                return c.jouer()
-        dbg=""
-        for c in   self.choixPossibles:
-            dbg+=c.uid  +', '
-        self.log.critical('jouerUid : {}'.format(dbg))
+            if hasattr(c, 'uid'):
+                if c.uid==uid:
+                    c.jouer()
+                    rienFait=False
+            else:
+                if c==uid:
+                    self.sujet.effet(self.choixPossibles.index(uid),self.choixPossibles)
+                    rienFait=False
+        if rienFait:
+            self.log.critical("jouerUid n'a rien fait")
+            self.log.critical(self.choixPossibles)
+            planter
+#         dbg=""
+#         for c in   self.choixPossibles:
+#             dbg+=c.uid  +', '
+#         self.log.critical('jouerUid : {}'.format(dbg))
 
          
     def genererCourDeferme(self):
@@ -257,44 +496,7 @@ class Partie(object):
 
         self.log.info("début du tour : {}".format(self.plateau['tour']))
         self.messagesPrincipaux.append("début du tour : {}".format(self.plateau['tour']))
-        #on appelle les hook 
-        print("AAAAAAAA",self.choixPossibles,self.sujet)
-        
-        (choixPossibles,sujet,encore,message)=util.parcourirLesHooks(self,'debutTour',self.log)
-        print("BBB",choixPossibles,sujet,encore,message)
-        if choixPossibles != -1:
-            #on doit demander une action a un utilisateur
-            #c'est sujet.owner
-            return (choixPossibles,sujet,encore,message)
-        
-        print("CCC",choixPossibles,sujet,encore,message)
-#         for jid,j in self.joueurs.items():
-#             for cuid,c in j.cartesDevantSoi.items():
-#                 if hasattr(c, 'hook'):
-#                     if c.hook != ():
-#                         logger.debug(c.uid,'a un hook',c.hook[0])
-#                         if c.hook[0]=="debutTour":
-#                             #si le hook est jouable
-#                             if c.hookStatus==0:
-#                                 logger.debug(c.uid,'a un hook',c.hook[0])
-#                                 print("hook sur debutTour avec",c.uid,c.hookStatus)
-#                                 #si le hook me concerne
-#                                 if(c.hook[1]=="s"):
-#                                     #si il y a plusieurs possibilites
-#                                     choixPossibles=c.possibilites()
-#                                     if len(choixPossibles)>1:
-#                                         self.choixPossibles=choixPossibles
-#                                         self.sujet=self
-#                                         print('IM HERE',choixPossibles)
-#                                         return (choixPossibles,c,True,"hook")
-#                                     else:
-#                                     #sinon
-#                                         c.effet(0,choixPossibles)
-#                             else:
-#                                 print("JOUER,HOOK UTILISE")              
-        
-        #on reappro les cases
-        
+  
         self.plateau['cases'][self._offset+self.plateau['tour']].visible=True
         
         
@@ -305,20 +507,38 @@ class Partie(object):
         print(self.printCasesVisibles())     
         self.quiJoue=self.premierJoueur       
         
-        return (-1,self.joueurQuiJoue(),True,"fin demarage tour") 
+#         hooksFinis=util.parcourirLesHooks(self,'debutTour',self.log)
+#         return hooksFinis
         
-    def initChoix(self):
-        sujet=self.joueurQuiJoue()
-        self.sujet=sujet
-        self.choixPossibles=[]
-        self.phraseChoixPossibles="QUE VOULEZ VOUS FAIRE?"
-        sujet.possibilites()
+    def hooksDemarrageTour(self):
+        hooks=util.recolterLesHooksInterractifs(self,'debutTour',self.log)
+        return hooks
+    
+    def pointerDernierHook(self):
+        if len(self.hooks)>0:
+            (hook,type)=self.hooks[-1]
+            self.pointerSurHook(hook)
+            self.log.debug('on pointe sur le hook {} de type {}'.format(hook,type))
+            return hook,type  
+        else:
+            return False,False #on a fini        
+
+    def ajouterHook(self,sujet,possibilites,owner,type):
+        self.log.debug('ajouterHook')
+        self.hooks.append((Pointeur(sujet,possibilites,owner),type))
+        
+    
+
+        
+#     def initChoix(self):
+#         self.changerPointeurs(-1,self.joueurQuiJoue(),"p0",
+#             djangoJoueur=self.joueurQuiJoue())
   
         
     def joueurQuiJoue(self):    
         return self.joueurs[self.quiJoue]
         
-    def joueurSuivant(self):
+    def pointerSurJoueurSuivant(self):
   
         if (len(self.quiAFini)>self.nombreJoueurs-1):
             return -1 #le tour est fini
@@ -327,9 +547,14 @@ class Partie(object):
             if(self.joueurQuiJoue().jaiFini()):
                 if self.quiJoue not in self.quiAFini:
                     self.quiAFini.append(self.quiJoue)
-                return self.joueurSuivant()
+                return self.pointerSurJoueurSuivant()
             else:
-                return self.quiJoue
+                joueurSuivant=self.joueurQuiJoue()
+                joueurSuivant.possibilites()
+#             djangoJoueur=self.joueurQuiJoue())
+    def pointerSurPremier(self):    
+        joueur=self.joueurs[self.premierJoueur]
+        joueur.possibilites()
             
             
     def affichageJoueur(self):
@@ -392,19 +617,21 @@ class Partie(object):
                     self.joueurs[id].courDeFerme.mettrePersonnage(p,p.localisationInit)
                     self.joueurs[id].personnages.append(p)
                 #on réinit les hooks qui sont valables une fois par tour
+                
+                
+                self.log.debug('rechargement des hooks')
                 for uid,c in self.joueurs[id].cartesDevantSoi.items():
                     if hasattr(c, 'hook'):
                         if c.hook != ():
                             case,type,freq=c.hook
                             if freq=='t':
-                                print('#######recharge de ',c.uid)
+                                self.log.debug('rechargement de {}'.format(c.uid))
                                 c.hookStatus=0
             #on remets les actions spéciales
             for CAS in self.plateau["actionsSpeciales"]:
                 CAS.changerEtat(-2)
             self.quiAFini.clear()
             self.plateau['tour']+=1
-            self.initChoix()
         return self.plateau['tour']
 
     
@@ -530,8 +757,10 @@ class Partie(object):
                 dico['etat']={'texte':'','color':"#fff"}
             elif CAS.etat>-1:
                 dico['etat']={'texte':'p12','color':self.joueurs[CAS.etat].couleur}
-            else:
+            elif CAS.etat==-1:
                 dico['etat']={'texte':'p13','color':"#999"}
+            else:
+                imposss
             cases.append(dico.copy())            
         return cases
     
@@ -550,11 +779,9 @@ class Partie(object):
         dico["nombreJoueurs"]=self.nombreJoueurs
         dico["premierJoueur"]=self.premierJoueur
         dico["quiAFini"]=self.quiAFini
-        dico["listeReponse"]=self.listeReponse    
         dico["messagesPrincipaux"]=self.messagesPrincipaux    
-        dico["choixPossibles"]=self.choixPossibles    
-        dico["phraseChoixPossibles"]    =self.phraseChoixPossibles    
-        dico["sujet"] =self.sujet    
+        dico["pointeur"]=self.pointeur.save()  
+        dico["listeCoupsJoues"]=self.listeCoupsJoues
         return json.dumps(dico)
 
     

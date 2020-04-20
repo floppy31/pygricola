@@ -6,33 +6,42 @@ def findCarte(carteList,uid):
             return c
     
 
+         
 
-def parcourirLesHooks(partie,typeHook,logger):
-        for jid,j in partie.joueurs.items():
-            for cuid,c in j.cartesDevantSoi.items():
-                if hasattr(c, 'hook'):
-                    if c.hook != ():
-                        logger.debug("{} {} {}".format(c.uid,'a un hook',c.hook[0]))
-                        if c.hook[0]==typeHook:
-                            #si le hook est jouable
-                            if c.hookStatus==0:
-                                logger.debug("parcourirLesHooks sur debutTour avec {} {}".format(c.uid,c.hookStatus))
-                                #si le hook me concerne
-                                if(c.hook[1]=="s"):
-                                    #si il y a plusieurs possibilites
-                                    choixPossibles=c.possibilites()
-                                    if len(choixPossibles)>1:
-                                        partie.choixPossibles=choixPossibles
-                                        partie.sujet=c
-                                        logger.debug("parcourirLesHooks demande un choix utilisateur {} {}".format(c.uid,c.hookStatus))
-                                        return (choixPossibles,c,True,"hook")
-                                    else:
-                                    #sinon
-                                        logger.debug("parcourirLesHooks fait une action automatique")
-                                        return c.effet(0,choixPossibles)
-                            else:
-                                logger.debug("parcourirLesHooks: hook déjà consomé",c.uid,c.hookStatus) 
-        return (-1,partie,False,"fin hook") 
+# def parcourirLesHooks(partie,typeHook,logger):
+#     hookFinis=False
+#     for jid,j in partie.joueurs.items():
+#         for cuid,c in j.cartesDevantSoi.items():
+#             if hasattr(c, 'hook'):
+#                 if c.hook != ():
+# #                     logger.debug("{} {} {}".format(c.uid,'a un hook',c.hook[0]))
+#                     if c.hook[0]==typeHook:
+#                         #si le hook est jouable
+#                         if c.hookStatus==0:
+#                             logger.debug("parcourirLesHooks sur {} avec {} {}".format(typeHook,c.uid,c.hookStatus))
+#                             #si le hook me concerne
+#                             if(c.hook[1]=="s"):
+#                                 #si il y a plusieurs possibilites
+#                                 c.possibilites(Fake=False)
+#                                 #partie.choixPossibles
+#                                 #soit une liste soit un int
+#                                 if partie.choixPossibles==-1:
+#                                     logger.debug("parcourirLesHooks fait une action automatique")
+#                                     c.effet(0,partie.choixPossibles)
+#                                 elif type(partie.choixPossibles)==list:
+#                                     if len(partie.choixPossibles)>1:
+#                                         logger.debug("parcourirLesHooks demande un choix utilisateur {} {}\n possibilites {}".format(c.uid,c.hookStatus,partie.choixPossibles))
+#                                         return hookFinis
+#                                     else:
+#                                     #sinon
+#                                         logger.debug("parcourirLesHooks fait une action automatique car un seul choix")
+#                                         c.effet(0,partie.choixPossibles)
+#                                 else: 
+#                                     UNKNOWN
+#                         else:
+#                             logger.debug("parcourirLesHooks: hook déjà consomé",c.uid,c.hookStatus) 
+#     hookFinis=True 
+#     return  hookFinis              
 
 def rVide():
     return {'b':0,'a':0,'p':0,'r':0,'n':0,'f':0,'c':0,'l':0,'m':0,'s':0,'v':0,'h':0}.copy()
@@ -83,7 +92,11 @@ def tradUidOrSelf(o):
     else:
         return o
         
-
+def uidOrSelf(o):
+    if hasattr(o, 'uid'):
+        return o.uid
+    else:
+        return o
 
 def customInput(partie,msg):
     global idx
@@ -172,17 +185,33 @@ long2Short={
     'cheval':'h',
     }
 
-
+#si b est une liste on renvoie une liste
 def ajouter(a,b):
-    somme={}
-    for k in list(set(a.keys()).union(set(b.keys()))):
-        if k not in a.keys():
-            somme[k]=b[k]
-        elif k not in b.keys():
-            somme[k]=a[k]
-        else:
-            somme[k]=a[k]+b[k]
-    return somme.copy()
+    
+    
+    if type(b)==list:
+        somme=[]
+        for c in b:
+            dicoSomme={}
+            for k in list(set(a.keys()).union(set(c.keys()))):
+                if k not in a.keys():
+                    dicoSomme[k]=c[k]
+                elif k not in c.keys():
+                    dicoSomme[k]=a[k]
+                else:
+                    dicoSomme[k]=a[k]+c[k]
+            somme.append(dicoSomme)
+        return somme.copy()
+    else:
+        somme={}
+        for k in list(set(a.keys()).union(set(b.keys()))):
+            if k not in a.keys():
+                somme[k]=b[k]
+            elif k not in b.keys():
+                somme[k]=a[k]
+            else:
+                somme[k]=a[k]+b[k]
+        return somme.copy()
 
 def inverser(a):
     reponse={}
@@ -218,26 +247,48 @@ def jouable(constA,constB):
     #true if a>=b
     #valable pour cout et condition
     a=ajouter(constA,rVide())
-    b=ajouter(constB,rVide())
-    res=True
-    raison="OK"
-    ressourcesProbleme=[]
-    for k in a.keys():
-        #print('dbg',k)
-        
-        if (b[k]>0):
-            if a[k]<b[k]:
-                res=False
-                raison=["p15",k,a[k],b[k]]
-                ressourcesProbleme.append(k)  
-    #s'il n'y a qu'un probleme de combustible
-    if ressourcesProbleme==['f']:
-        diffBois=b['f']-a['f']
-        if not (a['b']-diffBois)<b['b']:
-            raison="utilisation du bois"
-            res=True
-                        
-    return res,raison
+    
+    if type(constB)==dict:
+        bList=[ajouter(constB,rVide())]
+        resultatList=[True]
+        raisonList=['OK']
+    elif type(constB)==list:
+        bList=[]
+        resultatList=[]
+        raisonList=[]
+        for bitem in constB:
+            print(bitem)
+            bList.append(ajouter(bitem,rVide()))
+            resultatList.append(True) 
+            raisonList.append('OK')       
+    else:
+        error
+    
+    for b in bList:
+        res=True
+        raison="OK"
+        index=bList.index(b)
+        ressourcesProbleme=[]
+        for k in a.keys():
+            #print('dbg',k)
+            
+            if (b[k]>0):
+                if a[k]<b[k]:
+                    res=False
+                    raison=["p15",k,a[k],b[k]]
+                    ressourcesProbleme.append(k)  
+        #s'il n'y a qu'un probleme de combustible
+        if ressourcesProbleme==['f']:
+            diffBois=b['f']-a['f']
+            if not (a['b']-diffBois)<b['b']:
+                raison="utilisation du bois"
+                res=True
+        resultatList[index]=res
+        raisonList[index]=raison
+    if True in set(resultatList):
+        return True,raisonList
+    else:
+        return False,raisonList                   
 
 def prettyGain(a):
     stri=""

@@ -19,12 +19,32 @@ def avoirMoinsDeXCartesEnMain(selfCarte):
     mesCartes=len(selfCarte.parte.joueurQuiJoue().cartesEnMain)
     print("avoirMoinsDeXCartesEnMain",mesCartes,X)
     return mesCartes<=X
+def avoirXPieces(partie,carte):
+    X=carte.option['conditionPiece']
+    nbre=partie.joueurQuiJoue().courDeFerme.compter("maison")
+    print("avoirXPieces",nbre,X)
+    return nbre>=X
 
 def avoirXSavoirFaire(partie,carte):
     X=carte.option['conditionSavoirFaire']
     mesSavoirsfaire=partie.joueurQuiJoue().combienJaiJoueDe('s')
     print("avoirXSavoirFaire",mesSavoirsfaire,X)
     return mesSavoirsfaire>=X
+
+def avoirXMajeurs(partie,carte):
+    X=carte.option['conditionMajeurs']
+    mesMajeurs=partie.joueurQuiJoue().combienJaiJoueDe('M')
+    print("avoirXMajeurs",mesMajeurs,X)
+    return mesMajeurs>=X
+
+def boisSurLaBerge(partie,choix,possibilites,carte):
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme
+    nombre=ferme.compter("foret")
+    if nombre>0:
+        if nombre>2:
+            nombre=3
+        joueur.mettreAJourLesRessources({"b":-nombre})    
 
 def conditionEpicier(partie,carte):
     
@@ -43,6 +63,7 @@ def depiler(partie,choix,possibilites,carte):
             cout=carte.option['pile'].pop()
             print("depiler, il reste:",carte.option['pile'])
             carte.owner.mettreAJourLesRessources(cout)
+
     #soit on prend un certain type chaque tour
     elif 'pileTour' in carte.option.keys():
         if len(carte.option['pileTour'].keys())>0:
@@ -51,13 +72,22 @@ def depiler(partie,choix,possibilites,carte):
                 del carte.option['pileTour'][partie.plateau['tour']]
                 print("depiler, il reste:",len(carte.option['pileTour'].keys()),'tours')
                 carte.owner.mettreAJourLesRessources(cout)
-    partie.changerPointeurs(-2)            
-#     return (-2,carte,True,carte.uid) 
+     
+    partie.changerPointeurs(-1,None)            
 
 def enleverPossibilitesOptions(partie,choix,possibilites,carte):
     res=selfCarte['possibilitesOptions'].pop(choix)
     carte.owner.mettreAJourLesRessources(res)
-    return (-1,carte,False,str(res))    
+    partie.changerPointeurs(-1,None)   
+#     return (-1,carte,False,str(res))    
+
+
+def blocTourbe(partie,choix,possibilites,carte):
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme
+    nombre=ferme.compter("tourbe")
+    if nombre>0:
+        joueur.mettreAJourLesRessources({"f":-nombre})
 
 def gardeChampetre(partie,choix,possibilites,carte):
     caseALabourer=possibilites[choix]
@@ -65,7 +95,7 @@ def gardeChampetre(partie,choix,possibilites,carte):
     ferme.etat[caseALabourer].type="champ"
     partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,"p22",caseALabourer])
     carte.hookStatus=-1    
-    return (-2,carte,True,"s23") #on ne peux plus en labourer
+    partie.changerPointeurs(-1,None)   
 
 def bonimenteur(partie,choix,possibilites,carte):
     
@@ -81,9 +111,9 @@ def bonimenteur(partie,choix,possibilites,carte):
     else:
         partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,"p26","s28"])
     carte.hookStatus=-1    
-    return (-2,carte,True,"s28") #on ne peux plus en labourer
+    partie.changerPointeurs(-1,None)   
 
-def possibilitesFake(partie,selfCarte,Fake=False):
+def possibilitesFake(partie,selfCarte):
     print("possibilitesFake")
     #genre pour l'epicier
     return ['fake']        
@@ -96,15 +126,72 @@ def possibilitesRessourceSurAction(partie,carte,Fake=False):
         for i in range(1,31):
             if carte.partie.plateau['cases'][i].visible:
                 possibilites.append(carte.partie.plateau['cases'][i].uid)
-        if (not Fake):                    
-            partie.phraseChoixPossibles=[carte.uid,'p18']
-            partie.sujet=carte
-    return possibilites          
+    partie.changerPointeurs(possibilites,carte,[carte.uid,'p18'],carte.owner,Fake=Fake)               
+#             partie.phraseChoixPossibles=[carte.uid,'p18']
+#             partie.sujet=carte
 
 def choixAchat(selfCarte):
     pass
 
-def choixNaissanceOUPremier(selfCarte):
+def conditionAnnexe(partie,carte):
+    poss=possibilitesAnnexe(partie,carte)
+    if len(poss)==0:
+        return False   
+    else:
+        typeMaison=partie.joueurQuiJoue().courDeFerme.enQuoiEstLaMaison()
+        typeCarte=carte.option['annexe']
+        return typeCarte==typeMaison
+
+
+def possibilitesAnnexe(partie,carte):
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme
+    possibilites=[]
+    for c in ferme.tousLes('maison'):
+        voiz=ferme.voisin(c)
+        for direction in voiz.keys():
+            if voiz[direction]: #si not None
+                if ferme.etat[voiz[direction]].type=='vide':
+                    possibilites.append(voiz[direction])
+    #on ne change pas le pointeur ici
+    return possibilites                
+
+
+def coutArbrePourCitoyens(partie):
+    joueur=partie.joueurQuiJoue()
+    if joueur.aiJeJoue('M18') or joueur.aiJeJoue('m16'):
+        return {}
+    else:
+        return {'b':3} 
+
+def finalArbrePourCitoyens(partie):
+    NOTIMPL
+
+
+def ajoutRessourceChampsEnsemmances(partie,choix,possibilites,carte):
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme
+    
+    TODO    
+
+def constructionAnnexe(partie,choix,possibilites,carte):
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme
+    typeMaison=ferme.enQuoiEstLaMaison(False)
+    case=possibilites[choix]
+    ferme.etat[case].type=typeMaison  
+    partie.messagesPrincipaux.append("{} construit 1 pièce avec l'annexe en {}".format(partie.joueurQuiJoue().nom,case))
+    partie.log.info("{} construit 1 pièce avec l'annexe en {}".format(partie.joueurQuiJoue().nom,case))
+
+
+def possibilitesPremierOuNaissance(partie,carte):
+    possibilites=['premier']
+    if carte.owner.jePeuxNaitre(partie,carte):
+        possibilites.append('naissance')
+    return possibilites
+        
+
+def choixPremierOuNaissance(partie,choix,possibilites,carte):
     NOTIMPL
 
 def choixRessourceSurAction(partie,choix,possibilites,carte):
@@ -121,55 +208,43 @@ def choixRessourceSurAction(partie,choix,possibilites,carte):
                 partie.plateau['cases'][i].coutBonus,optionRessource)
     carte.hookstatus=-1
     partie.log.debug("{}".format(joueur.nom))
-    return (-2,carte,False,mess)
-
+    partie.changerPointeurs(-1,None)   
+    
 
 def possibilitesOptions(selfCarte):
     return selfCarte['option']['possibilitesOptions']
 
 
 def possibilitesGardeChampetre(partie,carte,Fake=False):
-    
-    possibilites=fct.possibilitesLabourage(partie,carte,Fake=True)
-    if (not Fake):   
-        partie.phraseChoixPossibles=['s23',':','p0']
-        partie.sujet=carte          
-    return possibilites
+    fct.possibilitesLabourage(partie,carte,Fake)
 
 def possibilitesBonimenteur(partie,carte,Fake=False):
     
     possibilites=['p24','p25']
-    if (not Fake):   
-        partie.phraseChoixPossibles=['p23']
-        partie.sujet=carte          
-    return possibilites
+    partie.changerPointeurs(possibilites,carte,'p23',carte.owner,Fake=Fake)               
+
 
 def possibilitesSaisonier(partie,carte,Fake=False):
     possibilites=['c']
     if partie.plateau['tour']>5:
-        print("SAISONIER LEGUME")
         possibilites.append('l')
-
-    if (not Fake):   
-        partie.phraseChoixPossibles=['s10',':','p0']
-        partie.sujet=carte        
-        
-    return possibilites
+    partie.changerPointeurs(possibilites,carte,['s10',':','p0'],carte.owner,Fake=Fake)               
+    
 
 
 def choixCout(partie,choix,possibilites,carte):
-    print(choix,possibilites)
     choixOption=possibilites[choix]
-    print('choixcoup',choixOption)
     cout=carte.option['choixCout'][choixOption]
     carte.owner.mettreAJourLesRessources(cout)
     #on ne peut plus jouer ce hook
     
     carte.hookStatus=-1    
-    partie.choixPossibles=[]
-    print("choixCout:",carte,carte.hookStatus)
-    return (-2,carte,False,str(cout))
-
+    if len(possibilites)==1:
+        #on a fait un choix automatique
+        partie.log.debug('choix automatique sur {}'.format(carte.uid))
+    else:
+        partie.log.debug('choix manuel sur {}'.format(carte.uid))
+    partie.changerPointeurs(-1,None)
 
 def prendre(partie,choix,possibilites,carte):
     print('prendre',choix,possibilites,carte)
@@ -183,6 +258,16 @@ def prendreSiTourEgal(selfCarte):
     
     pass
     
+def volerRessource(partie,choix,possibilites,carte):
+    cible=partie.joueurQuiJoue()
+    voleur=carte.owner
+    
+    cout=carte.option['vol']
+    for res,nombre in cout.items():
+        cible.ressources[res]-=nombre
+        voleur.ressources[res]+=nombre
+    partie.log.info("{} vole des ressources à {} avec {}".format(voleur,cible,carte.uid))
+        
     
 def sixiemeSens(selfCarte):
     NOTIMPL

@@ -14,10 +14,8 @@ def possibilitesCuisson(partie,carte,Fake=False):
     for res in ['l','m','s','v','h']:
         if (partie.joueurQuiJoue().ressources[res]>0):
             possibilites.append(Carte(partie,"u"+res,cout={res:1,'n':-dictCuisson[res]},sansPion=True))  
-    if not Fake:
-        partie.phraseChoixPossibles="Que voulez vous cuire? :"
-        partie.sujet=carte
-    return possibilites       
+    partie.changerPointeurs(possibilites ,carte,'p36',Fake)     
+
 
      
 def cuisson(partie,choix,possibilites,carte):
@@ -25,7 +23,6 @@ def cuisson(partie,choix,possibilites,carte):
     dictCuisson=carte.option['cuissonDict']
     partie.log.debug('cuissonDBG {} {} {} {}'.format(choix,possibilites,carte,possibilites[choix]))
     possibilites[choix].jouer()
-    return (-1,carte,True,"")
 ##################################################################################          
 
 
@@ -57,6 +54,7 @@ class Carte:
         self.sansPion=sansPion
         self.phraseJouer='joue :'
         self.occupants=[]
+        
             
     def __str__(self):
            return self.uid
@@ -82,8 +80,9 @@ class Carte:
     
     @property   
     def cout(self):
-        if type(self._cout)==dict:
-            return self._cout
+        #c'est une liste quand il y a un ou dans le cout
+        if type(self._cout)==dict or type(self._cout)==list :
+            return self._cout        
         else:
             return self._cout(self.partie)
     
@@ -127,86 +126,61 @@ class Carte:
         else:
             return self._effet(self.partie,choix,choixPossibles,self)    
 
-    def possibilites(self):
-        if type(self._possibilites)==dict:
-            return [] #on n'a pas de choix à faire
-        elif type(self._possibilites)==list:
-            return self._possibilites
+    def possibilites(self,Fake=True):
+        self.partie.log.debug("carte {} possibilites".format(self.partie,self.uid))
+        if type(self._possibilites)==list:
+            self.partie.changerPointeurs(self._possibilites,self,Fake=Fake)
         else:
-            self.partie.log.debug("{} {}".format(self.partie,self.uid))
-            return self._possibilites(self.partie,self)        
+            self._possibilites(self.partie,self,Fake=Fake)      
+
+#     def possibilites(self,Fake=True):
+#         self.partie.log.debug("carte {} possibilites".format(self.partie,self.uid))
+#         if type(self._possibilites)==dict:
+#             return []
+#         elif type(self._possibilites)==list:
+#             self.partie.changerPointeurs(self._possibilites,self,Fake=Fake)
+#         else:
+#             self._possibilites(self.partie,self,Fake=Fake)        
 
     def jouer(self):
-        self.partie.log.debug("{} {}".format(self.uid,self.cout)) 
-        #on parcourt les cartes jouees de tout le monde 
-        for jid,j in self.partie.joueurs.items():
-            for cuid,c in j.cartesDevantSoi.items():
-                if hasattr(c, 'hook'):
-                    if c.hook != ():
-                        if c.hook[0]==self.uid:
-                            #si le hook est jouable
-                            if c.hookStatus==0:
-                                print("hook sur",self.uid,'avec',c.uid,c.hookStatus)
-                                self.partie.uidSave=self.uid 
-                                #si le hook me concerne
-                                if(c.hook[1]=="s"):
-                                    #si il y a plusieurs possibilites
-                                    print(c)
-                                    choixPossibles=c.possibilites()
-                                    if len(choixPossibles)>1:
-                                        self.partie.choixPossibles=choixPossibles
-                                        self.partie.sujet=self
-                                        print('IM HERE',choixPossibles)
-                                        return (choixPossibles,c,True,"hook")
-                                    else:
-                                    #sinon
-                                        c.effet(0,choixPossibles)
-                                # a pour all
-                                elif (c.hook[1]=="a"):
-                                    ffff
-                            else:
-                                print("JOUER,HOOK UTILISE")               
         
-        encore=True # on va encore pouvoir jouer après
-        #on regarde si la carte a une fonction possibilite
-        if not type(self._possibilites)==dict:
-            choixPossibles=self._possibilites(self.partie,self)
-            self.partie.choixPossibles=choixPossibles
-            self.partie.sujet=self
-            return (choixPossibles,self,encore,"")
+        self.partie.log.debug("---JOUER--\n{} cout {} \n pointeur {} \n self {}".format(self.uid,self.cout,self.partie.pointeur,self)) 
+        self.partie.hooks=self.partie.recolterLesHooksInterractifs(self.uid)
         
-        #on regarde si la carte a une option activable (genre epicier)
-        elif self.uid=='s21':
-            self.partie.messagesPrincipaux.append([self.partie.joueurQuiJoue().nom,"p20",self.uid])
-            self.effet(0, [])
-            return (-1,self.partie.joueurQuiJoue(),True,self.uid)
+        if self.partie.pointeur.jouerEgalEffet:
+            self.partie.log.debug("---JOUEREgalEffet") 
+            self.partie.pointeur.sujet.effet(self.partie.choixPossibles.index(self),self.partie.choixPossibles)
         else:
-            self.partie.log.debug("{} {}".format(self.uid,self.cout)) 
-            self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid))
+            if not type(self._possibilites)==dict:
+                self._possibilites(self.partie,self,Fake=False)
             
-            coutAAppliquer=self.vider()
-            self.partie.log.debug("{} {}".format(self.uid,coutAAppliquer)) 
-            self.partie.joueurQuiJoue().mettreAJourLesRessources(coutAAppliquer,not self.sansPion)
-#             self.vider()
-            if self.sansPion==True:
-                if isinstance(self,ActionSpeciale):
-                    #ici passe foire du travail
-                    
-                    self.carteQuiMePorte.changerEtat(self.partie.quiJoue)
-                    self.partie.joueurSuivant()
-                    self.partie.initChoix()
-                    return (-1,self,encore,"")
-                else:
-                    self.partie.log.debug('vous pouvez jouer encore')
-                    self.partie.initChoix()
-                    return (-1,self,encore,"")
-
+            #on regarde si la carte a une option activable (genre epicier)
+            elif self.uid=='s21':
+                self.partie.messagesPrincipaux.append([self.partie.joueurQuiJoue().nom,"p20",self.uid])
+                self.effet(0, [])
+                self.partie.changerPointeurs(-1,self.partie.joueurQuiJoue())
             else:
-                personnage=self.partie.joueurQuiJoue().personnages.pop()
-                self.partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
-                self.mettrePersonnage(personnage)
-                encore=False
-            return (-1,self,encore,"")
+                self.partie.log.debug("{} {}".format(self.uid,self.cout)) 
+                self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid))
+                        
+                coutAAppliquer=self.vider()
+                self.partie.log.debug("{} {}".format(self.uid,coutAAppliquer)) 
+                self.partie.joueurQuiJoue().mettreAJourLesRessources(coutAAppliquer,not self.sansPion)
+    #             self.vider()
+                if self.sansPion==True:
+                    if isinstance(self,ActionSpeciale):
+                        #ici passe foire du travail
+                        
+                        self.carteQuiMePorte.changerEtat(self.partie.quiJoue)
+                        self.partie.changerPointeurs(-1,None)
+                    else:
+                        self.partie.log.debug('vous pouvez jouer encore')
+    
+                else:
+                    personnage=self.partie.joueurQuiJoue().personnages.pop()
+                    self.partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
+                    self.mettrePersonnage(personnage)
+                    self.partie.changerPointeurs(-1,None)
     
     def mettrePersonnage(self,perso):
         self.partie.joueurQuiJoue().courDeFerme.etat[perso.localisationInit].occupants.pop()
@@ -219,60 +193,6 @@ class Carte:
     
     def save(self):
         return {'uid':self.uid}
-    
-def loadCarte(stri,partie):
-    print('loadCarte',stri)
-    pass
-        
-class CarteAction(Carte):
-
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},visible=False,activer=True,sansPion=False):
-        self.visible=visible
-        self.activer=activer
-        self.libre=True
-        super().__init__(partie,uid,possibilites=possibilites,cout=cout,effet=effet,condition=condition,sansPion=sansPion)
-        
-    def reappro(self):
-        pass
-
-
-    @property
-    def display(self):
-        return "Faire: {}".format(self.nom)
-
-        
-class CaseAppro(CarteAction):
-
-    def __init__(self,partie,uid,appro,possibilites={},effet={},cout={},visible=False,sansPion=False):
-        self.appro=appro
-        super().__init__(partie,uid,possibilites=possibilites,cout=cout,effet=effet,visible=visible,sansPion=sansPion)
-        
-    def reappro(self):
-        for k in self.appro.keys():
-            if k in self.cout.keys():
-                self.cout[k]+=self.appro[k]
-            else:
-                self.cout[k]=self.appro[k]
-                        
-                
-    @property
-    def display(self):
-        return "Prendre {} sur {}".format(util.prettyGain(self.cout),self.nom)  
-    
-
-class SavoirFaire(Carte):
-
-    def __init__(self,partie,uid,joueurMini,possibilites={},cout={},condition={},option={},effet={},hook=(),final=util.dummy):
-        self.joueurMini=joueurMini
-        self.hook=hook
-        self.final=final
-        self.owner=None
-        self.hookStatus=0 #-1 pas jouable, 0 jouable, 
-        super().__init__(partie,uid,possibilites,cout=cout,condition=condition,effet=effet,option=option)
-        
-    @property
-    def display(self):
-        return [self.uid]            
     
     def bonusRessources(self,rDict):
         gain=util.rVide()
@@ -303,10 +223,13 @@ class SavoirFaire(Carte):
 
                 
         self.partie.log.debug(gain)
-        return util.inverser(gain)
+        vraiGain=util.inverser(gain)
+        self.owner.ressources=util.ajouter(vraiGain,self.owner.ressources)
+        return 
     
     def effetInstantane(self):
         if "instant"  in self.option.keys():
+            self.partie.log.debug("effet instantanné")
             #si c'est un dico on traite ça comme un cout
             if type(self.option["instant"])==dict:
                 print("#############effetInstantane",self.option["instant"])
@@ -315,8 +238,83 @@ class SavoirFaire(Carte):
             elif self.option["instant"]=='pileTourPlus':
                 self.option['pileTour']={}
                 for plus,dico in self.option['pileTourPlus'].items():
-                    self.option['pileTour'][plus+self.partie.plateau['tour']]=dico
+                    self.option['pileTour'][plus+self.partie.plateau['tour']]=dico 
+            elif  self.option["instant"]=='hook':
+
+                if hasattr(self.option["hook_possibilites"], '__call__'):
+                    possibilites=self.option["hook_possibilites"](self.partie,self)
+                else:
+                    possibilites=self.option["hook_possibilites"]
+                                    
+                if len(possibilites)>1:
+                    self.partie.ajouterHook(self,possibilites,self.owner.djangoUid,'instant')
+                else:
+                    self.effet(0,possibilites)
+            elif  self.option["instant"]=='effet':
+                 self.effet(0,[])
+            else:
+                dddd
+    
+def loadCarte(stri,partie):
+    print('loadCarte',stri)
+    pass
+        
+class CarteAction(Carte):
+
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},visible=False,activer=True,sansPion=False):
+        self.visible=visible
+        self.activer=activer
+        self.libre=True
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,effet=effet,condition=condition,sansPion=sansPion)
+        
+    def reappro(self):
+        pass
+
+
+    @property
+    def display(self):
+        return "Faire: {}".format(self.nom)
+
+        
+class CaseAppro(CarteAction):
+
+    def __init__(self,partie,uid,appro,possibilites={},effet={},cout={},visible=False,sansPion=False):
+        self.appro=appro
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,effet=effet,visible=visible,sansPion=sansPion)
+        
+    def reappro(self):
+        
+        for k in self.appro.keys():
+            if k in self._cout.keys():
+                self._cout[k]+=self.appro[k]
+            else:
+                self._cout[k]=self.appro[k]
+                        
                 
+    @property
+    def display(self):
+        return "Prendre {} sur {}".format(util.prettyGain(self.cout),self.nom)  
+    
+
+
+
+class SavoirFaire(Carte):
+
+    def __init__(self,partie,uid,joueurMini,possibilites={},cout={},condition={},option={},effet={},hook=(),final=util.dummy,passableAGauche=False):
+        self.passableAGauche=passableAGauche
+        self.joueurMini=joueurMini
+        self.hook=hook
+        self.final=final
+        self.owner=None
+        self.hookStatus=0 #-1 pas jouable, 0 jouable, 
+        super().__init__(partie,uid,possibilites,cout=cout,condition=condition,effet=effet,option=option)
+        
+    @property
+    def display(self):
+        return [self.uid]            
+    
+
+ 
  
 class Amenagement(Carte):
 
@@ -339,7 +337,7 @@ class AmenagementMineur(Amenagement):
         self.final=final
         self.owner=None
         self.hookStatus=0 #-1 pas jouable, 0 jouable, 
-        
+
         
 class AmenagementMajeur(Amenagement):
 
@@ -365,13 +363,15 @@ class CarteActionSpeciale(Carte):
         return list
     
     def changerEtat(self,nouveau):
-        #si l'ancien etat etait positif ou nul alors je mets -1 (fini)
+        #si l'ancien etat etait positif ou nul alors je mets -2 si nouveau ==-2 (recharge) sinon -1
         if self.etat>-1:
-            self.etat=-1
+            if nouveau==-2:
+                self.etat=-2
+            else:
+                self.etat=-1
             self.partie.log.debug("AS: {} changement d'etat: {} --> -1".format(self.uid,self.etat))
         else:
             self.partie.log.debug("AS: {} changement d'etat: {} --> {}".format(self.uid,self.etat,nouveau))
-            
             self.etat=nouveau
         
     
@@ -667,21 +667,21 @@ mineursDict["m2"]={
     }
 mineursDict["m3"]={
     'condition':fctCarte.avoirXSavoirFaire,
-    'hook':('debutTour','s','p'),
+    'hook':('debutTour','s','t'),
     'effet':fctCarte.choixRessourceSurAction,
     'possibilites':fctCarte.possibilitesRessourceSurAction,
     'option':{'ressourceSurAction':[{'n':-1},{'n':-1},{'n':-1},{'n':-1},{'n':-1}],'conditionSavoirFaire':3},  
     'pointsVictoire':1, 
     }
 
-mineursDict["m4"]={
-    'cout':{'n':2},
-    'condition':fctCarte.avoirXSavoirFaire,
-    'hook':'s_finAction',
-    'effet':fctCarte.sixiemeSens,
-    'pointsVictoire':1, 
-    'option':{'conditionSavoirFaire':1}, 
-    }
+# mineursDict["m4"]={
+#     'cout':{'n':2},
+#     'condition':fctCarte.avoirXSavoirFaire,
+#     'hook':'s_finAction',
+#     'effet':fctCarte.sixiemeSens,
+#     'pointsVictoire':1, 
+#     'option':{'conditionSavoirFaire':1}, 
+#     }
 
 mineursDict["m5"]={
     'cout':{'a':2},
@@ -701,29 +701,149 @@ mineursDict["m6"]={
     }
 
 mineursDict["m7"]={
-    'cout':[{'b':1},{'a',1}],
-    'instant':fctCarte.possibilitesOptions,
-    'option':{'possibilitesOptions':[{'r':-1},{'p':-1}]}, 
+    'cout':[{'b':1},{'a':1}],
+    'option':{    'instant':'hook',
+                  'hook_possibilites':['r','p'],
+                 'choixCout':{'r':{'r':-1},'p':{'p':-1}}}, 
+    'passableAGauche':True,
     'effet':fctCarte.choixCout,
-    'passableAGauche':True,
     }
 
-mineursDict["m8"]={
-    'hook':"s_construction_pierre",
-    'effet':fctCarte.aiguilleRoche,
-    }
-
-mineursDict["m9"]={
-    'condition':fctCarte.avoirXSavoirFaire,
-    'passableAGauche':True,
-    'instant':fctCarte.choixNaissanceOUPremier,
-    'option':{'conditionSavoirFaire':2}, 
-    }
+# mineursDict["m8"]={
+#     'hook':"s_construction_pierre",
+#     'effet':fctCarte.aiguilleRoche,
+#     }
+# trop relou
+# mineursDict["m9"]={
+#     'condition':fctCarte.avoirXSavoirFaire,
+#     'passableAGauche':True,
+#     'option':{'conditionSavoirFaire':2,
+#                   'instant':'hook',
+#                   'hook_possibilites':fctCarte.possibilitesPremierOuNaissance},
+#     'effet':fctCarte.choixPremierOuNaissance,
+#     }
 
 mineursDict["m10"]={
     'cout':{'p':1},
     'animaux':"abreuvoirChevaux",
     }
+
+mineursDict["m11"]={
+    'cout':{'r':1,'b':5},
+    'condition':fctCarte.conditionAnnexe,
+    'option':{    'instant':'hook',
+              'hook_possibilites':fctCarte.possibilitesAnnexe,
+              "annexe":'b'},
+    'effet':fctCarte.constructionAnnexe,
+    'passableAGauche':True,
+    }
+mineursDict["m12"]={
+    'cout':{'r':1,'a':4},
+    'condition':fctCarte.conditionAnnexe,
+    'option':{    'instant':'hook',
+              'hook_possibilites':fctCarte.possibilitesAnnexe,
+              "annexe":'a'},
+    'effet':fctCarte.constructionAnnexe,
+    'passableAGauche':True,
+    }
+mineursDict["m13"]={
+    'cout':{'r':1,'p':3},
+    'condition':fctCarte.conditionAnnexe,
+    'option':{    'instant':'hook',
+              'hook_possibilites':fctCarte.possibilitesAnnexe,
+              "annexe":'p'},
+    'effet':fctCarte.constructionAnnexe,
+    'passableAGauche':True,
+    }
+
+mineursDict["m14"]={
+    'condition':fctCarte.avoirXSavoirFaire,
+    'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
+    'option':{'pileTour':{8:{'n':-1},9:{'n':-1},10:{'n':-1},11:{'n':-1},12:{'n':-1},
+                          13:{'n':-1},14:{'n':-1}},
+               'conditionSavoirFaire':3}, 
+    'effet':fctCarte.depiler,
+    'pointsVictoire':1, 
+    }
+
+mineursDict["m15"]={
+    'condition':fctCarte.avoirXSavoirFaire,
+    'cout':fctCarte.coutArbrePourCitoyens,
+    'option':{'conditionSavoirFaire':1}, 
+    'final':fctCarte.finalArbrePourCitoyens,
+    'pointsVictoire':1, 
+    }
+
+# mineursDict["m17"]={
+#     'cout':{'n':1},
+#     'option':{'instant':'hook','hook_possibilites':[]},
+#     'passableAGauche':True,
+#     'effet':fctCarte.ajoutRessourceChampsEnsemmances
+#     }
+
+mineursDict["m18"]={
+    'condition':fctCarte.avoirXMajeurs,
+    'option':{'conditionMajeurs':1}, 
+    'effet':fctCarte.choixCout,
+    'possibilites':['r'],
+    'option':{'choixCout':{'r':{'r':-1}}},     
+    }
+
+mineursDict["m19"]={
+    'condition':fctCarte.avoirXMajeurs,
+    'option':{'conditionMajeurs':1, 
+             'instant':'hook',
+              'hook_possibilites':[]},
+    'effet':fctCarte.blocTourbe,
+    'passableAGauche':True,    
+    }
+
+mineursDict["m20"]={
+    'cout':{'b':-3,'p':1},
+    'passableAGauche':True,    
+    }
+
+mineursDict["m21"]={
+    'cout':{'n':2},
+    'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
+    'option':{'pileTour':{2:{'b':-1},4:{'b':-1},6:{'b':-1},8:{'b':-1},10:{'b':-1},12:{'b':-1},14:{'b':-1}}}, 
+    'effet':fctCarte.depiler,    
+    }
+mineursDict["m22"]={
+    'hook':('a9','s','p'), #p comme personnage on réinit à chaque fin de personnage
+    'effet':fctCarte.boisSurLaBerge,    
+    }
+mineursDict["m23"]={
+    'cout':{'b':1},
+    'condition':fctCarte.avoirXSavoirFaire,
+    'option':{'conditionSavoirFaire':3,'vol':{'b':1}},     
+    'hook':('a6','o','p'), #p comme personnage on réinit à chaque fin de personnage
+    'effet':fctCarte.volerRessource,    
+    'pointsVictoire':1, 
+    }
+
+mineursDict["m24"]={
+    'cout':{'n':2},
+    'condition':fctCarte.avoirXPieces,
+    'option':{'conditionPiece':3},     
+    'hook':('b7','s','p'), #p comme personnage on réinit à chaque fin de personnage
+    'pointsVictoire':1, 
+    'effet':fctCarte.choixCout,
+    'possibilites':['b'],
+    'option':{'choixCout':{'b':{'b':-2}}},     
+    }
+
+mineursDict["m25"]={
+    'cout':{'b':2},
+    'condition':fctCarte.avoirXMajeurs,
+    'option':{'conditionMajeurs':1, 
+    'choixCout':{'b':{'b':-1},'a':{'a':-1},'p':{'p':-1},'r':{'r':-1}}},              
+    'hook':('b7','s','p'), #p comme personnage on réinit à chaque fin de personnage
+    'effet':fctCarte.choixCout,
+    'possibilites':['b','a','p','r'],
+    }
+
+
 
 savoirFaireDict={}
 savoirFaireDict["s0"]={
@@ -871,9 +991,10 @@ savoirFaireDict["s21"]={
     'condition':fctCarte.conditionEpicier
     }
 
-savoirFaireDict["s22"]={
-    'joueurMini':1,
-    }
+# savoirFaireDict["s22"]={
+#     'joueurMini':1,
+#   
+#     }
 
 savoirFaireDict["s23"]={
     'joueurMini':1,
@@ -884,21 +1005,21 @@ savoirFaireDict["s23"]={
 
 savoirFaireDict["s24"]={
     'joueurMini':4,
-    'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
+    'hook':('debutTour','s','t'), #p comme personnage on réinit à chaque fin de personnage
     'option':{'pileTourPlus':{5:{'v':-1},9:{'v':-1}},'instant':'pileTourPlus'}, 
     'effet':fctCarte.depiler,
     }
 
 savoirFaireDict["s25"]={
     'joueurMini':4,
-    'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
+    'hook':('debutTour','s','t'), #p comme personnage on réinit à chaque fin de personnage
     'option':{'pileTourPlus':{4:{'m':-1},7:{'m':-1},9:{'m':-1},11:{'m':-1}},'instant':'pileTourPlus'}, 
     'effet':fctCarte.depiler,
     }
 
 savoirFaireDict["s26"]={
     'joueurMini':4,
-    'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
+    'hook':('debutTour','s','t'), #p comme personnage on réinit à chaque fin de personnage
     'option':{'pileTourPlus':{4:{'s':-1},7:{'s':-1},10:{'s':-1}},'instant':'pileTourPlus'}, 
     'effet':fctCarte.depiler,
     }

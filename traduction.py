@@ -303,8 +303,31 @@ trad["p25"]={'fr':"non",
             'en':"TODO"} 
 trad["p26"]={'fr':"n'active pas",
             'en':"TODO"} 
-
-
+trad["p27"]={'fr':"Quelle forêt voulez vous abattre?",
+            'en':"TODO"} 
+trad["p28"]={'fr':"Quelle forêt voulez vous couper et brûler?",
+            'en':"TODO"} 
+trad["p29"]={'fr':"Choississez un mineur",
+            'en':"TODO"} 
+trad["p30"]={'fr':"Deviens premier joueur",
+            'en':"TODO"} 
+trad["p31"]={'fr':"Indiquez votre plan de construction de pièce ou etable: ",
+            'en':"TODO"} 
+trad["p32"]={'fr':"Quelle tourbe voulez vous couper? ",
+            'en':"TODO"} 
+trad["p33"]={'fr':"Indiquez votre plan de semaille et cuisson de pain: ",
+            'en':"TODO"} 
+trad["p34"]={'fr':"Choissisez un aménagement majeur",
+            'en':"TODO"} 
+trad["p35"]={'fr':"Choissisez un aménagement majeur ou mineur",
+            'en':"TODO"} 
+trad["p36"]={'fr':"Que voulez vous cuire? :",
+            'en':"TODO"} 
+trad["p37"]={'fr':"Ou voulez-vous labourer?",
+            'en':"TODO"} 
+trad["p38"]={'fr':"Indiquez votre plan de construction de pièce ou etable:",
+            'en':"TODO"} 
+ 
 trad["m0"]={'fr':"Foyer simple",
             'en':"TODO"}   
 trad["m0d"]={'fr':"Blabla",
@@ -367,6 +390,94 @@ trad["m10d"]={'fr':"""Vous pouvez garder jusqu'à 2 chevaux dans une case de cou
 votre maison. (La case n'est pas comptée comme utilisée. Vous pouvez changer librement les Chevaux 
 de case.)""",
             'en':"TODO"}  
+
+trad["m11"]={'fr':"Annexe en bois",
+            'en':"TODO"}   
+trad["m11d"]={'fr':"""Quand vous jouez cette carte, agrandissez immédiatement votre cabane en bois 
+d'une pièce.""",
+            'en':"TODO"}  
+
+trad["m12"]={'fr':"Annexe en argile",
+            'en':"TODO"}   
+trad["m12d"]={'fr':"""Quand vous jouez cette carte, agrandissez immédiatement votre cabane en argile 
+d'une pièce.""",
+            'en':"TODO"}  
+
+
+trad["m13"]={'fr':"Annexe en pierre",
+            'en':"TODO"}   
+trad["m13d"]={'fr':"""Quand vous jouez cette carte, agrandissez immédiatement votre cabane en pierre 
+d'une pièce.""",
+            'en':"TODO"}  
+
+trad["m14"]={'fr':"Arbre fruitier",
+            'en':"TODO"}   
+trad["m14d"]={'fr':"""Placez 1 PN sur chacune des cases de tours 8 à 14. 
+Recevez cette nourriture au début de ces tours.""",
+            'en':"TODO"}  
+
+
+trad["m15"]={'fr':"Arbre pour les citoyens",
+            'en':"TODO"}   
+trad["m15d"]={'fr':"""Si vous avez la Menuiserie ou la Scierie, vous ne payez pas le cout en bois de cette carte. 
+A la fin de la partie, vous marquez 1 point pour chaque groupe de 
+2 aménagements ayant un cout en bois.""",
+            'en':"TODO"}  
+
+trad["m16"]={'fr':"Scierie",
+            'en':"TODO"}   
+trad["m16d"]={'fr':"""blabla""",
+            'en':"TODO"}  
+
+trad["m17"]={'fr':"Arrosoir",
+            'en':"TODO"}   
+trad["m17d"]={'fr':"""Placez immédiatement 1 ressource de la réserve sur chaque champ ensemencé. 
+La ressource doit correspondre à la ressource du champ.""",
+            'en':"TODO"}  
+
+trad["m18"]={'fr':"Berge de saules",
+            'en':"TODO"}   
+trad["m18d"]={'fr':"""A chaque fois que vous utilisez l'action spéciale "Abattre des arbres", 
+vous recevez aussi 1 Roseau.""",
+            'en':"TODO"}  
+
+trad["m19"]={'fr':"Blocs de tourbe",
+            'en':"TODO"}   
+trad["m19d"]={'fr':"""Prenez immédiatement 1 Combustible par tuile Tourbière dans votre ferme.""",
+            'en':"TODO"}  
+
+trad["m20"]={'fr':"Bois de construction",
+            'en':"TODO"}   
+trad["m20d"]={'fr':"""Quand vous jouez cette carte prenez 3 bois""",   'en':"TODO"}  
+
+
+trad["m21"]={'fr':"Bois privé",
+            'en':"TODO"}   
+trad["m21d"]={'fr':"""Placez 1 bois sur chacune des cases de tours avec un numéro pair. 
+Recevez ce bois au début de ces tours.""",   'en':"TODO"}  
+
+trad["m22"]={'fr':"Bois sur la berge",
+            'en':"TODO"}   
+trad["m22d"]={'fr':"""Quand vous utilisez la case d'action "Pêche", recevez 1 Bois supplémentaire par tuile Forêt dans votre cour de ferme, 
+et ce, jusqu'a un maximum de 3 bois.""",   'en':"TODO"}  
+
+
+trad["m23"]={'fr':"Bosquet",
+            'en':"TODO"}   
+trad["m23d"]={'fr':"""A chaque fois qu'un autre joueur utilise la case d'action "3 bois", il doit vous donner l'un de ces 3 bois. (Cet effet ne s'applique pas à la case d'action 
+"4 bois" des parties à 5 joueurs.)""",   'en':"TODO"}  
+
+
+trad["m24"]={'fr':"Bouleau de la lande",
+            'en':"TODO"}   
+trad["m24d"]={'fr':"""A chaque fois que vous utilisez l'action spéciale "Couper la tourbe", 
+vous recevez aussi 2 bois.""",   'en':"TODO"}  
+
+trad["m25"]={'fr':"Brouette",
+            'en':"TODO"}   
+trad["m25d"]={'fr':"""Quand vous prenez au moins 4 matériaux de construction identiques sur une case d'action, 
+recevez aussi 1 combustibles. quand vous utilisez l'action spéciale "couper la tourbe", 
+recevez aussi 1 matériau de construction de votre choix.""",   'en':"TODO"}  
 
 trad["s0"]={'fr':"Acheteur d'animaux",'en':'TODO'}
 trad["s0d"]={'fr':"""Placez sur la case du tour 7 un mouton, sur celle du tour 10 un sanglier, 

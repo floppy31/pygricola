@@ -5,10 +5,11 @@ import pygricola.util as util
 ####par ex ni on ne peux ni jouer de mineur ni de majeur, on ne peux pas faire la case
 def possibilitesNonVide(partie,carte):
     if not type(carte._possibilites)==dict:
-        pos=carte._possibilites(partie,carte,Fake=True)
-        if len(pos)==0:
+        carte._possibilites(partie,carte,Fake=True)
+        if len(partie.choixPossibles)==0:
+            partie.log.debug("{} : possibilites vides".format(carte.uid))
             partie.messagesDetail.append("{} : possibilites vides".format(carte.uid) )
-        return len(pos)>0
+        return len(partie.choixPossibles)>0
     return True
     
     
@@ -18,13 +19,11 @@ def possibilitesNonVide(partie,carte):
 
 def possibiliteBetail(partie,carte,Fake=False):
     joueur=partie.joueurQuiJoue()
-    possibilite=["u0","u1"]
+    possibilites=["u0","u1"]
     if(joueur.jePeuxJouer({'n':1})):
-        possibilite.append("u2")
-    if not Fake:
-        partie.phraseChoixPossibles="p0"
-        partie.sujet=carte 
-    return possibilite
+        possibilites.append("u2")
+    partie.changerPointeurs(possibilites ,carte,phrase='p0',Fake=Fake) 
+
 
 def betail(partie,choix,possibilites,carte):
     cout={}
@@ -41,14 +40,11 @@ def betail(partie,choix,possibilites,carte):
     joueur.mettreAJourLesRessources(cout)
     partie.messagesPrincipaux.append([joueur.nom,"p1",possibilites[choix]])
 
-    return (-1,carte,False,"") #on ne peux plus en jouer  
+    partie.changerPointeurs(-1,None) 
               
 def possibiliteRoseauPnOuPierrePn(partie,carte,Fake=False):
     possibilites=["u4","u5"]
-    if (not Fake):   
-        partie.phraseChoixPossibles="p0"
-        partie.sujet=carte
-    return possibilites     
+    partie.changerPointeurs(possibilites ,carte,phrase='p0',Fake=Fake) 
 
 def roseauPnOuPierrePn(partie,choix,possibilites,carte):
     cout={}
@@ -63,8 +59,7 @@ def roseauPnOuPierrePn(partie,choix,possibilites,carte):
     joueur.personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
     joueur.mettreAJourLesRessources(cout)
-
-    return (-1,carte,False,"") #on ne peux plus en jouer       
+    partie.changerPointeurs(-1,None) 
        
 ##################################################################################
 #---------------------------------------Naissances--------------
@@ -94,10 +89,8 @@ def possibiliteSavoiFaireOuNaissance(partie,carte,Fake=False):
     if tourOk:
         if joueur.jePeuxNaitre(partie):
             possibilites.append('p3')
-    if (not Fake):
-        partie.phraseChoixPossibles="p0"
-        partie.sujet=carte
-    return possibilites     
+    
+    partie.changerPointeurs(possibilites ,carte,phrase='p0',Fake=Fake) 
 
 def savoiFaireOuNaissance(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
@@ -120,8 +113,8 @@ def savoiFaireOuNaissance(partie,choix,possibilites,carte):
         personnage=joueur.personnages.pop()
         joueur.personnagesPlaces.append(personnage)                  
         carte.mettrePersonnage(personnage)
-        return (-1,carte,False,"") 
-    
+        partie.changerPointeurs(-1,None) 
+           
 def naissancePuisMineur(partie,choix,possibilites,carte):
     from pygricola.joueur.personnage import Personnage
 
@@ -174,11 +167,9 @@ def possibilitesSavoirFaire(partie,carte,Fake=False):
                 #cout de la carte + de l'action (pour foire du travail)
                 if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):            
                     possibilites.append(c.uid)
+    partie.changerPointeurs(possibilites ,carte,phrase='p0',Fake=Fake,djangoJoueur=joueur.djangoUid) 
 
-    if (not Fake):                    
-        partie.phraseChoixPossibles="Choissisez un savoir faire:"
-        partie.sujet=carte
-    return possibilites                       
+      
     
 def choixSavoirFaire(partie,choix,possibilites,carte):
     savoirFaireChoisiUid=possibilites[choix]
@@ -189,13 +180,13 @@ def choixSavoirFaire(partie,choix,possibilites,carte):
             break
     #il faut le faire avant car le cout depends du nombre de savoir faire joues
     joueur.mettreAJourLesRessources(util.ajouter(savoirFaireChoisi.cout,carte.cout))
-    jouer.poserCarteDevantSoi(savoirFaireChoisi)    
+    joueur.poserCarteDevantSoi(savoirFaireChoisi)    
     personnage=joueur.personnages.pop()
     joueur.personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)    
     partie.messagesPrincipaux.append([joueur.nom,"p20",'p2',savoirFaireChoisi.uid])
-    savoirFaireChoisi.effetInstantane()
-    return (-1,carte,False,"")
+    partie.log.info([joueur.nom,"p20",'p2',savoirFaireChoisi.uid])
+    partie.changerPointeurs(-1 ,None) 
 
 
 ##################################################################################
@@ -210,11 +201,23 @@ def possibilitesAmenagementMineur(partie,carte,Fake=False):
         if c.uid[0]=="m":
             #ici c'est condition achat... on ne veut pas appeler poss non vide de la carte à acheter
             if joueur.jeRemplisLesConditions(c.conditionAchat):
-                #cout de la carte + de l'action (pour foire du travail)
-                if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
-                    possibilites.append(c)
+                
+                #pour gerer les cout listes
+                if type(c.cout)==list:
+                    for coutSimple in c.cout:
+                        #cout de la carte + de l'action (pour foire du travail)
+                        if joueur.jePeuxJouer(util.ajouter(carte.cout,coutSimple)):
+                            
+                            possibilites.append('{}_cout{}'.format(c.uid,c.cout.index(coutSimple)))
+                        else:
+                            partie.messagesDetail.append(["p10",c.uid])
                 else:
-                    partie.messagesDetail.append(["p10",c.uid])
+                
+                    #cout de la carte + de l'action (pour foire du travail)
+                    if joueur.jePeuxJouer(util.ajouter(carte.cout,c.cout)):
+                        possibilites.append(c)
+                    else:
+                        partie.messagesDetail.append(["p10",c.uid])
             else:
                 partie.messagesDetail.append(["p9",c.uid])
     #si on appelle cette methode via l'action spéciale 
@@ -223,38 +226,63 @@ def possibilitesAmenagementMineur(partie,carte,Fake=False):
     #ammenagement grace à possibiliteNonVide
     if not hasattr(carte,"carteQuiMePorte"):
         possibilites.append('u3')
-    if (not Fake):                    
-        partie.phraseChoixPossibles="Choissisez un aménagement mineur:"
-        partie.sujet=carte
-    return possibilites                       
+    partie.changerPointeurs(possibilites ,carte,phrase='p29',djangoJoueur=joueur.djangoUid,Fake=Fake,jouerEgalEffet=not Fake)   
+                 
     
 def choixAmenagementMineur(partie,choix,possibilites,carte):
-    carteJouee=possibilites[choix]
+    carteChoisie=possibilites[choix]
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
-    if carteJouee=="u3":
-        #on ne fait pas de mineur
-        partie.messagesPrincipaux.append([joueur.nom, "p16"])
-    elif hasattr(carte,"carteQuiMePorte"):
-            joueur.mettreAJourLesRessources(util.ajouter(carte.cout,carteJouee.cout))
+    
+    #si vrai il y a un coup variable
+    if type(carteChoisie)==str:
+        if "_cout" in carteChoisie:
+            carteUid=carteChoisie.split('_cout')[0]
+            coutChoisi=int(carteChoisie.split('_cout')[1])
+            carteJouee=util.findCarte(joueur.cartesEnMain,carteUid)
+            
+            coutChoisi=carteJouee.cout[coutChoisi]
+        else:
+            carteJouee=carteChoisie
+
+    else:
+        carteJouee=carteChoisie
+        coutChoisi=carteJouee.cout
+    
+    
+    
+    if hasattr(carte,"carteQuiMePorte"):
+            joueur.mettreAJourLesRessources(util.ajouter(carte.cout,coutChoisi))
             carte.carteQuiMePorte.changerEtat(partie.quiJoue)
             joueur.poserCarteDevantSoi(carteJouee)
-            partie.messagesPrincipaux.append([joueur.nom,"p3",carteJouee.uid])            
-            return (-1,carte,False,"")     
-    else:    
-        carteJouee.jouer()
-        joueur.poserCarteDevantSoi(carteJouee)
-        partie.messagesPrincipaux.append([joueur.nom,"p3",carteJouee.uid])
+            partie.messagesPrincipaux.append([joueur.nom,"p3",carteJouee])
+    else:        
+        personnage=joueur.personnages.pop()
+        joueur.personnagesPlaces.append(personnage)                  
+        carte.mettrePersonnage(personnage)               
+        if carteJouee=="u3":
+            #on ne fait pas de mineur
+            partie.log.info([joueur.nom, "p16"])
+            partie.messagesPrincipaux.append([joueur.nom, "p16"])   
+                
+        else:    
+            joueur.mettreAJourLesRessources(util.ajouter(carte.cout,coutChoisi))
+            joueur.poserCarteDevantSoi(carteJouee)
+            partie.messagesPrincipaux.append([joueur.nom,"p3",carteJouee])
+ 
         
     if carte.uid=="a1":#premier joueur + mineur
-        partie.premierJoueur=joueur.id
+        #cas special pour les amants
+        if carteJouee.uid=="m9" and jePeuxNaitre(partie, carte):
+            self.partie.ajouterHook(carteJouee,carteJouee.option["hook_possibilites"],carteJouee.owner.djangoUid,'instant')
+        else:
+            
+            partie.log.info([joueur.nom,"p30"])
+            partie.premierJoueur=joueur.id
 
-
-    personnage=joueur.personnages.pop()
-    joueur.personnagesPlaces.append(personnage)                  
-    carte.mettrePersonnage(personnage)
-    encore=False    
-    return (-1,carte,False,"") #on ne peux plus en jouer
+    
+    partie.log.info([joueur.nom,"p3",carteJouee])
+    partie.changerPointeurs(-1 ,None)   
 
 ##################################################################################
 #---------------------------------------Majeur          --------------------------
@@ -268,10 +296,7 @@ def possibilitesAmenagementMajeur(partie,carte,Fake=False):
             if joueur.jeRemplisLesConditions(c.conditionAchat):
                 if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
                     possibilites.append(c)
-    if (not Fake):                    
-        partie.phraseChoixPossibles="Choissisez un aménagement majeur:"
-        partie.sujet=carte
-    return possibilites                       
+    partie.changerPointeurs(possibilites ,carte,'p34',joueur,Fake=Fake)       
     
 def choixAmenagementMajeur(partie,choix,possibilites,carte):
     carteJouee=possibilites[choix]
@@ -279,15 +304,17 @@ def choixAmenagementMajeur(partie,choix,possibilites,carte):
     plateau=partie.plateau
     joueur.poserCarteDevantSoi(carteJouee,True)
     partie.messagesPrincipaux.append([joueur.nom,"p14",carteJouee.uid])
+    partie.log.info([joueur.nom,"p14",carteJouee.uid])
     #si c'est une action speciale
     if hasattr( carte,"carteQuiMePorte"):
         joueur.mettreAJourLesRessources(util.ajouter(carte.cout,carteJouee.cout))
         carte.carteQuiMePorte.changerEtat(partie.quiJoue)
-        
-        return (-1,carte,False,"")
+        partie.changerPointeurs(-1 ,carte)  
     else:
+        
+        TODO
         carteJouee.jouer()
-        return (-1,carte,False,"")
+        partie.changerPointeurs(-1 ,carte)  
 ##################################################################################
 #---------------------------------------MINEUR OU MAJEUR--------------------------
 ##################################################################################
@@ -301,50 +328,47 @@ def possibilitesAmenagementMineurOuMajeur(partie,carte,Fake=False):
             #ici c'est condition achat... on ne veut pas appeler poss non vide de la carte à acheter
             if joueur.jeRemplisLesConditions(c.conditionAchat):
                 #cout de la carte + de l'action (pour foire du travail)
-                if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
+                if joueur.jePeuxJouer(util.ajouter(carte.cout,c.cout)):
                     possibilites.append(c)
                 else:
+                    partie.log.debug(["p10",c.uid])
                     partie.messagesDetail.append(["p10",c.uid])
             else:
                 partie.messagesDetail.append(["p9",c.uid])
+                partie.log.debug(["p19",c.uid])
                 
                         
     for m in  plateau['majeurs'].keys():
         if plateau['majeurs'][m].visible:
              if joueur.jePeuxJouer(plateau['majeurs'][m].cout):
                         possibilites.append(plateau['majeurs'][m])   
-    if (not Fake):                                         
-        partie.phraseChoixPossibles="Choissisez un aménagement mineur ou majeur:"
-        partie.sujet=carte
-    return possibilites                       
+    partie.changerPointeurs(possibilites ,carte,'p35',joueur,Fake=Fake)       
     
 def choixAmenagementMineurOuMajeur(partie,choix,possibilites,carte):
     carteJouee=possibilites[choix]
     carteJouee.jouer()
+    TODO
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
     Majeur=not carteJouee in joueur.cartesEnMain
     joueur.poserCarteDevantSoi(carteJouee,Majeur)
     #on paye le cout de la carte
     joueur.mettreAJourLesRessources(carteJouee.cout)
-    partie.messagesPrincipaux.append("{} {} {} {}".format(joueur.nom, "réalise ",carteJouee.uid))
+    partie.log.info("{} {} {}".format(joueur.nom, "réalise ",carteJouee.uid))
     personnage=joueur.personnages.pop()
     joueur.personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
     encore=False    
-    return (-1,carte,False,"") #on ne peux plus en jouer
+    partie.changerPointeurs(-1,None)
 
 ##################################################################################
 #---------------------------------------Actions spé-------------------------------
 ##################################################################################
 def possibilitesAbattreDesArbres(partie,carte,Fake=False):
-    possibilites=[]
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
-    if (not Fake):
-        partie.phraseChoixPossibles="Quelle forêt voulez vous abattre? :"
-        partie.sujet=carte    
-    return ferme.tousLes('foret') 
+    partie.changerPointeurs(ferme.tousLes('foret') ,carte,'p27',joueur,Fake=Fake)    
+        
 
 
 def choixAbattreDesArbres(partie,choix,possibilites,carte):
@@ -355,17 +379,13 @@ def choixAbattreDesArbres(partie,choix,possibilites,carte):
     joueur.mettreAJourLesRessources(util.ajouter(joueur.coutAbattre(),carte.cout))
     carte.carteQuiMePorte.changerEtat(partie.quiJoue)
     partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'abats des arbres en ',caseAbattre))
-    encore=False    
-    return (-1,carte,False,"") 
+    partie.changerPointeurs(-1,None)
 
 def possibilitesCouperBruler(partie,carte,Fake=False):
     possibilites=[]
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
     forets=ferme.tousLes('foret') 
-    if (not Fake):
-        partie.phraseChoixPossibles="Quelle forêt voulez vous couper et brûler? :"
-        partie.sujet=carte      
     #les champs doivent se toucher
     if(ferme.compter("champ")!=0):
         foretsAdjChamp=[]
@@ -376,10 +396,9 @@ def possibilitesCouperBruler(partie,carte,Fake=False):
                     if ferme.etat[voiz[direction]].type=='champ':
                         if not f in foretsAdjChamp:
                             foretsAdjChamp.append(f)
-                        
-        return foretsAdjChamp
+        partie.changerPointeurs(foretsAdjChamp ,carte,'p28',joueur,Fake=Fake)    
     else:
-        return forets
+        partie.changerPointeurs(ferme.tousLes('foret') ,carte,'p28',joueur,Fake=Fake)    
         
 
 def choixCouperBruler(partie,choix,possibilites,carte):
@@ -391,19 +410,14 @@ def choixCouperBruler(partie,choix,possibilites,carte):
     carte.carteQuiMePorte.changerEtat(partie.quiJoue)
         
     partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'coupe et brûle en ',caseCouper))
-    encore=False    
-    return (-1,carte,False,"") 
+    partie.changerPointeurs(-1,None)
 
 
 def possibilitesCouperLaTourbe(partie,carte,Fake=False):
-    possibilites=[]
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
-    tourbe=ferme.tousLes('tourbe') 
-    if (not Fake):
-        partie.phraseChoixPossibles="Quelle tourbe voulez vous couper? :"
-        partie.sujet=carte      
-    return tourbe
+    partie.log.debug('possibilitesCouperLaTourbe!!!!!!!!!!!!!!!!!!!!')
+    partie.changerPointeurs(ferme.tousLes('tourbe'),carte,phrase="p32",Fake=Fake,jouerEgalEffet=not Fake)
         
 
 def choixCouperLaTourbe(partie,choix,possibilites,carte):
@@ -416,8 +430,7 @@ def choixCouperLaTourbe(partie,choix,possibilites,carte):
     
     partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'coupe la tourbe en ',caseCouper))
     encore=False    
-    return (-1,carte,False,"") 
-
+    partie.changerPointeurs(-1,None)
 ##################################################################################
 #---------------------------------------LABOURAGE---------------------------------
 ##################################################################################
@@ -441,10 +454,8 @@ def possibilitesLabourage(partie,carte,Fake=False):
                         #si elle n'y est pas deje
                         if voiz[direction] not in possibilites:
                             possibilites.append( voiz[direction])
-    if (not Fake):
-        partie.phraseChoixPossibles="Où voulez vous labourer? :"
-        partie.sujet=carte
-    return possibilites   
+    partie.changerPointeurs(possibilites,carte,phrase="p37",Fake=Fake)
+
 
 def labourage(partie,choix,possibilites,carte):
     caseALabourer=possibilites[choix]
@@ -454,17 +465,14 @@ def labourage(partie,choix,possibilites,carte):
     personnage=partie.joueurQuiJoue().personnages.pop()
     partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
-    encore=False    
-    return (-1,carte,False,"") #on ne peux plus en labourer
-
+    partie.changerPointeurs(-1,None)
 ##################################################################################
 #---------------------------------------Piece et Etables--------------------------
 ##################################################################################
 
-def demanderPlanConstructionDePieceEtOuEtable(partie,carte):
-    partie.phraseChoixPossibles="Indiquez votre plan de construction de pièce ou etable: "
-    partie.sujet=carte
-    return 'inputtext'
+def demanderPlanConstructionDePieceEtOuEtable(partie,carte,Fake=False):
+    partie.changerPointeurs('inputtext' ,carte,'p38',Fake)    
+
     
 
 def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
@@ -484,7 +492,8 @@ def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
         except:
             planCorrect=False
             msg="format de plan invalide {}".format(planStr)
-            return ('inputtext',carte,True,msg)
+            partie.changerPointeurs('inputtext',carte,alert=msg)
+            return
         #la case doit exister 
         if case in ferme.etat.keys():
             #et etre vide
@@ -572,12 +581,10 @@ def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
         personnage=partie.joueurQuiJoue().personnages.pop()
         partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
         carte.mettrePersonnage(personnage)
-        return (-1,carte,False,msg)
+        partie.changerPointeurs(-1,None)
     else:
-        #on est pas bon
-        partie.phraseChoixPossibles="Indiquez votre plan de construction de pièce ou etable: "
-
-        return ('inputtext',carte,True,msg)
+        #on est pas bon        
+        partie.changerPointeurs('inputtext',carte,phrase='p31',alert=msg)
 
 
 def possibiliteConstructionOuSpectacle(partie,carte,Fake=False):
@@ -593,10 +600,7 @@ def possibiliteConstructionOuSpectacle(partie,carte,Fake=False):
                 if voiz[direction]: #si not None
                     if ferme.etat[voiz[direction]].type=='vide':
                         possibilites.append(['u7',voiz[direction]])
-    if (not Fake):
-        partie.phraseChoixPossibles="Que voulez vous faire? :"
-        partie.sujet=carte
-    return possibilites   
+    partie.changerPointeurs(possibilites,carte,phrase="p0",Fake=Fake)
 
 def constructionOuSpectacle(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
@@ -618,7 +622,8 @@ def constructionOuSpectacle(partie,choix,possibilites,carte):
     personnage=partie.joueurQuiJoue().personnages.pop()
     partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
-    return (-1,carte,False,"")
+    
+    partie.changerPointeurs(-1,None)
 
 
 def jePeuxContruireUnePiece(partie):    
@@ -683,10 +688,8 @@ def jePeuxCuireDuPain(partie):
     return joueur.ressources['c']>0 and fourOk
 
 
-def demanderPlanSemailleEtOuCuisson(partie,carte):
-    partie.phraseChoixPossibles="Indiquez votre plan de semaille et cuisson de pain: "
-    partie.sujet=carte
-    return 'inputtext'
+def demanderPlanSemailleEtOuCuisson(partie,carte,Fake=False):
+    partie.changerPointeurs('inputtext',carte,phrase='p33',Fake=Fake) 
     
 
         
@@ -708,13 +711,15 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
         except:
             planCorrect=False
             msg="format de plan invalide {}".format(planStr)
-            return ('inputtext',carte,True,msg)
+            partie.changerPointeurs('inputtext',carte,alert=msg)
+            return
+
         
         if case == "c":
             if cuissonPassee:
                 planCorrect=False
                 msg="plan invalide, il ne peux y avoir qu'une instruction de cuisson"
-                return ('inputtext',carte,True,msg)                
+                partie.changerPointeurs('inputtext',carte,alert=msg)             
             else:
                 try:
                     if int(type)<1:
@@ -725,7 +730,7 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
                 except:
                     planCorrect=False
                     msg="Pour la cuisson avec c:X, X doit être un entier strictement positif"
-                    return ('inputtext',carte,True,msg)
+                    partie.changerPointeurs('inputtext',carte,alert=msg)
         else:
             if type in ['b','c','l']:
                 #la case doit exister 
@@ -766,16 +771,16 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
             personnage=partie.joueurQuiJoue().personnages.pop()
             partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
             carte.mettrePersonnage(personnage)
-            return (-1,carte,False,msg)            
+            partie.changerPointeurs(-1,None)
         else:
             planCorrect=False
             msg="vous ne pouvez pas payer le cout {} ".format(cout)
-            return ('inputtext',carte,True,msg)
+            partie.changerPointeurs('inputtext',carte,alert=msg)
      
     else:
         #on est pas bon
         partie.phraseChoixPossibles="Indiquez votre plan de semaille et cuisson de pain"
-        return ('inputtext',carte,True,msg)
+        partie.changerPointeurs('inputtext',carte,alert=msg)
     
     
 
