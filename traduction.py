@@ -275,7 +275,7 @@ trad["p12"]={'fr':"achetable",
             'en':"TODO"}     
 trad["p13"]={'fr':"non rachetable",
             'en':"TODO"}     
-trad["p14"]={'fr':"réalise l'amménagement majeur",
+trad["p14"]={'fr':"réalise l'aménagement majeur",
             'en':"TODO"}     
 trad["p15"]={'fr':"coût non jouable",
             'en':"TODO"}     
@@ -332,6 +332,8 @@ trad["m0"]={'fr':"Foyer simple",
             'en':"TODO"}   
 trad["m0d"]={'fr':"Blabla",
             'en':"TODO"}   
+
+
 trad["m1"]={'fr':"Abattoir",
             'en':"TODO"}   
 trad["m1d"]={'fr':"""A chaque fois qu'un autre joueur transforme un ou plusieurs animaux en nourriture,
@@ -350,13 +352,18 @@ trad["m3d"]={'fr':"""Placez 1 PN sur chacune des cinq prochaines cases de tour r
 Au début de la phase de travaux de ces tours, placez cette nourriture sur une case d'action 
 de votre choix. (Le prochain joueur utilisant cette action recevra la nourriture.)""",
             'en':"TODO"}  
+trad["m3c"]={'fr':"Au moins 3 savoir-faire",
+            'en':"TODO"}   
 trad["m4"]={'fr':"Académie 6e Sens",
             'en':"TODO"}   
+
 trad["m4d"]={'fr':"""A la fin de chaque action où vous avez 0 d'une seule des marchandises illustrées 
 ci-dessous, prenez 1 marchandise de ce type de la réserve générale. 
 Vous ne pouvez transformer une marchandise en PN si vous avez exactement 1 de cette marchandise. 
 Dessin de : céréale, légume, bois, argile, roseau et pierre.""",
             'en':"TODO"}  
+trad["m4c"]={'fr':"Au moins 1 savoir-faire",
+            'en':"TODO"}   
 trad["m5"]={'fr':"Accès en briques",
             'en':"TODO"}   
 trad["m5d"]={'fr':"""Le joueur ayant la route la plus prestigieuse marque 2 points lors du décompte. 
@@ -368,6 +375,8 @@ trad["m6"]={'fr':"'Administration",
 trad["m6d"]={'fr':"""Recevez immédiatement 2 PN. Lors de la dernière récolte, pour chaque aménagement 
 majeur possédé, vous pouvez échanger 1 PN pour 1 point bonus.""",
             'en':"TODO"}  
+trad["m6c"]={'fr':"4 cartes en main max (celle-ci incluse)",
+            'en':"TODO"}   
 trad["m7"]={'fr':"Aide du voisinage",
             'en':"TODO"}   
 trad["m7d"]={'fr':"""Quand vous jouez cette carte, prenez au choix  1 pierre ou 1 roseau.""",
@@ -383,6 +392,9 @@ trad["m9"]={'fr':"Amants",
 trad["m9d"]={'fr':"""Si vous jouez cet aménagement mineur avec la case d'action "premier joueur", 
 vous pouvez faire une action "Naissance" plutôt que "premier joueur". Vous devez avoir une pièce 
 disponible dans votre habitation.""",'en':"TODO"}  
+
+trad["m9c"]={'fr':"Au moins 2 savoir-faire",
+            'en':"TODO"}   
 
 trad["m10"]={'fr':"Abreuvoir à chevaux",
             'en':"TODO"}   
@@ -415,7 +427,8 @@ trad["m14"]={'fr':"Arbre fruitier",
 trad["m14d"]={'fr':"""Placez 1 PN sur chacune des cases de tours 8 à 14. 
 Recevez cette nourriture au début de ces tours.""",
             'en':"TODO"}  
-
+trad["m14c"]={'fr':"Au moins 3 savoir-faire",
+            'en':"TODO"}   
 
 trad["m15"]={'fr':"Arbre pour les citoyens",
             'en':"TODO"}   
@@ -423,7 +436,8 @@ trad["m15d"]={'fr':"""Si vous avez la Menuiserie ou la Scierie, vous ne payez pa
 A la fin de la partie, vous marquez 1 point pour chaque groupe de 
 2 aménagements ayant un cout en bois.""",
             'en':"TODO"}  
-
+trad["m15c"]={'fr':"Au moins 1 savoir-faire",
+            'en':"TODO"}   
 trad["m16"]={'fr':"Scierie",
             'en':"TODO"}   
 trad["m16d"]={'fr':"""blabla""",
@@ -440,12 +454,14 @@ trad["m18"]={'fr':"Berge de saules",
 trad["m18d"]={'fr':"""A chaque fois que vous utilisez l'action spéciale "Abattre des arbres", 
 vous recevez aussi 1 Roseau.""",
             'en':"TODO"}  
-
+trad["m18c"]={'fr':"Au moins 1 aménagement majeur",
+            'en':"TODO"}   
 trad["m19"]={'fr':"Blocs de tourbe",
             'en':"TODO"}   
 trad["m19d"]={'fr':"""Prenez immédiatement 1 Combustible par tuile Tourbière dans votre ferme.""",
             'en':"TODO"}  
-
+trad["m19c"]={'fr':"Au moins 1 aménagement majeur",
+            'en':"TODO"}   
 trad["m20"]={'fr':"Bois de construction",
             'en':"TODO"}   
 trad["m20d"]={'fr':"""Quand vous jouez cette carte prenez 3 bois""",   'en':"TODO"}  
@@ -466,18 +482,26 @@ trad["m23"]={'fr':"Bosquet",
             'en':"TODO"}   
 trad["m23d"]={'fr':"""A chaque fois qu'un autre joueur utilise la case d'action "3 bois", il doit vous donner l'un de ces 3 bois. (Cet effet ne s'applique pas à la case d'action 
 "4 bois" des parties à 5 joueurs.)""",   'en':"TODO"}  
-
+trad["m23c"]={'fr':"Au moins 3 savoir-faire",
+            'en':"TODO"}   
 
 trad["m24"]={'fr':"Bouleau de la lande",
             'en':"TODO"}   
 trad["m24d"]={'fr':"""A chaque fois que vous utilisez l'action spéciale "Couper la tourbe", 
 vous recevez aussi 2 bois.""",   'en':"TODO"}  
-
+trad["m24c"]={'fr':"Au moins 3 pièces",
+            'en':"TODO"}   
 trad["m25"]={'fr':"Brouette",
             'en':"TODO"}   
 trad["m25d"]={'fr':"""Quand vous prenez au moins 4 matériaux de construction identiques sur une case d'action, 
 recevez aussi 1 combustibles. quand vous utilisez l'action spéciale "couper la tourbe", 
 recevez aussi 1 matériau de construction de votre choix.""",   'en':"TODO"}  
+
+
+
+trad["m25c"]={'fr':"Au moins 1 aménagement majeur",
+            'en':"TODO"}  
+
 
 trad["s0"]={'fr':"Acheteur d'animaux",'en':'TODO'}
 trad["s0d"]={'fr':"""Placez sur la case du tour 7 un mouton, sur celle du tour 10 un sanglier, 

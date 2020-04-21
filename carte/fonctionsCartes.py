@@ -207,7 +207,6 @@ def choixRessourceSurAction(partie,choix,possibilites,carte):
             partie.plateau['cases'][i].coutBonus=util.ajouter(
                 partie.plateau['cases'][i].coutBonus,optionRessource)
     carte.hookstatus=-1
-    partie.log.debug("{}".format(joueur.nom))
     partie.changerPointeurs(-1,None)   
     
 

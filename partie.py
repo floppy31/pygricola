@@ -1,7 +1,7 @@
 from pygricola.joueur import Joueur ,loadJoueur
 
 
-from pygricola.carte import deck,loadCarte,genererActionsSpeciales,AmenagementMajeur,CarteAction,CaseAppro
+from pygricola.carte import deck,loadCarte,genererActionsSpeciales,AmenagementMajeur,CarteAction,CaseAppro,AmenagementMineur,SavoirFaire
 import pygricola.fonctionsPlateau as fct
 from pygricola.traduction import trad
 
@@ -91,17 +91,16 @@ def renoPuisCloture(partie):
 
 def avancer(p,id):
     log=p.log
-    log.debug('avancer {}'.format(id)) 
+    log.debug('avancer {} len(p.hooks) {}'.format(id,len(p.hooks))) 
     #on ne traite les hook que si il n'y a pas d'autre choix à faire
-    if len(p.hooks)>0:
+    if len(p.hooks)>0 and p.choixPossibles==-1:
+           
+        
         hookResolu,typeResolu=p.hooks.pop()
-        p.pointerSurHook(hookResolu)
-        log.debug('traitement du hook \n {}'.format(p.pointeur)) 
-        
-        
-        p.pointeur.sujet.effet(p.choixPossibles.index(id),p.choixPossibles)
-#         hookResolu,typeResolu=p.hooks.pop()
-        hookASuivre,typeASuivre=p.pointerDernierHook()
+        log.debug('traitement du hook \n {}'.format(hookResolu)) 
+        hookResolu.sujet.effet(hookResolu.possibilites.index(id),hookResolu.possibilites)
+
+        hookASuivre,typeASuivre=p.returnDernierHook()
         log.debug('hook traité: a suivre: {}'.format(hookASuivre)) 
         if hookASuivre==False:
             if typeResolu=='debutTour':
@@ -136,33 +135,40 @@ def avancer(p,id):
         ee
     #a cet endroit là s'il y a des hook interractifs, il sont dans la partie
     log.debug('fini de jouer le coup, possibilites: {}'.format(p.choixPossibles))
-    hook,t=p.pointerDernierHook()
-    if hook==False:        
-        log.debug('pas de hooks')
-        #le joueur joue encore?
-        #si non
-        if p.choixPossibles==-1:
-            p.suivantOuEncore()
-            return p.pointeur
-
+    #si on n'a plus rien à faire 
+    if p.choixPossibles==-1:
+        #on  regarde si on a des hooks
+        hook,t=p.returnDernierHook()
+        log.debug('possssssss {}'.format(p.choixPossibles))
+        if hook==False:        
+            log.debug('pas de hooks')
+            #le joueur joue encore?
+            #si non
+            if p.choixPossibles==-1:
+                p.suivantOuEncore()
+                return p.pointeur
+    
+            else:
+                log.debug('{} doit refaire un choix'.format(p.pointeur.djangoJoueur))
+                return p.pointeur
         else:
-            log.debug('{} doit refaire un choix'.format(p.pointeur.djangoJoueur))
-            return p.pointeur
+            log.debug('hook prêt')
     else:
-        log.debug('hook prêt')
-        return hook
-
+        log.debug('encore des possibilites: {} hooks {}'.format(p.choixPossibles,len(p.hooks)))
         
 
 
 class Pointeur(object):
-    def __init__(self,sujet,possibilites,djangoJoueur,phrase="p0",alert=""):
+    def __init__(self,sujet,possibilites,djangoJoueur,phrase="p0",alert="",jouerEgalEffet=False):
         self.sujet=sujet
-        self.possibilites=possibilites
+        if type(possibilites)==list:
+            self.possibilites=possibilites.copy()
+        else:
+            self.possibilites=possibilites
         self.djangoJoueur=djangoJoueur
         self.phrase=phrase
         self.alert=alert
-        self.jouerEgalEffet=False
+        self.jouerEgalEffet=jouerEgalEffet
     
     def __str__(self):
         stri="sujet:{}\njoueur:{}\nphrase {}\npossibilites:{}".format(self.sujet,self.djangoJoueur,self.phrase,self.possibilites)
@@ -172,13 +178,18 @@ class Pointeur(object):
                 'djangoJoueur':self.djangoJoueur,
                 'phrase':self.phrase,
                 'alert':self.alert}
-        uidList=[]
-        for pos in self.possibilites:
-            if hasattr(pos, 'uid'):
-                uidList.append(pos.uid)
-            else:
-                uidList.append(pos)
-        dico['possibilites']=uidList
+        if type(self.possibilites)==list:
+            uidList=[]
+            for pos in self.possibilites:
+                if hasattr(pos, 'uid'):
+                    uidList.append(pos.uid)
+                else:
+                    uidList.append(pos)
+            dico['possibilites']=uidList
+        elif self.possibilites=='inputtext':
+            dico['possibilites']='inputtext'
+        else:
+            dico['possibilites']=-1
         return dico
 
 
@@ -203,10 +214,11 @@ class Partie(object):
 #         self.sujetSauvegarde="" #on garde ça en memoire
 #         self.uidSave="" #on garde ça en melogging.DEBUGumoire pour les hook        
 #         self.doitRepondre=self
-        self.pointeur=Pointeur("","","","","")
+        self.pointeur=Pointeur("",[],"","","")
         self.alert=""
         self.hooks=[]
         self.listeCoupsJoues=[]
+        self.draftDict={}
 
 
     @property
@@ -245,7 +257,7 @@ class Partie(object):
             self.log.debug('--------simulerPartie: fin du tour')
             self.finDuTour()
             self.hooks=self.recolterLesHooksInterractifs('finTour')            
-            hook,t=self.pointerDernierHook()
+            hook,t=self.returnDernierHook()
             if hook==False:
                 self.recolteOuDemmarageTour()
                 return self.pointeur
@@ -262,7 +274,7 @@ class Partie(object):
         else:
             self.demarrageTour()
             self.hooks=self.recolterLesHooksInterractifs('debutTour')
-            hook,t=self.pointerDernierHook()
+            hook,t=self.returnDernierHook()
             if hook==False:
                 self.pointerSurPremier()
                 return self.pointeur
@@ -274,6 +286,13 @@ class Partie(object):
 
 
     def recolterLesHooksInterractifs(self,typeHook,opts={}):
+        
+        #on sauvegarde le pointeur de la partie
+        pSave=Pointeur(self.pointeur.sujet,self.pointeur.possibilites,
+                       djangoJoueur=self.pointeur.djangoJoueur,
+                       phrase=self.pointeur.phrase,
+                       alert=self.pointeur.alert,
+                       jouerEgalEffet=self.pointeur.jouerEgalEffet)
         hooks=[]
         self.log.debug("parcourirLesHooks !!!!!!!!!!!!")
         for jid,j in self.joueurs.items():
@@ -292,13 +311,13 @@ class Partie(object):
                                         c.possibilites(Fake=False)
                                         #partie.choixPossibles
                                         #soit une liste soit un int
-                                        if self.choixPossibles==-1:
+                                        if self.pointeur.possibilites==-1:
                                             self.log.debug("parcourirLesHooks fait une action automatique")
                                             c.effet(0,self.choixPossibles)
-                                        elif type(self.choixPossibles)==list:
-                                            if len(self.choixPossibles)>1:
+                                        elif type(self.pointeur.possibilites)==list:
+                                            if len(self.pointeur.possibilites)>1:
                                                 self.log.debug("parcourirLesHooks demande un choix utilisateur {} {}".format(c.uid,c.hookStatus))
-                                                hooks.append((Pointeur(c,self.choixPossibles,c.owner.djangoUid),typeHook))
+                                                hooks.append((Pointeur(c,self.pointeur.possibilites,c.owner.djangoUid),typeHook))
                                             else:
                                             #sinon
                                                 self.log.debug("parcourirLesHooks fait une action automatique car un seul choix")
@@ -325,12 +344,12 @@ class Partie(object):
                                         
                             else:
                                 self.log.debug("parcourirLesHooks: hook déjà consomé",c.uid,c.hookStatus) 
-         
+        self.pointeur=pSave
         return  hooks        
 
     #je separe la fonction d'init... a cause de save/load
     #on a besoin de creer un objet partie sans tout réinitialiser
-    def initialiser(self,nombreJoueurs):   
+    def initialiser(self,nombreJoueurs,draftDict={}):   
 
         self.log.info('initialiser {} joueurs'.format(nombreJoueurs))
         self.nombreJoueurs=nombreJoueurs
@@ -338,9 +357,9 @@ class Partie(object):
         self.initOrdre()
         (positionTourbes,positionForets)=self.genererCourDeferme()
         self.faireCourDeferme(positionTourbes,positionForets)      
-        self.draft()
         self.actionSurTours=self.faireActionSurTours()
         self._genererPlateau(nombreJoueurs)    
+        self.draft(draftDict)
             
         
     def _initJoueurs(self):
@@ -480,9 +499,20 @@ class Partie(object):
         pass
     
     
-    def draft(self):
-        self.log.info('draft')
-        pass
+    def draft(self,draftDict={}):
+        if draftDict=={}:
+            pass
+        else:
+            self.draftDict=draftDict
+            for jid,liste in draftDict.items():
+                joueur=self.joueurs[int(jid)]
+                for carteId in liste:
+                    if carteId[0]=='m':
+                        joueur.cartesEnMain.append(AmenagementMineur(self,carteId,**deck['mineurs'][carteId]))
+                    elif carteId[0]=='s':
+                        joueur.cartesEnMain.append(SavoirFaire(self,carteId,**deck['savoirFaires'][carteId]))
+                    else:
+                        raise ValueError('draft IMPOSSIBLE')
     
  
     
@@ -514,11 +544,10 @@ class Partie(object):
         hooks=util.recolterLesHooksInterractifs(self,'debutTour',self.log)
         return hooks
     
-    def pointerDernierHook(self):
+    def returnDernierHook(self):
         if len(self.hooks)>0:
             (hook,type)=self.hooks[-1]
-            self.pointerSurHook(hook)
-            self.log.debug('on pointe sur le hook {} de type {}'.format(hook,type))
+            self.log.debug('on retourne le hook {} de type {} \n possibilites de la partie {}'.format(hook,type,self.choixPossibles))
             return hook,type  
         else:
             return False,False #on a fini        

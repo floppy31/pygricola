@@ -433,6 +433,7 @@ class FonctionsPlateau(unittest.TestCase):
         ferme.etat["A1"].type="foret"
         ferme.etat["B2"].type="tourbe"
         ferme.etat["C2"].type="foret"  
+        joueur.possibilites()
         carte.jouer()
         #on n'a pas de place pour la maison
         self.assertTrue(len(p.choixPossibles)==1)
@@ -441,6 +442,7 @@ class FonctionsPlateau(unittest.TestCase):
         ferme.etat["A1"].type="vide"
         ferme.etat["B2"].type="vide"
         ferme.etat["C2"].type="vide"
+        joueur.possibilites()
         carte.jouer()
         self.assertTrue(len(p.choixPossibles)==4)  #spectacle + 3 possibilites
         sujet=carte
@@ -731,7 +733,91 @@ class PartieDeTest(unittest.TestCase):
         self.assertTrue(util.sontEgaux(p.joueurs[0].ressources,{'n':2,'c':2,'r':1,'b':8,'a':1}))
         self.assertTrue(util.sontEgaux(p.joueurs[1].ressources,{'n':8,'a':2,'b':3}))
 
- 
+#     def test_beta(self):
+#         listeRep= ['a4','s10','b0','a5','a10','m21'] 
+#         p=Partie(logger)
+#         p.initialiser(2)  
+#         partieSimulee=simulerPartie(listeRep,p)
+        
+        
+    def test_gamma(self):
+        listeRep= ['b6', 'A1', 'b0', 'a1', 'u3', 'a5', 'a2', 'a6', 'a5', 'a8', 'a7', 'b6', 'A1', 'a0','a6']
+        p=Partie(logger)
+        p.initialiser(2)  
+        partieSimulee=simulerPartie(listeRep,p)
+
+    def test_delta(self):
+        p=Partie(logger)
+        p.initialiser(5,draftDict={0:['s27']})
+        joueur=p.joueurs[0]  
+        listeRep= ['a35','p2', 's27']
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':1}))
+        self.assertTrue(joueur.aiJeJoue('s27'))
+
+
+
+    def test_piece(self):
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur.ressources['b']=7
+        joueur.ressources['r']=2
+        listeRep=['a0','C2:P,C4:E','a9']
+        partieSimulee=simulerPartie(listeRep,p) 
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':2}))
+        self.assertTrue(joueur.courDeFerme.compter('maison')==3)
+        self.assertTrue(util.sontEgaux(p.joueurs[1].ressources,{'n':4}))
+        
+
+    def test_random_a0(self):
+        p=Partie(logger)
+        p.initialiser(2)
+        joueur=p.joueurs[0]
+        joueur.ressources['b']=5
+        joueur.ressources['r']=2
+        listeRep= ['a0','randomPlanConstructionDePieceEtOuEtable']
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':2}))
+        self.assertTrue(joueur.courDeFerme.compter('maison')==3)
+        
+        p=Partie(logger)
+        p.initialiser(2)
+        joueur=p.joueurs[0]
+        joueur.ressources['b']=2
+        listeRep= ['a0','randomPlanConstructionDePieceEtOuEtable']
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':2}))
+        self.assertTrue(joueur.courDeFerme.compter('etable')==1)        
+        
+    def test_random_a13(self):
+        p=Partie(logger)
+        p.initialiser(2)
+        joueur=p.joueurs[0]
+        joueur.courDeFerme.etat["A1"].type="champ"  
+        joueur.courDeFerme.etat["A2"].type="champ" 
+        joueur.courDeFerme.etat["A3"].type="champ" 
+        joueur.courDeFerme.etat["A4"].type="champ"
+        joueur.ressources['c']=2
+        joueur.ressources['l']=2
+        for num,case in p.plateau["cases"].items():
+            if case.uid=='a13':
+                case.visible=True        
+        listeRep= ['a13','randomPlanSemailleEtOuCuisson']
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':2}))
+        
+        p=Partie(logger)
+        p.initialiser(2)
+        joueur=p.joueurs[0]
+        joueur.ressources['c']=1
+        joueur.poserCarteDevantSoi(p.plateau['majeurs']['M0'],Majeur=True)
+        for num,case in p.plateau["cases"].items():
+            if case.uid=='a13':
+                case.visible=True           
+        listeRep= ['a13','randomPlanSemailleEtOuCuisson']
+        partieSimulee=simulerPartie(listeRep,p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':4}))
 class TestMineurs(unittest.TestCase):
     
     def test_m0(self): 
@@ -757,7 +843,9 @@ class TestMineurs(unittest.TestCase):
         joueur.cartesDevantSoi['s25']=SavoirFaire(p,'s25',**deck['savoirFaires']['s25'])
         joueur.cartesDevantSoi['s26']=SavoirFaire(p,'s26',**deck['savoirFaires']['s26'])
         joueur.ressources['f']=1
-        partieSimulee=simulerPartie(['b3','m3','a2','a6','a7','a5','a6'],p)
+        partieSimulee=simulerPartie(['b3','m3','a2','a6','a7','a5',#fin du tour
+                                     'a6',#case ou on a mis la bouffe
+                                     ],p)
         
     def test_m7(self):
         #1 ère fois
@@ -782,7 +870,28 @@ class TestMineurs(unittest.TestCase):
         self.assertFalse(joueur.aiJeJoue('m7'))
         self.assertTrue(util.findCarte(joueur2.cartesEnMain,'m7'))
 
-
+    def test_m7bis(self):
+        #1 ère fois
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        joueur2=p.joueurs[1]
+        joueur.ressources=util.rVide()
+        m7=AmenagementMineur(p,'m7',**deck['mineurs']['m7'])
+        self.assertFalse(joueur.jePeuxJouer(m7.cout))
+        joueur.ressources['b']=1
+        self.assertTrue(joueur.jePeuxJouer(m7.cout))
+        joueur.ressources['a']=1
+        joueur.ressources['b']=0
+        self.assertTrue(joueur.jePeuxJouer(m7.cout))
+        #on remet le bois pour tester le cout multiple
+        joueur.ressources['b']=1
+       
+        joueur.cartesEnMain.append(m7)
+        partieSimulee=simulerPartie(['a10','m7_cout0','r'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'r':1,'a':1}))
+        self.assertFalse(joueur.aiJeJoue('m7'))
+        self.assertTrue(util.findCarte(joueur2.cartesEnMain,'m7'))
 
     def test_m11(self):
         #1 ère fois
@@ -910,6 +1019,18 @@ class TestMineurs(unittest.TestCase):
         self.assertFalse(joueur.jeRemplisLesConditions(m15.condition))
         #A FINIR!!
 
+    def test_m22(self):
+        #1 ère fois
+        p=Partie(logger)
+        p.initialiser(2)  
+        joueur=p.joueurs[0]
+        m22=AmenagementMineur(p,'m22',**deck['mineurs']['m22'])
+        joueur.cartesEnMain.append(m22)
+        partieSimulee=simulerPartie(['a1','m22','a6','a9'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'n':3,'b':3}))
+        #A FINIR!!
+
+
     def test_m23(self):
         #1 ère fois
         p=Partie(logger)
@@ -950,11 +1071,7 @@ class TestSavoirFaire(unittest.TestCase):
         self.assertTrue(util.sontEgaux(p.joueurs[0].ressources,{'n':2}))
         self.assertTrue(util.sontEgaux(p.joueurs[1].ressources,{'n':2}))
 
-    def test_simple(self):
-        p=Partie(logger)
-        p.initialiser(2)  
-        listeRep=['a2']
-        partieSimulee=simulerPartie(listeRep,p)
+
 
 #     def test_s6(self): 
 #         p=Partie(logger)
@@ -1137,8 +1254,8 @@ class TestSavoirFaire(unittest.TestCase):
 
     def test_s21(self): 
         p=Partie(logger)
-        p.initialiser(1)  
-        listeRep=['a4','s21',
+        p.initialiser(2)  
+        listeRep=['a4','s21','a6',
                   's21','s21','s21','s21','s21','s21','s21','s21']
         joueur=p.joueurs[0]
         joueur.ressources['n']=8
@@ -1148,6 +1265,7 @@ class TestSavoirFaire(unittest.TestCase):
                                                           'l':2,'b':1,'a':1}))  
         self.assertTrue(partieSimulee.plateau['tour']==1)
         self.assertTrue(len(joueur.personnages)==1)
+        self.assertTrue(partieSimulee.quiJoue==0)
   
     def test_s23(self): 
         p=Partie(logger)

@@ -13,7 +13,8 @@ def possibilitesCuisson(partie,carte,Fake=False):
     possibilites=[]
     for res in ['l','m','s','v','h']:
         if (partie.joueurQuiJoue().ressources[res]>0):
-            possibilites.append(Carte(partie,"u"+res,cout={res:1,'n':-dictCuisson[res]},sansPion=True))  
+            if res in dictCuisson.keys():
+                possibilites.append(Carte(partie,"u"+res,cout={res:1,'n':-dictCuisson[res]},sansPion=True))  
     partie.changerPointeurs(possibilites ,carte,'p36',Fake)     
 
 
@@ -33,11 +34,12 @@ class Carte:
     def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},option={},sansPion=False):
         self.uid=uid
         self.partie=partie
-        if type(cout)==dict:
+        if type(cout)==dict or type(cout)==list:
             self._cout=cout.copy()
             self._coutinit=cout  #on le garde en mémoire pour remettre le cout init quand on appelle vider
         else:
             self._cout=cout
+            self._coutinit={}
         self.coutBonus=util.rVide() # a utiliser quand on ajoute des ressources à une case
         #genre précurseur, contremaitre...
             
@@ -126,21 +128,18 @@ class Carte:
         else:
             return self._effet(self.partie,choix,choixPossibles,self)    
 
-    def possibilites(self,Fake=True):
-        self.partie.log.debug("carte {} possibilites".format(self.partie,self.uid))
-        if type(self._possibilites)==list:
-            self.partie.changerPointeurs(self._possibilites,self,Fake=Fake)
-        else:
-            self._possibilites(self.partie,self,Fake=Fake)      
 
-#     def possibilites(self,Fake=True):
-#         self.partie.log.debug("carte {} possibilites".format(self.partie,self.uid))
-#         if type(self._possibilites)==dict:
-#             return []
-#         elif type(self._possibilites)==list:
-#             self.partie.changerPointeurs(self._possibilites,self,Fake=Fake)
-#         else:
-#             self._possibilites(self.partie,self,Fake=Fake)        
+        
+
+    def possibilites(self,Fake=True):
+        self.partie.log.debug("carte {} Fake {} \n possibilites".format(self.uid,Fake))
+        if type(self._possibilites)==list:
+            self.partie.log.debug("liste")
+            if not Fake:
+                self.partie.changerPointeurs(self._possibilites,self,Fake=Fake)
+        else:
+            self.partie.log.debug("fonction")
+            self._possibilites(self.partie,self,Fake=Fake)      
 
     def jouer(self):
         
@@ -158,7 +157,7 @@ class Carte:
             elif self.uid=='s21':
                 self.partie.messagesPrincipaux.append([self.partie.joueurQuiJoue().nom,"p20",self.uid])
                 self.effet(0, [])
-                self.partie.changerPointeurs(-1,self.partie.joueurQuiJoue())
+                self.partie.joueurQuiJoue().possibilites()
             else:
                 self.partie.log.debug("{} {}".format(self.uid,self.cout)) 
                 self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid))
@@ -175,6 +174,7 @@ class Carte:
                         self.partie.changerPointeurs(-1,None)
                     else:
                         self.partie.log.debug('vous pouvez jouer encore')
+                        self.partie.joueurQuiJoue().possibilites()
     
                 else:
                     personnage=self.partie.joueurQuiJoue().personnages.pop()
@@ -192,7 +192,11 @@ class Carte:
         return str(self.cout)
     
     def save(self):
-        return {'uid':self.uid}
+        dico={'uid':self.uid}
+        cout=self.cout
+        if cout !={}:
+            dico['cout']=cout
+        return dico
     
     def bonusRessources(self,rDict):
         gain=util.rVide()
@@ -660,11 +664,11 @@ mineursDict["m0"]={
 #     'hook':'o_cuisson',
 #     'pointsVictoire':2, 
 #     }
-mineursDict["m2"]={
-    'cout':{'b':2},
-    'animaux':"abreuvoir",
-    'pointsVictoire':1, 
-    }
+# mineursDict["m2"]={
+#     'cout':{'b':2},
+#     'animaux':"abreuvoir",
+#     'pointsVictoire':1, 
+#     }
 mineursDict["m3"]={
     'condition':fctCarte.avoirXSavoirFaire,
     'hook':('debutTour','s','t'),
@@ -683,31 +687,31 @@ mineursDict["m3"]={
 #     'option':{'conditionSavoirFaire':1}, 
 #     }
 
-mineursDict["m5"]={
-    'cout':{'a':2},
-    'hook':'final',
-    'effet':fctCarte.final_access,
-    'pointsVictoire':1, 
-    }
+# mineursDict["m5"]={
+#     'cout':{'a':2},
+#     'hook':'final',
+#     'effet':fctCarte.final_access,
+#     'pointsVictoire':1, 
+#     }
 
 
-mineursDict["m6"]={
-    'cout':{'a':2,'b':1},
-    'condition':fctCarte.avoirMoinsDeXCartesEnMain,
-    'instant':{'n':-2},
-    'option':{'conditionMoinsDeXCartesEnMain':4},
-    'hook':'final',
-    'effet':fctCarte.final_administration,
-    }
+# mineursDict["m6"]={
+#     'cout':{'a':2,'b':1},
+#     'condition':fctCarte.avoirMoinsDeXCartesEnMain,
+#     'instant':{'n':-2},
+#     'option':{'conditionMoinsDeXCartesEnMain':4},
+#     'hook':'final',
+#     'effet':fctCarte.final_administration,
+#     }
 
-mineursDict["m7"]={
-    'cout':[{'b':1},{'a':1}],
-    'option':{    'instant':'hook',
-                  'hook_possibilites':['r','p'],
-                 'choixCout':{'r':{'r':-1},'p':{'p':-1}}}, 
-    'passableAGauche':True,
-    'effet':fctCarte.choixCout,
-    }
+# mineursDict["m7"]={
+#     'cout':[{'b':1},{'a':1}],
+#     'option':{    'instant':'hook',
+#                   'hook_possibilites':['r','p'],
+#                  'choixCout':{'r':{'r':-1},'p':{'p':-1}}}, 
+#     'passableAGauche':True,
+#     'effet':fctCarte.choixCout,
+#     }
 
 # mineursDict["m8"]={
 #     'hook':"s_construction_pierre",
@@ -723,10 +727,10 @@ mineursDict["m7"]={
 #     'effet':fctCarte.choixPremierOuNaissance,
 #     }
 
-mineursDict["m10"]={
-    'cout':{'p':1},
-    'animaux':"abreuvoirChevaux",
-    }
+# mineursDict["m10"]={
+#     'cout':{'p':1},
+#     'animaux':"abreuvoirChevaux",
+#     }
 
 mineursDict["m11"]={
     'cout':{'r':1,'b':5},
@@ -783,10 +787,9 @@ mineursDict["m15"]={
 
 mineursDict["m18"]={
     'condition':fctCarte.avoirXMajeurs,
-    'option':{'conditionMajeurs':1}, 
+    'option':{'conditionMajeurs':1,'choixCout':{'r':{'r':-1}}}, 
     'effet':fctCarte.choixCout,
     'possibilites':['r'],
-    'option':{'choixCout':{'r':{'r':-1}}},     
     }
 
 mineursDict["m19"]={
@@ -825,13 +828,12 @@ mineursDict["m23"]={
 mineursDict["m24"]={
     'cout':{'n':2},
     'condition':fctCarte.avoirXPieces,
-    'option':{'conditionPiece':3},     
+    'option':{'conditionPiece':3,'choixCout':{'b':{'b':-2}}},     
     'hook':('b7','s','p'), #p comme personnage on réinit à chaque fin de personnage
     'pointsVictoire':1, 
     'effet':fctCarte.choixCout,
     'possibilites':['b'],
-    'option':{'choixCout':{'b':{'b':-2}}},     
-    }
+    } 
 
 mineursDict["m25"]={
     'cout':{'b':2},
@@ -846,59 +848,59 @@ mineursDict["m25"]={
 
 
 savoirFaireDict={}
-savoirFaireDict["s0"]={
-    'joueurMini':4,
-    'hook':'debutTour',
-    'effet':fctCarte.prendreSiTourEgal,
-    'option':{'prendreSiTourEgal':{7:{'n':1,"m":-1},10:{'n':1,"s":-1},14:{'n':1,"b":-1}}}
-    }
-savoirFaireDict["s1"]={
-    'joueurMini':3,
-    'hook':'o_firstTimePrendsBois',
-    'effet':fctCarte.choixAchat,
-    'option':{'n':1,"b":-1},
-    'recharge':'tour'
-    }
-savoirFaireDict["s2"]={
-    'joueurMini':4,
-    'hook':'o_firstTimePrendsPierre',
-    'effet':fctCarte.choixAchat,
-    'option':{'n':1,"p":-1,'victime':{'n':-1}},
-    'recharge':'tour'
-    }
-savoirFaireDict["s3"]={
-    'joueurMini':4,
-    'hook':'o_firstTimePrendsRoseau',
-    'effet':fctCarte.choixAchat,
-    'option':{'n':1,"r":-1,'victime':{'n':-1}},
-    'recharge':'tour'
-    }
+# savoirFaireDict["s0"]={
+#     'joueurMini':4,
+#     'hook':'debutTour',
+#     'effet':fctCarte.prendreSiTourEgal,
+#     'option':{'prendreSiTourEgal':{7:{'n':1,"m":-1},10:{'n':1,"s":-1},14:{'n':1,"b":-1}}}
+#     }
+# savoirFaireDict["s1"]={
+#     'joueurMini':3,
+#     'hook':'o_firstTimePrendsBois',
+#     'effet':fctCarte.choixAchat,
+#     'option':{'n':1,"b":-1},
+#     'recharge':'tour'
+#     }
+# savoirFaireDict["s2"]={
+#     'joueurMini':4,
+#     'hook':'o_firstTimePrendsPierre',
+#     'effet':fctCarte.choixAchat,
+#     'option':{'n':1,"p":-1,'victime':{'n':-1}},
+#     'recharge':'tour'
+#     }
+# savoirFaireDict["s3"]={
+#     'joueurMini':4,
+#     'hook':'o_firstTimePrendsRoseau',
+#     'effet':fctCarte.choixAchat,
+#     'option':{'n':1,"r":-1,'victime':{'n':-1}},
+#     'recharge':'tour'
+#     }
 
-savoirFaireDict["s4"]={
-    'joueurMini':4,
-    'hook':'s_spectacle',
-    'effet':fctCarte.acrobate,
-    }
+# savoirFaireDict["s4"]={
+#     'joueurMini':4,
+#     'hook':'s_spectacle',
+#     'effet':fctCarte.acrobate,
+#     }
 
-savoirFaireDict["s5"]={
-    'joueurMini':1,
-    'final':fctCarte.final_actrice,
-    }
+# savoirFaireDict["s5"]={
+#     'joueurMini':1,
+#     'final':fctCarte.final_actrice,
+#     }
 
-savoirFaireDict["s6"]={
-    'joueurMini':3,
-    'hook':('a1','a','p'),
-    'possibilites':fctCarte.possibilitesOptions,
-    'option':{'possibilitesOptions':[{'c':-1},{'b':-1},{'a':-1},{'r':-1},{'m':-1}]}, 
-    'effet':fctCarte.depiler,    
-    }
-
-savoirFaireDict["s7"]={
-    'joueurMini':3,
-    'hook':['debutTour','finTour'],
-    'effet':fctCarte.agrarien,
-    'option':{'c':-1,'b':-1,'a':-1,'r':-1,'m':-1}
-    }
+# savoirFaireDict["s6"]={
+#     'joueurMini':3,
+#     'hook':('a1','a','p'),
+#     'possibilites':fctCarte.possibilitesOptions,
+#     'option':{'possibilitesOptions':[{'c':-1},{'b':-1},{'a':-1},{'r':-1},{'m':-1}]}, 
+#     'effet':fctCarte.depiler,    
+#     }
+# 
+# savoirFaireDict["s7"]={
+#     'joueurMini':3,
+#     'hook':['debutTour','finTour'],
+#     'effet':fctCarte.agrarien,
+#     'option':{'c':-1,'b':-1,'a':-1,'r':-1,'m':-1}
+#     }
 savoirFaireDict["s8"]={
     'joueurMini':4,
     'hook':('a5','s','t'),
@@ -906,11 +908,11 @@ savoirFaireDict["s8"]={
     'possibilites':['l'],
     'option':{'choixCout':{'l':{'l':-1}}}, 
     }
-savoirFaireDict["s9"]={
-    'joueurMini':3,
-    'hook':'recolte_finchamps',
-    'effet':fctCarte.aideMoissonneur,
-    }
+# savoirFaireDict["s9"]={
+#     'joueurMini':3,
+#     'hook':'recolte_finchamps',
+#     'effet':fctCarte.aideMoissonneur,
+#     }
 savoirFaireDict["s10"]={
     'joueurMini':1,
     'hook':('a5','s','t'),
