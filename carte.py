@@ -1,7 +1,7 @@
 import pygricola.util as util
 import pygricola.fonctionsPlateau as fct
 from pygricola.traduction import trad
-import pygricola.carte.fonctionsCartes as fctCarte
+import pygricola.fonctionsCartes as fctCarte
 
 
 ##################################################################################
@@ -36,7 +36,7 @@ class Carte:
         self.partie=partie
         if type(cout)==dict or type(cout)==list:
             self._cout=cout.copy()
-            self._coutinit=cout  #on le garde en mémoire pour remettre le cout init quand on appelle vider
+            self._coutinit=cout.copy()  #on le garde en mémoire pour remettre le cout init quand on appelle vider
         else:
             self._cout=cout
             self._coutinit={}
@@ -56,6 +56,8 @@ class Carte:
         self.sansPion=sansPion
         self.phraseJouer='joue :'
         self.occupants=[]
+        self.ressourcesFutures={} #pour matérialiser les ressources qui vont arriver
+        
         
             
     def __str__(self):
@@ -63,7 +65,7 @@ class Carte:
     
     def vider(self):
         coutResultat=self.cout.copy()
-        self._cout=self._coutinit
+        self._cout=self._coutinit.copy()
         res=util.ajouter(coutResultat,self.coutBonus)
         self.coutBonus=util.rVide()
         self.partie.log.debug('VIDER: {} {} {}'.format(res,self.cout,self._coutinit))        
@@ -160,7 +162,7 @@ class Carte:
                 self.partie.joueurQuiJoue().possibilites()
             else:
                 self.partie.log.debug("{} {}".format(self.uid,self.cout)) 
-                self.partie.messagesPrincipaux.append("{} {} {}".format(self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid))
+                self.partie.messagesPrincipaux.append([self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid])
                         
                 coutAAppliquer=self.vider()
                 self.partie.log.debug("{} {}".format(self.uid,coutAAppliquer)) 
@@ -243,6 +245,7 @@ class Carte:
                 self.option['pileTour']={}
                 for plus,dico in self.option['pileTourPlus'].items():
                     self.option['pileTour'][plus+self.partie.plateau['tour']]=dico 
+                self.option["instant"]='ressourcesFutures'
             elif  self.option["instant"]=='hook':
 
                 if hasattr(self.option["hook_possibilites"], '__call__'):
@@ -256,8 +259,30 @@ class Carte:
                     self.effet(0,possibilites)
             elif  self.option["instant"]=='effet':
                  self.effet(0,[])
+            
+                            
             else:
-                dddd
+                print('passe ici')
+                pass
+            
+            if  self.option["instant"]=='ressourcesFutures':
+                #pileTour pileInfinie pileInfinieImpair pile
+                t=self.partie.plateau['tour']+self.partie._offset+1
+                if 'pile' in  self.option:
+                    for cout in self.option['pile']:
+                        if t in self.partie.plateau["cases"].keys():
+                            if self.owner.couleur not in self.partie.plateau["cases"][t].ressourcesFutures.keys():
+                                self.partie.plateau["cases"][t].ressourcesFutures[self.owner.couleur]=util.rVide()
+                            self.partie.plateau["cases"][t].ressourcesFutures[self.owner.couleur]=util.ajouter(self.partie.plateau["cases"][t].ressourcesFutures[self.owner.couleur],cout)
+                            t+=1
+                if 'pileTour' in  self.option:
+                    for t,cout in self.option['pileTour'].items():
+                        tour=self.partie._offset+t
+                        if self.owner.couleur not in self.partie.plateau["cases"][t].ressourcesFutures.keys():
+                            self.partie.plateau["cases"][tour].ressourcesFutures[self.owner.couleur]=util.rVide()
+                        self.partie.plateau["cases"][tour].ressourcesFutures[self.owner.couleur]=util.ajouter(self.partie.plateau["cases"][tour].ressourcesFutures[self.owner.couleur],cout)
+                    
+                
     
 def loadCarte(stri,partie):
     print('loadCarte',stri)
@@ -293,7 +318,7 @@ class CaseAppro(CarteAction):
                 self._cout[k]+=self.appro[k]
             else:
                 self._cout[k]=self.appro[k]
-                        
+                  
                 
     @property
     def display(self):
@@ -542,7 +567,7 @@ majeursDict["M8"]={
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
     'visible':True,
-    'devoile': "M9",     
+    'devoile': "M10",     
     'pointsVictoire':1, 
     }
 majeursDict["M9"]={
@@ -551,7 +576,7 @@ majeursDict["M9"]={
     "possibilites":possibilitesCuisson,
     'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
     'visible':True,
-    'devoile': "M10",     
+    'devoile': "M11",     
     'pointsVictoire':1, 
     }
 majeursDict["M10"]={
@@ -764,7 +789,7 @@ mineursDict["m14"]={
     'condition':fctCarte.avoirXSavoirFaire,
     'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
     'option':{'pileTour':{8:{'n':-1},9:{'n':-1},10:{'n':-1},11:{'n':-1},12:{'n':-1},
-                          13:{'n':-1},14:{'n':-1}},
+                          13:{'n':-1},14:{'n':-1}},'instant':'ressourcesFutures',
                'conditionSavoirFaire':3}, 
     'effet':fctCarte.depiler,
     'pointsVictoire':1, 
@@ -809,7 +834,7 @@ mineursDict["m20"]={
 mineursDict["m21"]={
     'cout':{'n':2},
     'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
-    'option':{'pileTour':{2:{'b':-1},4:{'b':-1},6:{'b':-1},8:{'b':-1},10:{'b':-1},12:{'b':-1},14:{'b':-1}}}, 
+    'option':{'instant':'ressourcesFutures','pileTour':{2:{'b':-1},4:{'b':-1},6:{'b':-1},8:{'b':-1},10:{'b':-1},12:{'b':-1},14:{'b':-1}}}, 
     'effet':fctCarte.depiler,    
     }
 mineursDict["m22"]={
@@ -845,7 +870,86 @@ mineursDict["m25"]={
     'possibilites':['b','a','p','r'],
     }
 
+mineursDict["m26"]={
+    'cout':{'b':1},
+    'hook':('a9','s','p'),
+    'effet':fctCarte.caneAPeche,
+    'possibilites':[],
+    }
 
+mineursDict["m27"]={
+    'cout':{'b':2},
+    'hook':('a9','s','p'),
+    'condition':fctCarte.avoirXSavoirFaire,
+    'option':{'conditionSavoirFaire':2,
+              'choixCout':{'rn':{'r':-1,'n':-1}}},
+    'pointsVictoire':1, 
+    'effet':fctCarte.choixCout,
+    'possibilites':['rn'],
+    }
+mineursDict["m28"]={
+    'cout':{'b':2},
+    'hook':('a5','s','p'),
+    'option':{'choixCout':{'p':{'p':-1}}},
+    'effet':fctCarte.choixCout,
+    'possibilites':['p'],
+    }
+
+mineursDict["m29"]={
+    'cout':{'b':2},
+    'condition':fctCarte.avoirXSavoirFaire,
+    'hook':('a2','s','p'),
+    'option':{'choixCout':{'c':{'c':-2}},
+    'conditionSavoirFaire':2},
+    'effet':fctCarte.choixCout,
+    'possibilites':['c'],
+    }
+mineursDict["m30"]={
+    'cout':{'b':2},
+    'condition':fctCarte.avoirXSavoirFaire,
+    'hook':('debutTour','s','p'),
+    'option':{'conditionSavoirFaire':2,'instant':'ressourcesFutures',
+              'pileTour':{5:{'c':-1},8:{'c':-1},11:{'c':-1},14:{'c':-1}}}, 
+    'effet':fctCarte.depiler,
+    }
+mineursDict["m31"]={
+    'cout':{'b':2},
+    'condition':fctCarte.avoirXSavoirFaire,
+    'hook':('debutTour','s','p'),
+    'option':{'conditionSavoirFaire':4,
+              'pileInfinie':{'n': -2 }}, 
+    'effet':fctCarte.depiler,
+    'pointsVictoire':1, 
+    }
+
+mineursDict["m32"]={
+    'cout':{'c':1,'l':-1},
+    'passableAGauche':True,    
+    }
+mineursDict["m33"]={
+    'cout':{'b':2},
+    'condition':fctCarte.avoirX,
+    'hook':('debutTour','s','p'),
+    'option':{'condition':{'s':1,'m+M':2},
+              'pileInfinieImpair':{'n': -1 }}, 
+    'effet':fctCarte.depiler,
+    'pointsVictoire':1, 
+    }
+mineursDict["m34"]={
+    'condition':fctCarte.avoirX,
+    'hook':('debutTour','s','p'),
+    'option':{'condition':{'s':3},'instant':'ressourcesFutures',
+              'pile':[{'n':-1},{'n':-1},{'n':-1},{'n':-1}]}, 
+    'effet':fctCarte.depiler,
+    'pointsVictoire':1, 
+    }
+mineursDict["m34"]={
+    'cout':{'n':2},
+    'condition':fctCarte.avoirX,
+    'hook':('debutTour','s','p'),
+    'option':{'condition':{'s':1},'instant':'effet'},
+    'effet':fctCarte.excursionCarriere,
+    }
 
 savoirFaireDict={}
 # savoirFaireDict["s0"]={
@@ -959,13 +1063,13 @@ savoirFaireDict["s16"]={
 savoirFaireDict["s17"]={
     'joueurMini':3,
     'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
-    'option':{'pile':[{'r':-1},{'r':-1},{'r':-1},{'r':-1}]}, 
+    'option':{'pile':[{'r':-1},{'r':-1},{'r':-1},{'r':-1}],'instant':'ressourcesFutures'}, 
     'effet':fctCarte.depiler,
     }
 savoirFaireDict["s18"]={
     'joueurMini':1,
     'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
-    'option':{'pile':[{'b':-1},{'b':-1},{'b':-1},{'b':-1},{'b':-1}]}, 
+    'option':{'pile':[{'b':-1},{'b':-1},{'b':-1},{'b':-1},{'b':-1}],'instant':'ressourcesFutures'}, 
     'effet':fctCarte.depiler,
     }
 
@@ -973,14 +1077,14 @@ savoirFaireDict["s19"]={
     'joueurMini':1,
     'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
     'option':{'pileTour':{8:{'b':-1},9:{'b':-1},10:{'b':-1},11:{'b':-1},12:{'b':-1},
-                          13:{'b':-1},14:{'b':-1}}}, 
+                          13:{'b':-1},14:{'b':-1}},'instant':'ressourcesFutures'}, 
     'effet':fctCarte.depiler,
     }
 savoirFaireDict["s20"]={
     'joueurMini':1,
     'hook':('debutTour','s','p'), #p comme personnage on réinit à chaque fin de personnage
     'option':{'pileTour':{8:{'a':-1},9:{'a':-1},10:{'a':-1},11:{'a':-1},12:{'a':-1},
-                          13:{'a':-1},14:{'a':-1}}}, 
+                          13:{'a':-1},14:{'a':-1}},'instant':'ressourcesFutures'}, 
     'effet':fctCarte.depiler,
     }
 

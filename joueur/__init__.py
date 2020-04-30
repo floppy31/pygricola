@@ -239,6 +239,10 @@ class Joueur(object):
     
     def prixDeLaPiece(self):
         return {'r':2,self.courDeFerme.enQuoiEstLaMaison():5}  
+   
+    def prixDeLaRenovation(self):
+        return {'r':1,self.courDeFerme.enQuoiEstLaMaison():self.courDeFerme.compter('maison')}  
+         
       
     def coutAbattre(self):
         if self.aiJeJoue("M6"):
@@ -318,6 +322,7 @@ class Joueur(object):
         dico['ressources']=self.ressources
         dico['personnages']=[p.save() for p in self.personnages]
         dico['personnagesPlaces']=[p.save() for p in self.personnagesPlaces]
+        dico['persoCount']=len(self.personnages)+len(self.personnagesPlaces)
         return dico
         
 

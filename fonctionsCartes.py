@@ -37,6 +37,21 @@ def avoirXMajeurs(partie,carte):
     print("avoirXMajeurs",mesMajeurs,X)
     return mesMajeurs>=X
 
+def avoirX(partie,carte):
+    condict=carte.option['condition']
+    listeReponse=[]
+    for k,v in condict.items():
+        if k=='m+M':
+            listeReponse.append((partie.joueurQuiJoue().combienJaiJoueDe('m')+
+                                partie.joueurQuiJoue().combienJaiJoueDe('M'))>=v)
+        else:
+            listeReponse.append(partie.joueurQuiJoue().combienJaiJoueDe(k)>=v)
+            
+        
+    print("avoirX",listeReponse)
+    
+    return list(set(listeReponse))   == ['True']
+
 def boisSurLaBerge(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme
@@ -46,6 +61,13 @@ def boisSurLaBerge(partie,choix,possibilites,carte):
             nombre=3
         joueur.mettreAJourLesRessources({"b":-nombre})    
 
+def caneAPeche(partie,choix,possibilites,carte):
+    if partie.plateau["tour"]<8:
+        carte.owner.mettreAJourLesRessources({'n':-1})
+    else:
+        carte.owner.mettreAJourLesRessources({'n':-2})
+    partie.log.debug("bonus canne a peche")
+    
 def conditionEpicier(partie,carte):
     
     joueur=partie.joueurQuiJoue()
@@ -72,6 +94,13 @@ def depiler(partie,choix,possibilites,carte):
                 del carte.option['pileTour'][partie.plateau['tour']]
                 print("depiler, il reste:",len(carte.option['pileTour'].keys()),'tours')
                 carte.owner.mettreAJourLesRessources(cout)
+    
+    elif 'pileInfinie' in carte.option.keys():
+        carte.owner.mettreAJourLesRessources(carte.option['pileInfinie'])
+    elif 'pileInfinieImpair' in carte.option.keys():
+        if partie.plateau['tour']%2 ==1:
+            carte.owner.mettreAJourLesRessources(carte.option['pileInfinieImpair'])        
+    
      
     partie.changerPointeurs(-1,None)            
 
@@ -81,6 +110,10 @@ def enleverPossibilitesOptions(partie,choix,possibilites,carte):
     partie.changerPointeurs(-1,None)   
 #     return (-1,carte,False,str(res))    
 
+
+def excursionCarriere(partie,choix,possibilites,carte):
+    carte.owner.mettreAJourLesRessources({'p':len(carte.owner.personnages)+len(carte.owner.personnagesPlaces)})
+    
 
 def blocTourbe(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
@@ -130,8 +163,6 @@ def possibilitesRessourceSurAction(partie,carte,Fake=False):
 #             partie.phraseChoixPossibles=[carte.uid,'p18']
 #             partie.sujet=carte
 
-def choixAchat(selfCarte):
-    pass
 
 def conditionAnnexe(partie,carte):
     poss=possibilitesAnnexe(partie,carte)

@@ -6,6 +6,8 @@ from pygricola.partie import Partie,avancer
 import pygricola.fonctionsPlateau as fct
 from pygricola.carte import Carte,CarteAction,AmenagementMajeur,AmenagementMineur,deck,SavoirFaire
 import pygricola.util as util
+from pygricola.joueur.courDeFerme import Tuile
+
 
 import logging
 
@@ -395,7 +397,275 @@ class FonctionsPlateau(unittest.TestCase):
             ferme.mettrePersonnage(perso,perso.localisationInit) 
             p.pointeur.sujet=carte
                
+    def test_Cloture(self):
+        p=Partie(logger)
+        p.initialiser(1)  
+        joueur=p.joueurs[0]
+        ferme=joueur.courDeFerme
+        joueur.ressources=util.rVide()   
+        carte=util.findCarte(p.plateau["cases"].values(),"a11")
+        print('toto',carte.uid)
+        carte.visible=True
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True
+        self.assertFalse(carteEstDispo)
+        #si on se mets 4 bois alors elle doit être dispo
+        joueur.ressources['b']=4
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True
+        self.assertTrue(carteEstDispo)      
+        
+        #test au moins 1 place
+        for c in ferme.tousLes('vide'):
+            ferme.etat[c].type="tourbe"
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True
+        self.assertFalse(carteEstDispo)   
+        
+        for c in ferme.tousLes('tourbe'):
+            ferme.etat[c].type="vide"
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True
+        self.assertTrue(carteEstDispo)   
 
+        joueur.ressources['b']=3
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True
+        self.assertFalse(carteEstDispo)       
+
+        joueur.ressources['b']=15
+        joueur.possibilites()        
+        carteEstDispo=False
+        for c in p.choixPossibles:
+            if c.uid==carte.uid:
+                carteEstDispo=True
+        self.assertTrue(carteEstDispo) 
+        
+           
+        #Clotures en 1 coup
+        
+        inputTextNonValables=["toto","B1:E","B2,B2-C2","C3,C4,B5","B2,B2",
+                              "B2,B,C4-C5",
+                              "B2-B5",
+                              "B3,C3,C4-B4-B3"
+                              ]
+         
+        for it in inputTextNonValables:
+            print('--------------------------------')   
+            carte.effet(it,p.choixPossibles) 
+            print(p.pointeur.alert)
+            self.assertTrue(p.choixPossibles=='inputtext')  
+                   
+        for c in ferme.tousLes('foret'):
+            ferme.etat[c]=Tuile('vide')
+  
+        print('#######################################') 
+        inputTextValablesEtRessources=[
+            ("C3",4,['C3'],[2],11,['p4']),#1 paturage simple
+            ("C3,C4",7,['C3','C4'],[2,2],8,['p4','p4']),#2 paturage simple
+            ("C3,C4,C5",10,['C3','C4','C5'],[2,2,2],5,['p4','p4','p4']),#3 paturage simple
+            ("C3,C4,B4",10,['C3','C4','B4'],[2,2,2],5,['p4','p4','p4']),#3 paturage simple
+            ("C3,C4,B4,B3",12,['C3','C4','B4','B3'],[2,2,2,2],3,['p4','p4','p4','p4']),#3 paturage simple
+            ("C3-C4",6,['C3','C4'],[4,4],9,['p3e','p3w']),
+            ("C3-C4-C5",8,['C3','C4','C5'],[6,6,6],7,['p3e','p2ns','p3w']),
+            ("C3-C4-B4-B3",8,['C3','C4','B4','B3'],[8,8,8,8],7,['p2sw','p2se','p2ne','p2nw']),
+            ("C3-C4-B4-C5",10,['C3','C4','B4','C5'],[8,8,8,8],5,['p3e','p1s','p3s','p3w']),
+            ("C3-C4-B4-C5-B5",10,['C3','C4','B4','C5','B5'],[10,10,10,10,10],5,['p3e','p1s','p2nw','p2se','p2ne']),
+            ("B3-B4-B5-C4-A4",12,['B3','B4','B5','C4','A4'],[10,10,10,10,10],3,['p3e','p0','p3w','p3n','p3s']),
+            ("C3-C4-C5-B5-B4-B3",10,['C3','C4','C5','B5','B4','B3'],[12,12,12,12,12,12],5,['p2sw','p1s','p2se','p2ne','p1n','p2nw']),
+            ("C3-C4-B4-B5-A4-C5",12,['C3','C4','B4','B5','A4','C5'],[12,12,12,12,12,12],3,
+             ['p3e','p1s','p1w','p2ne','p3s','p2se']),
+            ("C2-C3-C4-C5-B5-B4",14,['C2','C3','C4','C5','B5','B4'],[12,12,12,12,12,12],1,
+             ['p3e','p2ns','p1s','p2se','p2ne','p2nw']),
+            ("C2-C3,B2-B3",10,['C2','C3',"B2",'B3'],[4,4,4,4],5,['p3e','p3w','p3e','p3w']),
+            ("C2,C3,B2-B3",11,['C2','C3',"B2",'B3'],[2,2,4,4],4,['p4','p4','p3e','p3w']),
+            ("C3-C4-C5,B3",11,['C3','C4',"C5",'B3'],[6,6,6,2],4,['p3e','p2ns','p3w','p4']),
+            ("C3-C4-C5,B3-B4",12,['C3','C4',"C5",'B3','B4'],[6,6,6,4,4],3,['p3e','p2ns','p3w','p3e','p3w']),
+            ("C3-C4,C2,B2,B3-B4",15,['B2','C2',"C3",'C4','B3','B4'],[2,2,4,4,4,4],0,['p4','p4','p3e','p3w','p3e','p3w']),
+            ("C3-C4-C5,B3-B4-B5",13,['C3',"B3"],[6,6],2,['p3e','p3e']),
+
+            ]
+        for it,coutBois,cases,capacites,cloReste,picotList in inputTextValablesEtRessources:
+            #je me remets les ressources
+            joueur.ressources['b']=coutBois
+            #et les clotures
+            ferme.cloturesDispo=15
+            for c in ferme.tousLes('paturage'):
+                ferme.etat[c]=Tuile('vide')
+            ferme.paturagesContigus={}
+            print(ferme.prettyPrint())
+            print('CLOTURE',it)
+            carte.effet(it,p.choixPossibles)
+            self.assertFalse(p.choixPossibles=='inputtext')  
+            print(ferme.prettyPrint())
+            self.assertTrue(util.sontEgaux(joueur.ressources,util.rVide()))
+            self.assertTrue(ferme.cloturesDispo==cloReste)
+            
+            for c in cases:
+                index=cases.index(c)
+                cap=capacites[index]
+                self.assertTrue(ferme.etat[c].type=='paturage')
+                self.assertTrue(ferme.etat[c].calculer_capacite==cap) 
+                print(it,ferme.etat[c].pictos(c)[0],picotList[index])
+                self.assertTrue(ferme.etat[c].pictos(c)[0]==picotList[index])
+                print('--------------------------------')            
+            perso=joueur.personnagesPlaces.pop()
+            joueur.personnages.append(perso)
+            ferme.mettrePersonnage(perso,perso.localisationInit)   
+                   
+                   
+                   
+        # A présent on teste clotures en deux actions et les étables
+        # + capacité stockage
+        for c in ferme.tousLes('paturage'):
+            ferme.etat[c]=Tuile('vide')
+        ferme.paturagesContigus={}
+            
+        cap=ferme.calculerCapaciteStockage()    
+        self.assertTrue(cap['tot']==1)   
+        self.assertTrue(cap['list']==[1])     
+        
+        
+                    
+        ferme.etat['B5']=Tuile('etable')
+        ferme.etat['C3']=Tuile('etable')
+        ferme.reserveEtable.pop()
+        ferme.reserveEtable.pop()
+        self.assertTrue(ferme.etat['C3'].pictos('C3')==('E',True))
+        self.assertTrue(ferme.etat['B5'].pictos('B5')==('E',True))
+        
+        self.assertTrue((4-ferme.etablesJouees) == ferme.etablesDispo)
+        cap=ferme.calculerCapaciteStockage()
+        self.assertTrue(cap['tot']==3)   
+        self.assertTrue(cap['list']==[1, 1, 1])            
+        self.assertTrue((4-ferme.etablesJouees) == ferme.etablesDispo)
+        
+        ferme.cloturesDispo=15    
+        joueur.ressources['b']=15   
+     
+           
+        carte.effet('C4',p.choixPossibles) 
+        self.assertTrue(ferme.etat['C4'].pictos('C4')==('p4',False))
+        perso=joueur.personnagesPlaces.pop()
+        joueur.personnages.append(perso)
+        ferme.mettrePersonnage(perso,perso.localisationInit)   
+        self.assertTrue((4-ferme.etablesJouees) == ferme.etablesDispo)
+        self.assertFalse(p.choixPossibles=='inputtext')  
+        self.assertTrue(joueur.ressources['b']==11)
+        self.assertTrue(ferme.cloturesDispo==11)        
+        
+        cap=ferme.calculerCapaciteStockage()
+        self.assertTrue(cap['tot']==5)   
+        self.assertTrue(cap['list']==[2, 1, 1, 1])   
+        
+        #je mets une tourbe en B4
+        ferme.etat['B4']=Tuile('tourbe')
+        
+        joueur.possibilites()
+        carte.effet('C3-B3',p.choixPossibles) 
+        self.assertTrue(ferme.etat['C3'].pictos('C3')==('p3n',True))
+        self.assertTrue(ferme.etat['B3'].pictos('B3')==('p3s',False))
+        print(ferme.etablesJouees,ferme.etablesDispo)
+        self.assertTrue((4-ferme.etablesJouees) == ferme.etablesDispo)
+        perso=joueur.personnagesPlaces.pop()
+        joueur.personnages.append(perso)
+        ferme.mettrePersonnage(perso,perso.localisationInit)           
+        self.assertFalse(p.choixPossibles=='inputtext')  
+        self.assertTrue(joueur.ressources['b']==6)
+        self.assertTrue(ferme.cloturesDispo==6)              
+        cap=ferme.calculerCapaciteStockage()
+        self.assertTrue(cap['tot']==12)   
+        self.assertTrue(cap['list']==[8, 2, 1, 1])       
+        print(ferme.prettyPrint())
+        
+        joueur.possibilites()
+        carte.effet('C5',p.choixPossibles) 
+        print(ferme.etablesJouees,ferme.etablesDispo,ferme.paturagesContigus)
+        for k,v in ferme.paturagesContigus.items():
+            print(k,v.etables)
+        self.assertTrue(ferme.etat['C5'].pictos('C5')==('p4',False))
+        self.assertTrue((4-ferme.etablesJouees) == ferme.etablesDispo)
+        perso=joueur.personnagesPlaces.pop()
+        joueur.personnages.append(perso)
+        ferme.mettrePersonnage(perso,perso.localisationInit)           
+        self.assertFalse(p.choixPossibles=='inputtext')  
+        self.assertTrue(joueur.ressources['b']==3)
+        self.assertTrue(ferme.cloturesDispo==3)              
+        cap=ferme.calculerCapaciteStockage()
+        self.assertTrue(cap['tot']==14)   
+        self.assertTrue(cap['list']==[8, 2, 2, 1, 1])      
+        print(ferme.prettyPrint())
+        
+        #on enleve la tourbe
+        ferme.etat['B4']=Tuile('vide')
+        
+        joueur.possibilites()
+        carte.effet('B4-B5',p.choixPossibles) 
+        self.assertTrue(ferme.etat['B4'].pictos('B4')==('p3e',False))
+        self.assertTrue(ferme.etat['B5'].pictos('B5')==('p3w',True))
+        perso=joueur.personnagesPlaces.pop()
+        joueur.personnages.append(perso)
+        ferme.mettrePersonnage(perso,perso.localisationInit)           
+        self.assertFalse(p.choixPossibles=='inputtext')  
+        self.assertTrue(joueur.ressources['b']==0)
+        self.assertTrue(ferme.cloturesDispo==0)              
+        cap=ferme.calculerCapaciteStockage()
+        self.assertTrue(cap['tot']==21)   
+        self.assertTrue(cap['list']==[8,8, 2, 2, 1])           
+        
+        ##on verifie qu'on ne peux plus faire cloture même avec du bois
+        joueur.ressources['b']=4
+        joueur.possibilites()
+        
+        self.assertFalse(carte in p.choixPossibles)
+        
+        constructionPieceEtable=util.findCarte(p.plateau["cases"].values(),"a0")
+        self.assertTrue((4-ferme.etablesJouees) == ferme.etablesDispo)
+        constructionPieceEtable.effet('C4:E',p.choixPossibles)
+        print(ferme.etablesDispo)
+        self.assertTrue( ferme.etablesDispo == 1)
+        self.assertTrue(ferme.etat['C4'].pictos('C4')==('p4',True))
+        self.assertFalse(p.choixPossibles=='inputtext')  
+        self.assertTrue(joueur.ressources['b']==2)
+        cap=ferme.calculerCapaciteStockage()
+        self.assertTrue(cap['tot']==23)   
+        self.assertTrue(cap['list']==[8,8, 4, 2, 1])           
+                
+        constructionPieceEtable.effet('C5:E,B4:E',p.choixPossibles)
+        self.assertTrue(p.choixPossibles=='inputtext')  
+        self.assertTrue( ferme.etablesDispo ==1)
+        constructionPieceEtable.effet('B4:E',p.choixPossibles)
+        self.assertTrue(ferme.etat['B4'].pictos('B4')==('p3e',True))
+        self.assertTrue(joueur.ressources['b']==0)
+        cap=ferme.calculerCapaciteStockage()
+        self.assertTrue(cap['tot']==31)   
+        self.assertTrue(cap['list']==[16,8, 4, 2, 1])               
+        self.assertTrue( ferme.etablesDispo ==0)
+        self.assertTrue( ferme.etablesJouees ==4)
+        self.assertTrue( len(ferme.paturagesContigus) ==4)
+        self.assertTrue( ferme.compter('paturage') ==4)
+        joueur.possibilites()
+        self.assertFalse(carte in p.choixPossibles)
+        
+        print(ferme.prettyPrint())
+        
+        
+        
        
     def test_ConstructionOuSpectacle(self):
 
@@ -754,7 +1024,26 @@ class PartieDeTest(unittest.TestCase):
         partieSimulee=simulerPartie(listeRep,p)
         self.assertTrue(util.sontEgaux(joueur.ressources,{'n':1}))
         self.assertTrue(joueur.aiJeJoue('s27'))
-
+    
+    def test_epsilon(self):
+        p=Partie(logger)
+        p.initialiser(2)
+        joueur=p.joueurs[0]  
+        listeRep= ['a1','u3','a2','a5', 'a3','C2']
+        partieSimulee=simulerPartie(listeRep,p)
+        
+        self.assertTrue(p.plateau["cases"][13].cout == {'b':-6})
+        self.assertTrue(p.plateau["cases"][14].cout == {'a':-2})
+        self.assertTrue(p.plateau["cases"][15].cout == {'r':-2})
+        self.assertTrue(p.plateau["cases"][16].cout == {'n':-2})
+        listeRep= ['a6','a7', 'a8','a9']
+        partieSimulee=simulerPartie(listeRep,p,faireInit=False)
+        self.assertTrue(p.plateau["cases"][13].cout == {'b':-3})
+        self.assertTrue(p.plateau["cases"][14].cout == {'a':-1})
+        self.assertTrue(p.plateau["cases"][15].cout == {'r':-1})
+        self.assertTrue(p.plateau["cases"][16].cout == {'n':-1})
+        self.assertTrue(util.sontEgaux(p.joueurs[0].ressources,{'b':6,'r':2,'n':4}))        
+        self.assertTrue(util.sontEgaux(p.joueurs[1].ressources,{'a':2,'n':5,'c':1}))   
 
 
     def test_piece(self):
@@ -1191,6 +1480,8 @@ class TestSavoirFaire(unittest.TestCase):
         joueur.cartesEnMain.append(SavoirFaire(p,'s17',**deck['savoirFaires']['s17']))
         partieSimulee=simulerPartie(listeRep,p)
         self.assertTrue(joueur.ressources['r']==4)    
+        print(p.plateau['cases'][p._offset+2].ressourcesFutures[joueur.couleur])
+        self.assertTrue(util.sontEgaux(p.plateau['cases'][p._offset+2].ressourcesFutures[joueur.couleur],{'r': -1}))   
 
     def test_s18(self): 
         p=Partie(logger)

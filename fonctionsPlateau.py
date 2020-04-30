@@ -62,6 +62,42 @@ def roseauPnOuPierrePn(partie,choix,possibilites,carte):
     partie.changerPointeurs(-1,None) 
        
 ##################################################################################
+#---------------------------------------Renovation--------------
+##################################################################################       
+       
+def jePeuxRenover(partie, carte ):
+    
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme   
+    typeMaison=ferme.enQuoiEstLaMaison()
+    if typeMaison=='p':
+        return False
+    else:
+        return joueur.jePeuxJouer(joueur.prixDeLaRenovation())   
+    
+def renoPuisMineurOuMajeur(partie,carte):
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme   
+    typeMaison=ferme.enQuoiEstLaMaison()
+    cout=joueur.prixDeLaRenovation()
+    if typeMaison=='b':
+        nouveauType='maisonArgile'
+    elif typeMaison=='a':
+        nouveauType='maisonPierre'
+    else:
+        error
+    for m in ferme.tousLes('maison'):
+        ferme.etat[m]=nouveauType
+    joueur.mettreAJourLesRessources(cout)
+    
+    partie.log.info()
+    partie.messagesPrincipaux.append([joueur.nom,'p52'])
+    possibilitesAmenagementMineurOuMajeur(partie,carte)
+    
+    
+    
+            
+##################################################################################
 #---------------------------------------Naissances--------------
 ##################################################################################
 def jePeuxNaitre(partie,carte):
@@ -450,7 +486,7 @@ def choixAbattreDesArbres(partie,choix,possibilites,carte):
     ferme.etat[caseAbattre].type="vide"
     joueur.mettreAJourLesRessources(util.ajouter(joueur.coutAbattre(),carte.cout))
     carte.carteQuiMePorte.changerEtat(partie.quiJoue)
-    partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'abats des arbres en ',caseAbattre))
+    partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom, 'p41',caseAbattre])
     partie.changerPointeurs(-1,None)
 
 def possibilitesCouperBruler(partie,carte,Fake=False):
@@ -481,7 +517,7 @@ def choixCouperBruler(partie,choix,possibilites,carte):
     joueur.mettreAJourLesRessources(carte.cout)
     carte.carteQuiMePorte.changerEtat(partie.quiJoue)
         
-    partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'coupe et brûle en ',caseCouper))
+    partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,'p42',caseCouper])
     partie.changerPointeurs(-1,None)
 
 
@@ -500,7 +536,7 @@ def choixCouperLaTourbe(partie,choix,possibilites,carte):
     joueur.mettreAJourLesRessources(util.ajouter(joueur.coutTourbe(),carte.cout))
     carte.carteQuiMePorte.changerEtat(partie.quiJoue)
     
-    partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'coupe la tourbe en ',caseCouper))
+    partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,'p43',caseCouper])
     encore=False    
     partie.changerPointeurs(-1,None)
 ##################################################################################
@@ -533,17 +569,290 @@ def labourage(partie,choix,possibilites,carte):
     caseALabourer=possibilites[choix]
     ferme=partie.joueurQuiJoue().courDeFerme
     ferme.etat[caseALabourer].type="champ"
-    partie.messagesPrincipaux.append("{} {} {}".format(partie.joueurQuiJoue().nom, 'Laboure 1 champ en ',caseALabourer))
+    partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,'p22',caseALabourer])
     personnage=partie.joueurQuiJoue().personnages.pop()
     partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
     partie.changerPointeurs(-1,None)
+    
+##################################################################################
+#---------------------------------------Cloture--------------------------
+##################################################################################
+
+def jePeuxCloturer(partie,carte):
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme
+    cout=ferme.coutMiniCloture()
+    ressourceOk=joueur.jePeuxJouer(cout)
+    resteClotureOk=ferme.cloturesDispo>0
+    #si je n'en ai pas
+    if ferme.compter('paturages')==0:
+        placeOk=ferme.compter('vide')
+        return ressourceOk and placeOk
+    else:
+    #si j'en ai je regarde si j'en ai un de divisable
+        divisableOk=False
+        for pat in ferme.tousLes('paturages'):
+            if pat.estDivisable():
+                divisableOk=True
+        if divisableOk:
+            return ressourceOk
+        else:
+            #dans ce cas aucun n'est divisable
+            #il faut une case vide ou etable seule
+            caseVideOuEtableSeule=False
+            for pat in ferme.tousLes('paturages'):
+                voiz=ferme.voisin(c)
+                for direction in voiz.keys():
+                    if voiz[direction]: #si not None
+                        if ferme.etat[voiz[direction]].type=='vide' or ferme.etat[voiz[direction]].type=='etable':
+                                caseVideOuEtableSeule=True
+                                break
+            
+            return ressourceOk and caseVideOuEtableSeule
+    
+    
+    return resteClotureOk and ressourceOk and (placeOk or divisableOk)
+
+def demanderPlanCloture(partie,carte,Fake=False):
+    partie.changerPointeurs('inputtext' ,carte,'p53',Fake=False)    
+def randomPlanCloture(partie):
+    pass
+    
+def planCloture(partie,planStr,possibilites,carte):
+    #par ex C2,C3-C4  ou 
+    #C2-C3-C4,B5
+    #obligé de faire ça pour les tests aleatoir django... 
+    #la bas on ne connais pas la partie etc...
+    
+    if planStr=="randomPlanCloture":
+        planStr=randomPlanCloture(partie)
+    
+    partie.log.debug('planCloture {}'.format(planStr))    
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme                                  
+    planCorrect=True
+    cout=util.rVide()
+    msg=""
+    listePaturagesNouveaux=[]
+    tupListePaturagesADiviser=[]
+    listePaturageDejaTraite=[]
+    
+    ferme.tmpPaturage=[] #reinit au cas ou
+    for paturage in planStr.split(','):
+        #si c'est une seule case
+        if len(paturage)==2:
+            if paturage in ferme.etat.keys():
+                if ferme.etat[paturage].type in ['vide','etable']:
+                    #on regarde si le paturage est déjà pris en compte
+                    listePaturagesNouveaux.append(paturage)
+                    listePaturageDejaTraite.append(paturage)
+                elif ferme.etat[paturage].type =='paturage':
+                    #la case est déja dans un paturage on veut diviser....
+                    #controle
+                    if paturage in ferme.etat[paturage].cases:
+                        if len ( ferme.etat[paturage].cases)==1:
+                            planCorrect=False
+                            msg="plan invalide: {}, le paturage {} existe déjà et n'est plus modifiable".format(planStr,paturage)
+                            partie.log.debug(msg)
+                            partie.changerPointeurs('inputtext',carte,alert=msg)
+                            return     
+
+                        else:
+                            listePaturageDejaTraite.append(paturage)
+                            tupListePaturagesADiviser.append((paturage,ferme.etat[paturage]))
+                    else:
+                        impossible
+                    
+                else:
+                    planCorrect=False
+                    msg="plan invalide: {}, doit être vide ou être une étable".format(planStr)
+                    partie.log.debug(msg)
+                    partie.changerPointeurs('inputtext',carte,alert=msg)
+                    return                                        
+            else:
+                planCorrect=False
+                msg="plan invalide: {}, n'est pas une case de ferme {}".format(planStr,paturage)
+                partie.log.debug(msg)
+                partie.changerPointeurs('inputtext',carte,alert=msg)
+                return  
+        else:
+            sp=paturage.split('-')
+            if len(sp)<2:
+                planCorrect=False
+                msg="plan invalide: {}, un paturage multiple doit contenir un au moins un - {}".format(planStr,paturage)
+                partie.log.debug(msg)
+                partie.changerPointeurs('inputtext',carte,alert=msg)
+                return  
+            else:
+                #ici sp est de la forme AX-BY-CZ ....
+                #une case doit être dans la cour de ferme et voisine de la précédente...           
+                #les cases doivent être soit vide ou étables casA
+                #si l'une est paturages elles doivent être dans le même casB
+                casA=None
+                casB=None                
+                listePrecedent=[]              
+                for case in sp:
+                    if case in ferme.etat.keys():                      
+                        if ferme.etat[case].type in ['vide','etable']:  
+                            casA=True 
+                            if len(listePrecedent)>0:
+                                #il doit y avoir un voisin dans les précédents
+                                voizOk=False
+                                for casePrecedent in listePrecedent:
+                                    if ferme.estVoisin(case,casePrecedent):
+                                        voizOk=True
+                                        break
+
+                                if not voizOk:
+                                    planCorrect=False
+                                    msg="plan invalide: {}, lors d'un paturage multiple chacune des cases separees par un - doit être un des voisines des autres".format(planStr,listePrecedent)
+                                    partie.log.debug(msg)
+                                    partie.changerPointeurs('inputtext',carte,alert=msg)  
+                                    return
+                            if casB is None:
+                                listePrecedent.append(case)
+                            else:
+                                planCorrect=False
+                                msg="plan invalide: {}, un groupe de case separé par un tiret est soit dans un paturage deja existant, soit a l'exterieur {}".format(planStr,sp)
+                                partie.log.debug(msg)
+                                partie.changerPointeurs('inputtext',carte,alert=msg) 
+                                return                    
+                        elif ferme.etat[case].type in ['paturage']:
+                            casB=True  
+                            pAdiviser=ferme.etat[case]
+                            if precedente:
+                                if not ferme.estVoisin(case,precedente):
+                                    planCorrect=False
+                                    msg="plan invalide: {}, lors d'un paturage multiple deux cases separees par un - doivent être des voisines: {} et {} ne le sont pas".format(planStr,precedente,case)
+                                    partie.log.debug(msg)
+                                    partie.changerPointeurs('inputtext',carte,alert=msg)
+                                    return
+                            if casA is None:
+                                precedente=case
+                            else:
+                                planCorrect=False
+                                msg="plan invalide: {}, un groupe de case separé par un tiret est soit dans un paturage deja existant, soit a l'exterieur {}".format(planStr,sp)
+                                partie.log.debug(msg)
+                                partie.changerPointeurs('inputtext',carte,alert=msg)  
+                                return                         
+                        else:
+                            planCorrect=False
+                            msg="plan invalide: {}, n'est pas cloturable {}".format(planStr,case)
+                            partie.log.debug(msg)
+                            partie.changerPointeurs('inputtext',carte,alert=msg)   
+                            return
+                        
+                                              
+                    else:
+                        planCorrect=False
+                        msg="plan invalide: {}, n'est pas une case de ferme {}".format(planStr,case)
+                        partie.log.debug(msg)
+                        partie.changerPointeurs('inputtext',carte,alert=msg) 
+                        return
+                #verif de controle
+                if casA is None and casB is None:
+                    Impossible
+                elif casA is None:
+                    if not casB:
+                        Impossible
+                elif casB is None:
+                    if not casA:
+                        Impossible
+                else:
+                    Impossible
+                if casA:
+                   listePaturagesNouveaux.append(sp)    
+                else:
+                   tupListePaturagesADiviser.append((sp,pAdiviser)) 
+                for paturage in sp:
+                    listePaturageDejaTraite.append(paturage)        
+                                        
+    partie.log.debug('listePaturagesNouveaux {}'.format(listePaturagesNouveaux))
+    partie.log.debug('tupListePaturagesADiviser {}'.format(tupListePaturagesADiviser))
+    partie.log.debug('listePaturageDejaTraite {}'.format(listePaturageDejaTraite))
+    
+    #on regarde si les paturage est déjà fait
+    if len(set(listePaturageDejaTraite)) != len(listePaturageDejaTraite):
+        planCorrect=False
+        msg="plan invalide: {}, une case ne peut apparaitre qu'une seule fois dans le plan".format(planStr)
+        partie.log.debug(msg)
+        partie.changerPointeurs('inputtext',carte,alert=msg)  
+        return               
+    
+    
+    partie.log.debug(planCorrect)
+    coutTotal={'b':0}
+    #on traite les nouveaux paturages...
+    for paturage in listePaturagesNouveaux:
+        partie.log.debug("traitement de {}".format(paturage))
+        if type(paturage)==str:
+            cout=ferme.coutCreerPaturage([paturage])
+            coutTotal=util.ajouter(coutTotal,cout)
+            ferme.tmpPaturage.append(paturage)
+        else:
+            cout=ferme.coutCreerPaturage(paturage)
+            coutTotal=util.ajouter(coutTotal,cout)
+            for pat in paturage:
+                ferme.tmpPaturage.append(pat)
+    
+    jokerPremierPaturage=True        
+    #toutes les cases de tmpPaturages doivent se toucher
+    for tPat in ferme.tmpPaturage:
+        voiz=ferme.voisin(tPat)
+        caseIsolee=True
+        print('test ADJ',tPat)
+        for direction in voiz.keys():
+            if voiz[direction] in ferme.tmpPaturage or voiz[direction] in  ferme.tousLes('paturage'): #si not None
+                print('non isolee',voiz[direction])
+                caseIsolee=False
+                jokerPremierPaturage=False
+        if caseIsolee:
+            print('isole',jokerPremierPaturage)
+            #soit c'est la premier construction  soit non
+            if ferme.compter('paturage')>0 or not jokerPremierPaturage:
+                planCorrect=False
+                msg="plan invalide: {}, la case {} est isolée or les paturages doivent se toucher".format(planStr,tPat)
+                partie.log.debug(msg)
+                partie.changerPointeurs('inputtext',carte,alert=msg)  
+                return               
+            else:
+                jokerPremierPaturage=False
+                print('tata',jokerPremierPaturage)
+    
+    ferme.tmpPaturage=[] #on reinitialise
+    #on a evalué le cout total
+    partie.log.debug(coutTotal)
+    partie.log.debug("ETABLES       {}".format(ferme.reserveEtable))
+    if joueur.jePeuxJouer(coutTotal):
+        for paturage in listePaturagesNouveaux:
+            if type(paturage)==str:
+                ferme.creerPaturageSimple(paturage,etable=ferme.etat[paturage].type=='etable')
+            else:
+                ferme.creerPaturageMultiple(paturage)
+        partie.log.debug("ETABLES       {}".format(ferme.reserveEtable))
+        joueur.mettreAJourLesRessources(coutTotal)
+        partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,'p54'])
+        personnage=partie.joueurQuiJoue().personnages.pop()
+        partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
+        carte.mettrePersonnage(personnage)
+        partie.changerPointeurs(-1,None)            
+    else:
+        planCorrect=False
+        msg="plan invalide: {}, vous n'avez pas assez de ressources, vous avez {}\n il faut {}".format(planStr,joueur.ressources,coutTotal)
+        partie.log.debug(msg)
+        partie.changerPointeurs('inputtext',carte,alert=msg) 
+        return
+            
+    
+    
 ##################################################################################
 #---------------------------------------Piece et Etables--------------------------
 ##################################################################################
 
 def demanderPlanConstructionDePieceEtOuEtable(partie,carte,Fake=False):
     partie.changerPointeurs('inputtext' ,carte,'p38',Fake=False)    
+
 
 def randomPlanConstructionDePieceEtOuEtable(partie):
     joueur=partie.joueurQuiJoue()
@@ -574,7 +883,7 @@ def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
     if planStr=="randomPlanConstructionDePieceEtOuEtable":
         planStr=randomPlanConstructionDePieceEtOuEtable(partie)
     
-    partie.log.debug('planConstructionDePieceEtOuEtable {}',planStr)
+    partie.log.debug('planConstructionDePieceEtOuEtable {}'.format(planStr))
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme                                  
     planCorrect=True
@@ -608,6 +917,18 @@ def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
                     planCorrect=False
                     msg="type de case {} invalide... Soit soit 'E' soit 'P'".format(type)
                     break
+            
+            elif ferme.etat[case].type=='paturage':
+                #on regarde combien il a d'étables
+                if len(ferme.etat[case].cases)>len(ferme.etat[case].etables):
+                    casesEtables.append(case)
+                    cout=util.ajouter(cout,{'b':2})
+                else:
+                    planCorrect=False
+                    msg="le paturage ne peut plus accueillir d'étables".format(case)
+                    break                    
+            
+            
             else:
                 planCorrect=False
                 msg="la case {} n'est pas vide".format(case)
@@ -619,11 +940,9 @@ def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
     #si pour le moment on est bon
     if (planCorrect):
         if(joueur.jePeuxJouer(cout)):
-            if (ferme.compterEtablesDispo()>=len(casesEtables)):
-                pass
-            else:
+            if (ferme.etablesDispo<len(casesEtables)):
                 planCorrect=False
-                msg="vous n'avez pas assez d'étables, il en reste  {} ".format(ferme.compterEtablesDispo())                
+                msg="vous n'avez pas assez d'étables, il en reste  {} ".format(ferme.etablesDispo)                
         else:
             planCorrect=False
             msg="vous ne pouvez pas payer le cout {} ".format(cout)
@@ -673,10 +992,15 @@ def planConstructionDePieceEtOuEtable(partie,planStr,possibilites,carte):
         for c in casesMaisonOk:
             ferme.etat[c].type=ferme.enQuoiEstLaMaison(False)
         for c in casesEtables:
-            ferme.etat[c].type="etable"
+            if ferme.etat[c].type=='vide':
+                ferme.etat[c].type="etable"
+                ferme.reserveEtable.pop()
+            elif ferme.etat[c].type=='paturage':
+                ferme.etat[c].etables.append(c)
+                ferme.reserveEtable.pop()
+                
         joueur.mettreAJourLesRessources(cout)
-        partie.messagesPrincipaux.append("{} construit {} piece(s) et {} etable(s)".format(partie.joueurQuiJoue().nom,
-                                                            len(casesMaisonOk),len(casesEtables)))
+        partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,'p44',len(casesMaisonOk),'p45',len(casesEtables),'p46'])
         personnage=partie.joueurQuiJoue().personnages.pop()
         partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
         carte.mettrePersonnage(personnage)
@@ -706,7 +1030,7 @@ def constructionOuSpectacle(partie,choix,possibilites,carte):
 
     if possibilites[choix]=="u6":
         coutAAppliquer=carte.vider()
-        partie.messagesPrincipaux.append("{} va sur Spectacle".format(joueur.nom))
+        partie.messagesPrincipaux.append([joueur.nom,'p47','u6'])
         partie.log.info("{} va sur Spectacle".format(joueur.nom))
 
     else:
@@ -717,7 +1041,7 @@ def constructionOuSpectacle(partie,choix,possibilites,carte):
         typeMaison=ferme.enQuoiEstLaMaison(False)
         case=possibilites[choix][1]
         ferme.etat[case].type=typeMaison  
-        partie.messagesPrincipaux.append("{} construit 1 pièce en {}".format(partie.joueurQuiJoue().nom,case))
+        partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,'p44',1,'p48',case])
         partie.log.info("{} construit 1 pièce en {}".format(partie.joueurQuiJoue().nom,case))
 
     joueur.mettreAJourLesRessources(coutAAppliquer,actionDunePersonne=True)
@@ -750,7 +1074,8 @@ def jePeuxContruireUneEtable(partie):
      
     ressourcesOk=joueur.jePeuxJouer({"b":2})
     placeOk=(ferme.compter('vide')>0)
-    etablesOk=ferme.compterEtablesDispo()>0
+    etablesOk=ferme.etablesDispo>0
+    
      
     return (placeOk and ressourcesOk and etablesOk)
  
@@ -895,8 +1220,8 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
             joueur.mettreAJourLesRessources(cout)
             for case,type in validTup:
                 ferme.etat[case].semer(type)
-            partie.messagesPrincipaux.append("{} sème {} cereale(s), {} légume(s) et {} bois, et cuit {} céréale(s) pour {} pn".format(
-                partie.joueurQuiJoue().nom,cout['c']-cerealesACuire,cout['l'],cout['b'],cerealesACuire,-cout['n']))                                                      
+            partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,'p49',cout['c']-cerealesACuire,'rc',',',
+                                  cout['l'],'rl',cout['b'],'rb',',','p50',cerealesACuire,'p51',  -cout['n'],'rn'])         
             personnage=partie.joueurQuiJoue().personnages.pop()
             partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
             carte.mettrePersonnage(personnage)

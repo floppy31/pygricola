@@ -287,9 +287,7 @@ trad["p18"]={'fr':"où placer les ressource?",
             'en':"TODO"}     
 trad["p19"]={'fr':"ajouter",
             'en':"TODO"}   
-trad["p19"]={'fr':"à la case",
-            'en':"TODO"}   
-trad["p20"]={'fr':"à la case",
+trad["p20"]={'fr':"joue la case",
             'en':"TODO"}   
 trad["p21"]={'fr':"active",
             'en':"TODO"}   
@@ -327,7 +325,41 @@ trad["p37"]={'fr':"Ou voulez-vous labourer?",
             'en':"TODO"} 
 trad["p38"]={'fr':"Indiquez votre plan de construction de pièce ou etable:",
             'en':"TODO"} 
- 
+trad["p39"]={'fr':"Début de la partie:",
+            'en':"TODO"}  
+trad["p40"]={'fr':"Début du tour:",
+            'en':"TODO"}   
+trad["p41"]={'fr':"abats des arbres en",
+            'en':"TODO"}    
+trad["p42"]={'fr':"coupe et brûle en",
+            'en':"TODO"}
+trad["p43"]={'fr':"coupe la tourbe en",
+            'en':"TODO"}
+trad["p44"]={'fr':"construit",
+            'en':"TODO"}
+trad["p45"]={'fr':"pièce(s)",
+            'en':"TODO"}
+trad["p46"]={'fr':"étable(s)",
+            'en':"TODO"}
+trad["p47"]={'fr':"va sur",
+            'en':"TODO"}
+trad["p48"]={'fr':"piece",
+            'en':"TODO"}
+trad["p49"]={'fr':"sème",
+            'en':"TODO"}
+trad["p50"]={'fr':"et cuit",
+            'en':"TODO"}
+trad["p51"]={'fr':"pour",
+            'en':"TODO"}
+trad["p52"]={'fr':"renove",
+            'en':"TODO"}
+
+trad["p53"]={'fr':"indiquez votre plan de clôture",
+            'en':"TODO"}
+
+trad["p54"]={'fr':"cloture" ,
+            'en':"TODO"}
+
 trad["m0"]={'fr':"Foyer simple",
             'en':"TODO"}   
 trad["m0d"]={'fr':"Blabla",
@@ -496,11 +528,80 @@ trad["m25"]={'fr':"Brouette",
 trad["m25d"]={'fr':"""Quand vous prenez au moins 4 matériaux de construction identiques sur une case d'action, 
 recevez aussi 1 combustibles. quand vous utilisez l'action spéciale "couper la tourbe", 
 recevez aussi 1 matériau de construction de votre choix.""",   'en':"TODO"}  
-
-
-
 trad["m25c"]={'fr':"Au moins 1 aménagement majeur",
             'en':"TODO"}  
+
+trad["m26"]={'fr':"Canne à pêche",
+            'en':"TODO"}   
+trad["m26d"]={'fr':"""A chaque fois que vous utilisez la case d'action "pêche", 
+prenez 1 PN supplémentaire, ou 2 PN supplémentaire à partir du tour 8..""",   'en':"TODO"}  
+
+trad["m27"]={'fr':"Canot",
+            'en':"TODO"}   
+trad["m27d"]={'fr':"""A chaque fois que vous utilisez la case d'action "Pêche", 
+prenez en plus 1 PN et 1 roseau.""",   'en':"TODO"}  
+trad["m27c"]={'fr':"Au moins 2 savoir-faire",
+            'en':"TODO"}  
+
+trad["m28"]={'fr':"Chariot à Pierres",
+            'en':"TODO"}   
+trad["m28d"]={'fr':"""Quand vous utilisez l'action "Journalier", 
+recevez aussi 1 Pierre.""",   'en':"TODO"}  
+
+trad["m29"]={'fr':"Charrette à blé",
+            'en':"TODO"}   
+trad["m29d"]={'fr':"""A chaque fois que vous utilisez la case d'action 
+"1 céréale", prenez 2 céréales supplémentaires.""",   'en':"TODO"}  
+
+trad["m29c"]={'fr':"Au moins 2 savoir-faire",
+            'en':"TODO"}  
+
+
+trad["m30"]={'fr':"Diable",
+            'en':"TODO"}   
+trad["m30d"]={'fr':"""Placez 1 céréale à recevoir sur chacun des tours 5, 8, 11 et 14.""",   'en':"TODO"}  
+
+trad["m30c"]={'fr':"Au moins 2 savoir-faire",
+            'en':"TODO"}  
+
+
+trad["m31"]={'fr':"Enclos",
+            'en':"TODO"}   
+trad["m31d"]={'fr':"""Placez 2 PN sur chacune des cases de tours restants à jouer.""",
+                 'en':"TODO"}  
+
+trad["m31c"]={'fr':"Au moins 4 savoir-faire",
+            'en':"TODO"}  
+
+
+trad["m32"]={'fr':"Etal",
+            'en':"TODO"}   
+trad["m32d"]={'fr':"""Prenez 1 légume et passez cette carte sur votre gauche.""",
+                 'en':"TODO"}  
+
+trad["m33"]={'fr':"Etang aux carpes",
+            'en':"TODO"}   
+trad["m33d"]={'fr':"""Placez 1 PN sur chacune des cases de tours impairs à venir.""",
+                 'en':"TODO"}  
+trad["m33c"]={'fr':"Au moins 1 savoir-faire et 2 aménagements",
+            'en':"TODO"}  
+
+trad["m34"]={'fr':"Etang aux oies",
+            'en':"TODO"}   
+trad["m34d"]={'fr':"""Placez 1 PN sur les 4 prochaines cases de tours""",
+                 'en':"TODO"}  
+trad["m34c"]={'fr':"Au moins 3 savoir-faire",
+            'en':"TODO"}  
+
+trad["m35"]={'fr':"Excursion à la carrière",
+            'en':"TODO"}   
+trad["m35d"]={'fr':"""Recevez autant de pierres que vous avez de fermiers""",
+                 'en':"TODO"}  
+trad["m35c"]={'fr':"Au moins 1 savoir-faire",
+            'en':"TODO"}  
+
+
+#----------------------------------------------------------------
 
 
 trad["s0"]={'fr':"Acheteur d'animaux",'en':'TODO'}

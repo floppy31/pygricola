@@ -155,6 +155,22 @@ def printPossibilities(partie,message,possibilites,annulable=True):
         
     return choix 
 
+def coupAuClavier(partie):
+    choixValide=False
+    while(not choixValide):
+        for p in partie.pointeur.possibilites:
+            print("{} : {}".format(partie.pointeur.possibilites.index(p),tradUidOrSelf(p)))
+        g = input(traduire(partie.pointeur.phrase)+'\n') 
+        try:
+            choixValide=(int(g)<len(partie.pointeur.possibilites))
+            choix=int(g)
+        except:
+            pass
+
+    return uidOrSelf(partie.pointeur.possibilites[choix])
+
+
+
 
 short2Long={
     'b':'rb',

@@ -45,16 +45,8 @@ def cloture(partie):
             ferme.paturages.diviserUnPaturage()
 
         
-def jePeuxRenover(partie, carte ):
-    joueur=partie.joueurs[partie.quiJoue]
-    ferme=joueur.courDeFerme   
-    typeMaison=ferme.enQuoiEstLaMaison()
-    nbMaison=ferme.compter('maison')
-    cout={'r':1,typeMaison:nbMaison}
-    return joueur.jePeuxJouer(cout)
 
-def renoPuisMajeur(partie):
-    pass
+
 
 def labourageSemaille(partie):
     pass
@@ -480,16 +472,16 @@ class Partie(object):
         ordreActions={}
         
         ordreActions[1]=CarteAction(self,"a10",effet=fct.choixAmenagementMineurOuMajeur,possibilites=fct.possibilitesAmenagementMineurOuMajeur)
-        ordreActions[2]=CarteAction(self,"a11",effet=cloture,visible=False)
-        ordreActions[3]=CaseAppro(self,"a12",{'m':-1},visible=False)
+        ordreActions[2]=CarteAction(self,"a11",possibilites=fct.demanderPlanCloture,condition=fct.jePeuxCloturer,effet=fct.planCloture,visible=False)
+        ordreActions[3]=CaseAppro(self,"a12",appro={'m':-1},cout={},visible=False)
         ordreActions[4]=CarteAction(self,"a13",visible=False,possibilites=fct.demanderPlanSemailleEtOuCuisson,effet=fct.planSemailleEtOuCuisson,condition=fct.jePeuxFaireSemailleEtOuCuisson)
         ordreActions[5]=CarteAction(self,"a14",visible=False,effet=fct.naissancePuisMineur,condition=fct.jePeuxNaitre)
-        ordreActions[6]=CarteAction(self,"a15",visible=False,effet=renoPuisMajeur,condition=jePeuxRenover)
-        ordreActions[7]=CaseAppro(self,"a16",{'p':-1},visible=False)
+        ordreActions[6]=CarteAction(self,"a15",visible=False,effet=fct.renoPuisMineurOuMajeur,condition=fct.jePeuxRenover)
+        ordreActions[7]=CaseAppro(self,"a16",appro={'p':-1},cout={},visible=False)
         ordreActions[8]=CarteAction(self,"a17",cout={'l':-1},visible=False)
-        ordreActions[9]=CaseAppro(self,"a18",{'s':-1},visible=False)
-        ordreActions[10]=CaseAppro(self,"a19",{'b':-1},visible=False)
-        ordreActions[11]=CaseAppro(self,"a20",{'p':-1},visible=False)
+        ordreActions[9]=CaseAppro(self,"a18",appro={'s':-1},cout={},visible=False)
+        ordreActions[10]=CaseAppro(self,"a19",appro={'b':-1},cout={},visible=False)
+        ordreActions[11]=CaseAppro(self,"a20",appro={'p':-1},cout={},visible=False)
         ordreActions[12]=CarteAction(self,"a21",effet=labourageSemaille,visible=False)
         ordreActions[13]=CarteAction(self,"a22",effet=naissanceSansPieceLibre,visible=False)
         ordreActions[14]=CarteAction(self,"a23",effet=renoPuisCloture,visible=False)
@@ -519,13 +511,13 @@ class Partie(object):
     def demarragePartie(self):
         #boucle infinie
         self.log.info('----------------------\ndébut de la partie')
-        self.messagesPrincipaux.append("début de la partie")
+        self.messagesPrincipaux.append("p39")
     
                 
     def demarrageTour(self):
 
         self.log.info("début du tour : {}".format(self.plateau['tour']))
-        self.messagesPrincipaux.append("début du tour : {}".format(self.plateau['tour']))
+        self.messagesPrincipaux.append(['p40',self.plateau['tour']])
   
         self.plateau['cases'][self._offset+self.plateau['tour']].visible=True
         
@@ -746,7 +738,7 @@ class Partie(object):
             d.append(self.plateau['cases'][i].printCout())                                 
         d=tuple(d)
         return str.format(*d)
-        
+         
     #pour le graphique    
     def exportPlateau(self):
         cases=[]
@@ -755,6 +747,7 @@ class Partie(object):
                 dico={
                     'uid':self.plateau['majeurs'][c].uid,
                     'type':"Majeur",
+                    'cout':self.plateau['majeurs'][c].cout,
                     'devoile':self.plateau['majeurs'][c].devoile
                     }
                 cases.append(dico.copy())
@@ -764,11 +757,13 @@ class Partie(object):
                 'type':"Action",
                 'class': "" if self.plateau["cases"][c].visible else "disabled",
                 }
-            ressourcesList=[]
-            for t in self.plateau["cases"][c].cout.keys():
-                if self.plateau["cases"][c].cout[t]<0:
-                    ressourcesList.append((util.short2Long[t],-self.plateau["cases"][c].cout[t]))    
-            dico['res']=ressourcesList
+            if c>self.plateau["tour"]+self._offset:
+                dico['ressourcesFutures']=self.plateau["cases"][c].ressourcesFutures
+#             ressourcesList=[]
+#             for t in self.plateau["cases"][c].cout.keys():
+#                 if self.plateau["cases"][c].cout[t]<0:
+#                     ressourcesList.append((util.short2Long[t],-self.plateau["cases"][c].cout[t]))    
+            dico['res']=self.plateau["cases"][c].cout
             dico['perso']=[]
             for perso in self.plateau["cases"][c].occupants:
                 dico['perso'].append(perso.couleur)
