@@ -26,6 +26,17 @@ def cuisson(partie,choix,possibilites,carte):
     possibilites[choix].jouer()
 ##################################################################################          
 
+def gererLesAnimauxEnTrop(partie,choix,possibilites,carte):
+    choixUtilisateur=possibilites[choix]
+    joueur=carte.owner
+    if choixUtilisateur[0]=='l':
+        #on libere l'animal
+        joueur.ressources[choixUtilisateur[1]]-=1
+    elif choixUtilisateur[0]=='u':  
+        joueur.cuireAnimal(choixUtilisateur[1])
+
+    partie.log.debug(joueur.ressources)    
+    joueur.organiserLesAnimaux()
 
 
 
@@ -148,6 +159,7 @@ class Carte:
         self.partie.log.debug("---JOUER--\n{} cout {} \n pointeur {} \n self {}".format(self.uid,self.cout,self.partie.pointeur,self)) 
         self.partie.hooks=self.partie.recolterLesHooksInterractifs(self.uid)
         
+
         if self.partie.pointeur.jouerEgalEffet:
             self.partie.log.debug("---JOUEREgalEffet") 
             self.partie.pointeur.sujet.effet(self.partie.choixPossibles.index(self),self.partie.choixPossibles)
@@ -155,11 +167,15 @@ class Carte:
             if not type(self._possibilites)==dict:
                 self._possibilites(self.partie,self,Fake=False)
             
-            #on regarde si la carte a une option activable (genre epicier)
-            elif self.uid=='s21':
+            #on regarde si la carte se joue direct avec son effet mais activable
+            elif self.uid in ['s21']:
                 self.partie.messagesPrincipaux.append([self.partie.joueurQuiJoue().nom,"p20",self.uid])
                 self.effet(0, [])
                 self.partie.joueurQuiJoue().possibilites()
+            #carte qui se joue direct avec son effet    
+            elif self.uid in ['a22']:
+                self.partie.messagesPrincipaux.append([self.partie.joueurQuiJoue().nom,"p20",self.uid])
+                self.effet(0, [])                
             else:
                 self.partie.log.debug("{} {}".format(self.uid,self.cout)) 
                 self.partie.messagesPrincipaux.append([self.partie.joueurQuiJoue().nom,self.phraseJouer,self.uid])
@@ -254,7 +270,7 @@ class Carte:
                     possibilites=self.option["hook_possibilites"]
                                     
                 if len(possibilites)>1:
-                    self.partie.ajouterHook(self,possibilites,self.owner.djangoUid,'instant')
+                    self.partie.ajouterHook(self,possibilites,self.owner.djangoUid,'instant',phrase=self.partie.pointeur.phrase)
                 else:
                     self.effet(0,possibilites)
             elif  self.option["instant"]=='effet':
@@ -278,11 +294,28 @@ class Carte:
                 if 'pileTour' in  self.option:
                     for t,cout in self.option['pileTour'].items():
                         tour=self.partie._offset+t
+                        if tour in self.partie.plateau["cases"].keys():
+                            if self.owner.couleur not in self.partie.plateau["cases"][t].ressourcesFutures.keys():
+                                self.partie.plateau["cases"][tour].ressourcesFutures[self.owner.couleur]=util.rVide()
+                            self.partie.plateau["cases"][tour].ressourcesFutures[self.owner.couleur]=util.ajouter(self.partie.plateau["cases"][tour].ressourcesFutures[self.owner.couleur],cout)
+                        
+                if 'pileInfinie' in  self.option:  
+                    cout=self.option['pileInfinie']
+                    t=self.partie._offset+self.partie.plateau['tour']+1
+                    while t in self.partie.plateau["cases"].keys():
                         if self.owner.couleur not in self.partie.plateau["cases"][t].ressourcesFutures.keys():
-                            self.partie.plateau["cases"][tour].ressourcesFutures[self.owner.couleur]=util.rVide()
-                        self.partie.plateau["cases"][tour].ressourcesFutures[self.owner.couleur]=util.ajouter(self.partie.plateau["cases"][tour].ressourcesFutures[self.owner.couleur],cout)
-                    
-                
+                            self.partie.plateau["cases"][t].ressourcesFutures[self.owner.couleur]=util.rVide()
+                        self.partie.plateau["cases"][t].ressourcesFutures[self.owner.couleur]=util.ajouter(self.partie.plateau["cases"][t].ressourcesFutures[self.owner.couleur],cout)
+                        t+=1
+                if 'pileInfinieImpair' in  self.option:  
+                    cout=self.option['pileInfinieImpair']
+                    t=self.partie._offset+self.partie.plateau['tour']+1
+                    while t in self.partie.plateau["cases"].keys():
+                        if t%2==1:
+                            if self.owner.couleur not in self.partie.plateau["cases"][t].ressourcesFutures.keys():
+                                self.partie.plateau["cases"][t].ressourcesFutures[self.owner.couleur]=util.rVide()
+                            self.partie.plateau["cases"][t].ressourcesFutures[self.owner.couleur]=util.ajouter(self.partie.plateau["cases"][t].ressourcesFutures[self.owner.couleur],cout)
+                        t+=1                    
     
 def loadCarte(stri,partie):
     print('loadCarte',stri)
@@ -329,7 +362,7 @@ class CaseAppro(CarteAction):
 
 class SavoirFaire(Carte):
 
-    def __init__(self,partie,uid,joueurMini,possibilites={},cout={},condition={},option={},effet={},hook=(),final=util.dummy,passableAGauche=False):
+    def __init__(self,partie,uid,joueurMini,possibilites={},cout={},condition={},option={},effet=util.dummy,hook=(),final=util.dummy,passableAGauche=False):
         self.passableAGauche=passableAGauche
         self.joueurMini=joueurMini
         self.hook=hook
@@ -347,7 +380,7 @@ class SavoirFaire(Carte):
  
 class Amenagement(Carte):
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet=util.dummy,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
         self.pointsVictoire=pointsVictoire
         self.pointsSpeciaux=pointsSpeciaux
         super().__init__(partie,uid,possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion)
@@ -359,7 +392,7 @@ class Amenagement(Carte):
 
 class AmenagementMineur(Amenagement):
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet={},passableAGauche=False,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy,hook=(),final=util.dummy):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet=util.dummy,passableAGauche=False,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy,hook=(),final=util.dummy):
         self.passableAGauche=passableAGauche
         super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
         self.hook=hook
@@ -370,7 +403,7 @@ class AmenagementMineur(Amenagement):
         
 class AmenagementMajeur(Amenagement):
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet={},option={},visible=False,devoile=None,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet=util.dummy,option={},visible=False,devoile=None,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
         self.visible=visible
         self.devoile=devoile
         super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
@@ -469,7 +502,8 @@ def genererActionsSpeciales(partie):
         'possibilites':fct.possibilitesCouperLaTourbe,
         'effet':fct.choixCouperLaTourbe  
         }
-    carteActionSpecialeDict={1:[],#pas d'as avec 1 seul joueur
+    carteActionSpecialeDict={1:[["b0","b2","b3","b4"],
+    ["b5","b6","b7"]],
                              2:[
     ["b0","b2","b3","b4"],
     ["b5","b6","b7"]],
@@ -526,7 +560,7 @@ majeursDict["M2"]={
     'cout':{'a':1,'p':1},
     'effet':cuisson ,
     "possibilites":possibilitesCuisson,    
-    'option':{'cuissonDict':{'l':1,'m':1,'s':1,'v':2,'h':1}},
+    'option':{'cuissonDict':{'l':1,'m':1,'s':1,'v':2,'h':2}},
     'visible':False,
     'pointsVictoire':2,     
     }
@@ -534,7 +568,7 @@ majeursDict["M3"]={
     'cout':{'a':1,'p':1},
     'effet':cuisson ,
     "possibilites":possibilitesCuisson,
-    'option':{'cuissonDict':{'l':1,'m':1,'s':1,'v':2,'h':1}},
+    'option':{'cuissonDict':{'l':1,'m':1,'s':1,'v':2,'h':2}},
     'visible':False,
     'pointsVictoire':2,     
     }
@@ -583,7 +617,7 @@ majeursDict["M10"]={
     'cout':{'a':6},
     'effet':cuisson ,
     "possibilites":possibilitesCuisson,
-    'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
+    'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4,'h':2},'cuissonPain':{'c':3}},
     'visible':False,
     'pointsVictoire':2, 
     }
@@ -591,14 +625,16 @@ majeursDict["M11"]={
     'cout':{'a':6},
     'effet':cuisson ,
     "possibilites":possibilitesCuisson,
-    'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4},'cuissonPain':{'c':3}},
+    'option':{'cuissonDict':{'l':3,'m':2,'s':3,'v':4,'h':2},'cuissonPain':{'c':3}},
     'visible':False,
     'pointsVictoire':2, 
     }
 
 majeursDict["M12"]={
     'cout':{'p':3,'b':1},
-    'option':{'reservePuit':{'n':5}},
+    'option':{'instant':'ressourcesFutures',
+              'pile':[{'n':-1},{'n':-1},{'n':-1},{'n':-1},{'n':-1}]}, 
+    'effet':fctCarte.depiler,
     'visible':True,
     'pointsVictoire':3, 
     'devoile': "M13",
@@ -612,10 +648,15 @@ majeursDict["M13"]={
 
 majeursDict["M14"]={
     'cout':{'a':3,'p':1},
-    'option':{'cuissonPain':{'c':5}},
+    'option':{'cuissonPain':{'c':5},
+              'instant':'hook',
+              'hook_possibilites':fctCarte.possibilitesCuissonPain,
+              'phraseSpecifique':'p68'
+              },
     'visible':True,
     'pointsVictoire':2, 
-    'devoile': "M14",
+    'devoile': "M15",
+    'effet':fctCarte.choixCuissonPain,
     }
 majeursDict["M15"]={
     'cout':{'a':1,'p':1,'c':-2},
@@ -624,10 +665,15 @@ majeursDict["M15"]={
     }
 majeursDict["M16"]={
     'cout':{'p':3,'a':1},
-    'option':{'cuissonPain':{'c':4}},
+    'option':{'cuissonPain':{'c':4},
+              'instant':'hook',
+              'hook_possibilites':fctCarte.possibilitesCuissonPain,
+              'phraseSpecifique':'p68'},
     'visible':True,
     'pointsVictoire':3, 
     'devoile': "M17",
+    'effet':fctCarte.choixCuissonPain,
+    
     }
 majeursDict["M17"]={
     'cout':{'a':2,'p':1},
@@ -815,6 +861,7 @@ mineursDict["m18"]={
     'option':{'conditionMajeurs':1,'choixCout':{'r':{'r':-1}}}, 
     'effet':fctCarte.choixCout,
     'possibilites':['r'],
+    'hook':('b5','s','p')
     }
 
 mineursDict["m19"]={
@@ -916,7 +963,8 @@ mineursDict["m31"]={
     'cout':{'b':2},
     'condition':fctCarte.avoirXSavoirFaire,
     'hook':('debutTour','s','p'),
-    'option':{'conditionSavoirFaire':4,
+    'option':{'instant':'ressourcesFutures',
+              'conditionSavoirFaire':4,
               'pileInfinie':{'n': -2 }}, 
     'effet':fctCarte.depiler,
     'pointsVictoire':1, 
@@ -931,6 +979,7 @@ mineursDict["m33"]={
     'condition':fctCarte.avoirX,
     'hook':('debutTour','s','p'),
     'option':{'condition':{'s':1,'m+M':2},
+              'instant':'ressourcesFutures',
               'pileInfinieImpair':{'n': -1 }}, 
     'effet':fctCarte.depiler,
     'pointsVictoire':1, 
@@ -1158,6 +1207,15 @@ utilitaireDict["c1"]={
     'sansPion':True
     }
 
+utilitaireDict["c2"]={
+    'sansPion':True,
+    'effet':gererLesAnimauxEnTrop,
+    }
+
+#mendicité
+utilitaireDict["u8"]={
+    
+    }
 
 deck={
     'mineurs':mineursDict,

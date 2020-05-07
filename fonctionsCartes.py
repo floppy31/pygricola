@@ -17,24 +17,20 @@ def aiguilleRoche(selfCarte):
 def avoirMoinsDeXCartesEnMain(selfCarte):
     X=selfCarte['option']['conditionMoinsDeXCartesEnMain']
     mesCartes=len(selfCarte.parte.joueurQuiJoue().cartesEnMain)
-    print("avoirMoinsDeXCartesEnMain",mesCartes,X)
     return mesCartes<=X
 def avoirXPieces(partie,carte):
     X=carte.option['conditionPiece']
     nbre=partie.joueurQuiJoue().courDeFerme.compter("maison")
-    print("avoirXPieces",nbre,X)
     return nbre>=X
 
 def avoirXSavoirFaire(partie,carte):
     X=carte.option['conditionSavoirFaire']
     mesSavoirsfaire=partie.joueurQuiJoue().combienJaiJoueDe('s')
-    print("avoirXSavoirFaire",mesSavoirsfaire,X)
     return mesSavoirsfaire>=X
 
 def avoirXMajeurs(partie,carte):
     X=carte.option['conditionMajeurs']
     mesMajeurs=partie.joueurQuiJoue().combienJaiJoueDe('M')
-    print("avoirXMajeurs",mesMajeurs,X)
     return mesMajeurs>=X
 
 def avoirX(partie,carte):
@@ -48,7 +44,6 @@ def avoirX(partie,carte):
             listeReponse.append(partie.joueurQuiJoue().combienJaiJoueDe(k)>=v)
             
         
-    print("avoirX",listeReponse)
     
     return list(set(listeReponse))   == ['True']
 
@@ -159,17 +154,48 @@ def possibilitesRessourceSurAction(partie,carte,Fake=False):
         for i in range(1,31):
             if carte.partie.plateau['cases'][i].visible:
                 possibilites.append(carte.partie.plateau['cases'][i].uid)
-    partie.changerPointeurs(possibilites,carte,[carte.uid,'p18'],carte.owner,Fake=Fake)               
+    partie.changerPointeurs(possibilites,carte,'p36',carte.owner,Fake=Fake)               
 #             partie.phraseChoixPossibles=[carte.uid,'p18']
 #             partie.sujet=carte
 
+def possibilitesCuissonPain(partie,carte,Fake=False):
+    possibilites=['0']
+    partie.log.debug('possibilitesCuissonPain')
+    
+    if carte.owner.aiJeFourCuissonIllimite(): 
+        for nbCereales in range(0,carte.owner.ressources['c']):
+            ncereal=nbCereales+1
+            possibilites.append(str(ncereal))    
+    #si j'ai que M14 je peux cuire une seule
+    elif carte.owner.aiJeJoue('M14') and not carte.owner.aiJeJoue('M16'):
+        possibilites.append('1')    
+    elif carte.owner.aiJeJoue('M16') and not carte.owner.aiJeJoue('M14'):
+        for nbCereales in range(0,min(2,carte.owner.ressources['c'])):
+            ncereal=nbCereales+1
+            possibilites.append(str(ncereal))  
+    elif carte.owner.aiJeJoue('M16') and carte.owner.aiJeJoue('M14'):
+        for nbCereales in range(0,min(3,carte.owner.ressources['c'])):
+            ncereal=nbCereales+1
+            possibilites.append(str(ncereal))  
+    else:
+        fourNonImpl     
+    partie.changerPointeurs(possibilites,carte,djangoJoueur=carte.owner.djangoUid,phrase='p68',Fake=Fake,jouerEgalEffet=True) 
+    return possibilites 
+
+def choixCuissonPain(partie,choix,possibilites,carte):
+    ncereal=possibilites[choix]
+    pouvoirCuisson=carte.owner.pouvoirCuisson(int(ncereal))
+    partie.log.debug('{} {} {} {} {} {}'.format(carte.owner.nom,'p50',ncereal,'p51',pouvoirCuisson,'rn'))
+    carte.owner.ressources['c']-=int(ncereal)
+    carte.owner.ressources['n']+=pouvoirCuisson
+    partie.changerPointeurs(-1,None) 
 
 def conditionAnnexe(partie,carte):
     poss=possibilitesAnnexe(partie,carte)
     if len(poss)==0:
         return False   
     else:
-        typeMaison=partie.joueurQuiJoue().courDeFerme.enQuoiEstLaMaison()
+        typeMaison=util.maisonRessource[partie.joueurQuiJoue().courDeFerme.enQuoiEstLaMaison()]
         typeCarte=carte.option['annexe']
         return typeCarte==typeMaison
 
@@ -213,7 +239,7 @@ def constructionAnnexe(partie,choix,possibilites,carte):
     ferme.etat[case].type=typeMaison  
     partie.messagesPrincipaux.append("{} construit 1 pièce avec l'annexe en {}".format(partie.joueurQuiJoue().nom,case))
     partie.log.info("{} construit 1 pièce avec l'annexe en {}".format(partie.joueurQuiJoue().nom,case))
-
+    partie.changerPointeurs(-1,None)   
 
 def possibilitesPremierOuNaissance(partie,carte):
     possibilites=['premier']
@@ -277,7 +303,6 @@ def choixCout(partie,choix,possibilites,carte):
     partie.changerPointeurs(-1,None)
 
 def prendre(partie,choix,possibilites,carte):
-    print('prendre',choix,possibilites,carte)
     carte.owner.mettreAJourLesRessources(possibilites[choix])
 
 def prendreSiTourEgal(selfCarte):

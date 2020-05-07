@@ -5,7 +5,31 @@ def findCarte(carteList,uid):
         if c.uid==uid:
             return c
     
-
+def tupListComparables(tupList,stockageList):
+    print('----tupListComparables--- ')
+    print(tupList)
+    print(stockageList)
+    
+    counter=0
+    tupComparables=[]
+    for an,num in tupList:
+        if len(stockageList)>counter:
+            if num>stockageList[counter]:
+                #on est obligé de séparer an en deux
+                reste=num-stockageList[counter]
+                tupComparables=tupList.copy()
+                anToSplit,numToSplit=tupComparables.pop(counter)
+                tupComparables.insert(counter, (an,stockageList[counter]))
+                tupComparables.insert(counter+1, (an,reste))
+                tupComparables=sorted(tupComparables, key=lambda tup: tup[1], reverse=True)
+                return tupListComparables(tupComparables,stockageList)
+            else:
+                counter+=1
+                print("Ok pour {}".format(an))
+                tupComparables.append((an,num))    
+        else:
+            return tupList
+    return tupList
          
 
 # def parcourirLesHooks(partie,typeHook,logger):
@@ -54,6 +78,7 @@ def estVide(r):
     return vide
 
 def dummy():
+    print('!!!!!!!!!!!!!!!!!!!!!!!!DUMMY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     pass
 
 def traduire(stri):
@@ -200,6 +225,23 @@ long2Short={
     'boeuf':'v',
     'cheval':'h',
     }
+aliasTuile={
+'foret':'F',
+'tourbe':'T',
+'champ':'C',
+'etable':'E',
+'carte':'Z',
+'maisonBois':'B',
+'maisonArgile':'A',
+'maisonPierre':'S',
+'vide':'V',
+'paturage':'P'
+    }    
+maisonRessource={
+    'B':'b',
+    'A':'a',
+    'S':'p'
+    }
 
 #si b est une liste on renvoie une liste
 def ajouter(a,b):
@@ -278,6 +320,7 @@ def jouable(constA,constB):
             resultatList.append(True) 
             raisonList.append('OK')       
     else:
+        print(constB,type(constB))
         error
     
     for b in bList:

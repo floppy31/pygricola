@@ -209,10 +209,102 @@ trad['M22']={'fr':"Vanerie",
             'en':"TODO"}
 trad['M23']={'fr':"Fabricant de paniers",
             'en':"TODO"}
+trad['M0d']={'fr':"""Vous pouvez transformer à tout moment, 1 légume en 2 PN, 1 mouton en 2 PN, 
+1 Sanglier en 2 PN, 1 boeuf en 3 PN. A chaque fois que vous cuisez du pain, vous pouvez
+transformer 1 céréale en 2 PN""",
+            'en':"TODO"}
+trad['M1d']={'fr':"""Vous pouvez transformer à tout moment, 1 légume en 2 PN, 1 mouton en 2 PN, 
+1 Sanglier en 2 PN, 1 boeuf en 3 PN. A chaque fois que vous cuisez du pain, vous pouvez
+transformer 1 céréale en 2 PN""",
+            'en':"TODO"}
+trad['M2d']={'fr':"""Vous pouvez transformer à tout moment, 1 mouton en 1 PN, 
+1 Sanglier en 1 PN, 1 boeuf en 2 PN, 1 cheval en 2 PN.""",
+            'en':"TODO"}
+trad['M3d']={'fr':"""Vous pouvez transformer à tout moment, 1 mouton en 1 PN, 
+1 Sanglier en 1 PN, 1 boeuf en 2 PN, 1 cheval en 2 PN.""",
+            'en':"TODO"}
+trad['M4d']={'fr':"""Quand vous utilisez l'action spéciale "Couper la tourbe", recevez
+1 combustible supplémentaire. Si vous avez au moins 1 cheval, recevez un autre combustible.
+Au cours de la récolte finale, vous pouvez échanger 3/5 combustible pour 1/2 points bonus.""",
+            'en':"TODO"}
+trad['M5d']={'fr':"""Les aménagements majeurs suivants sont moins cher pour vous:
+Puits (-1 pierre), Menuiserie (-1 bois), Poterie (-1 argile), Vannerie (-1 roseau), Four en brique (-1 argile), Four 
+en pierre (-1 pierre), Loge du forestier (-1 argile)""",
+            'en':"TODO"}
+trad['M6d']={'fr':"""Quand vous utilisez l'action spéciale "Abattre des arbres", recevez 1 bois 
+supplémentaire. Si vous avez au moins 1 cheval, recevez un autre bois. A la fin de la partie,
+recevez 1 point de bonus par fôrets dans votre cour de ferme""",
+            'en':"TODO"}
+trad['M7d']={'fr':"""Placez 1 PN sur la case de tour de chacun des tours restants. Au début 
+de chaque tour, recevez le PN si vous possedez au moins 2 chevaux (sinon le PN 
+retourne dans la réserve).""",
+            'en':"TODO"}
+trad['M8d']={'fr':"""Vous pouvez transformer à tout moment, 1 légume en 3 PN, 1 mouton en 2 PN, 
+1 Sanglier en 3 PN, 1 boeuf en 4 PN. A chaque fois que vous cuisez du pain, vous pouvez
+transformer 1 céréale en 3 PN""",
+            'en':"TODO"}
+trad['M9d']={'fr':"""Vous pouvez transformer à tout moment, 1 légume en 3 PN, 1 mouton en 2 PN, 
+1 Sanglier en 3 PN, 1 boeuf en 4 PN. A chaque fois que vous cuisez du pain, vous pouvez
+transformer 1 céréale en 3 PN""",
+            'en':"TODO"}
+trad['M10d']={'fr':"""Vous pouvez transformer à tout moment, 1 légume en 3 PN, 1 mouton en 2 PN, 
+1 Sanglier en 3 PN, 1 boeuf en 4 PN, 1 cheval en 2 PN. A chaque fois que vous cuisez du pain, vous pouvez
+transformer 1 céréale en 3 PN""",
+            'en':"TODO"}
+trad['M11d']={'fr':"""Vous pouvez transformer à tout moment, 1 légume en 3 PN, 1 mouton en 2 PN, 
+1 Sanglier en 3 PN, 1 boeuf en 4 PN, 1 cheval en 2 PN. A chaque fois que vous cuisez du pain, vous pouvez
+transformer 1 céréale en 3 PN""",
+            'en':"TODO"}
+trad['M12d']={'fr':"""Placez 1 PN sur chacune des cinq prochaines cases de tours. Recevez
+cette nourriture au début de ces tours""" ,
+            'en':"TODO"}
+trad['M13d']={'fr':"""Recevez immédiatement 2 PN. A chaque récolte, vous pouvez utiliser 
+l'Eglise du village en payant 1 Combustible pour gagner 1 point de bonus""",
+            'en':"TODO"}
+trad['M14d']={'fr':"""A chaque fois que vous cuisez du pain, vous pouvez transformer, 1
+céréale (maximum) en 5 PN avec le Four en briques. Au moment où vous jouez cette carte,
+vous pouvez cuire du pain aussitôt""",
+            'en':"TODO"}
+trad['M15d']={'fr':"""Recevez immédiatement 2 combustibles. Quand vous chauffez votre maison, 
+chauffez une pièce de moins que n'en contient votre maison.""",
+            'en':"TODO"}
+trad['M16d']={'fr':"""A chaque fois que vous cuisez du pain, vous pouvez transformer jusqu'à 2
+céréales en 4 PN chacune avec le Four en pierre. Au moment où vous jouez cette carte,
+vous pouvez cuire du pain aussitôt""",
+            'en':"TODO"}
+trad['M17d']={'fr':"""1 combustible suffit à chauffer votre maison quelque soit sa taille""",
+            'en':"TODO"}
+trad['M18d']={'fr':"""Lors de la phase d'alimentation de chaque récolte, vous pouvez transformer
+1 bois (maximum) en 2 PN avec la Menuiserie. A la fin de la partie vous marquez 
+1/2/3 points si vous avez 3/5/7 bois""",
+            'en':"TODO"}
+trad['M19d']={'fr':"""Vous pouvez échanger du bois contre de l'argile à tout moment.
+Donnez du bois à la réserve et prenez l'équivalent en argile""",
+            'en':"TODO"}
+trad['M20d']={'fr':"""Lors de la phase d'alimentation de chaque récolte, vous pouvez transformer
+1 argile (maximum) en 2 PN avec la Poterie. A la fin de la partie vous marquez 
+1/2/3 points si vous avez 3/5/7 argiles""",
+            'en':"TODO"}
+trad['M21d']={'fr':"""Vous pouvez échanger de l'argile contre du bois à tout moment.
+Donnez de l'argile à la réserve et prenez l'équivalent en bois""",
+            'en':"TODO"}
+trad['M22d']={'fr':"""Lors de la phase d'alimentation de chaque récolte, vous pouvez transformer
+1 roseau (maximum) en 3 PN avec la Vannerie. A la fin de la partie vous marquez 
+1/2/3 points si vous avez 2/4/5 roseaux""",
+            'en':"TODO"}
+trad['M23d']={'fr':"""Vous pouvez échanger des roseaux contre d'autres matériaux de construction.
+Donnez des roseaux à la réserve et prenez l'équivalent en matériaux de construction de votre choix 
+(vous pouvez prendre plusieurs matériaux différents)""",
+            'en':"TODO"}
+
+
+
 
 trad["c0"]={'fr':"Manger une céréale cru pour 1 Pn",
             'en':"TODO"}
 trad["c1"]={'fr':"Manger un légume cru pour 1 Pn",
+            'en':"TODO"}
+trad["c2"]={'fr':"Gérer les animaux en trop",
             'en':"TODO"}
 #--------------------------------------------------------------------------------------------------------
 #utilitaires
@@ -232,8 +324,10 @@ trad["u6"]={'fr':"Spectacle", #dans le cas constructionOuspectacle
             'en':"TODO"}         
 trad["u7"]={'fr':"Construire en", #dans le cas constructionOuspectacle
             'en':"TODO"}         
-
-
+trad["u8"]={'fr':"Carte mendicité (-3 points)", #dans le cas constructionOuspectacle
+            'en':"TODO"}         
+trad["u9"]={'fr':"Semaille", #dans le cas constructionOuspectacle
+            'en':"TODO"}     
      
 trad["ul"]={'fr':"Cuire 1 légume",
             'en':"TODO"}        
@@ -245,7 +339,14 @@ trad["uv"]={'fr':"Cuire 1 bouef",
             'en':"TODO"}  
 trad["uh"]={'fr':"Cuire 1 cheval",
             'en':"TODO"}  
-
+trad["lm"]={'fr':"libérer 1 mouton",
+            'en':"TODO"}  
+trad["ls"]={'fr':"libérer 1 sanglier",
+            'en':"TODO"}  
+trad["lv"]={'fr':"libérer 1 boeuf",
+            'en':"TODO"}  
+trad["lh"]={'fr':"libérer 1 cheval",
+            'en':"TODO"}  
 #phrases /mots
 trad["p0"]={'fr':"Que voulez-vous faire?",
             'en':"TODO"}
@@ -347,7 +448,7 @@ trad["p48"]={'fr':"piece",
             'en':"TODO"}
 trad["p49"]={'fr':"sème",
             'en':"TODO"}
-trad["p50"]={'fr':"et cuit",
+trad["p50"]={'fr':"cuit",
             'en':"TODO"}
 trad["p51"]={'fr':"pour",
             'en':"TODO"}
@@ -359,6 +460,43 @@ trad["p53"]={'fr':"indiquez votre plan de clôture",
 
 trad["p54"]={'fr':"cloture" ,
             'en':"TODO"}
+trad["p55"]={'fr':"Vous manquez de place dans vos paturages, que voulez vous faire?" ,
+            'en':"TODO"}
+
+trad["p56"]={'fr':"champ" ,
+            'en':"TODO"}
+trad["p57"]={'fr':"paturage" ,
+            'en':"TODO"}
+trad["p58"]={'fr':"etable cloturée" ,
+            'en':"TODO"}
+trad["p59"]={'fr':"cases de cour inutilisées" ,
+            'en':"TODO"}
+trad["p60"]={'fr':"maison" ,
+            'en':"TODO"}
+trad["p61"]={'fr':"point de victoire" ,
+            'en':"TODO"}
+
+trad["p62"]={'fr':"points spéciaux (TODO)" ,
+            'en':"TODO"}
+trad["p63"]={'fr':"Toujours utiliser la ressource si j'en ai" ,
+            'en':"TODO"}
+trad["p64"]={'fr':"N'utiliser la ressource que si je ne peux pas me nourrir" ,
+            'en':"TODO"}
+trad["p65"]={'fr':"Ne jamais utiliser la ressource" ,
+            'en':"TODO"}
+trad["p66"]={'fr':"cuire" ,
+            'en':"TODO"}
+trad["p67"]={'fr':"ne rien cuire" ,
+            'en':"TODO"}
+trad["p68"]={'fr':"Combien de céréales voulez vous cuire? (pygricola calculera automatiquement la cuisson optimale):",
+            'en':"TODO"} 
+trad["p69"]={'fr':"Indiquez votre plan de semaille",
+            'en':"TODO"} 
+trad["p70"]={'fr':"Renove mais ne cloture rien",
+            'en':"TODO"} 
+
+
+
 
 trad["m0"]={'fr':"Foyer simple",
             'en':"TODO"}   

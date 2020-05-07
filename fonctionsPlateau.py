@@ -70,31 +70,36 @@ def jePeuxRenover(partie, carte ):
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme   
     typeMaison=ferme.enQuoiEstLaMaison()
-    if typeMaison=='p':
+    if typeMaison=='S':
         return False
     else:
         return joueur.jePeuxJouer(joueur.prixDeLaRenovation())   
     
-def renoPuisMineurOuMajeur(partie,carte):
+    
+    
+    
+def renovation(partie,carte,Fake=False):
     joueur=partie.joueurQuiJoue()
     ferme=joueur.courDeFerme   
     typeMaison=ferme.enQuoiEstLaMaison()
     cout=joueur.prixDeLaRenovation()
-    if typeMaison=='b':
+    if typeMaison=='B':
         nouveauType='maisonArgile'
-    elif typeMaison=='a':
+    elif typeMaison=='A':
         nouveauType='maisonPierre'
     else:
         error
     for m in ferme.tousLes('maison'):
-        ferme.etat[m]=nouveauType
+        ferme.etat[m].type=nouveauType
     joueur.mettreAJourLesRessources(cout)
     
-    partie.log.info()
+    partie.log.info('{} {}'.format(joueur.nom,'p52'))
     partie.messagesPrincipaux.append([joueur.nom,'p52'])
-    possibilitesAmenagementMineurOuMajeur(partie,carte)
-    
-    
+    if carte.uid=='a15':
+        possibilitesAmenagementMineurOuMajeur(partie,carte,Fake=False,possibiliteRien=True)
+    elif carte.uid=='a23':
+        demanderPlanCloture(partie,carte,Fake=False)
+
     
             
 ##################################################################################
@@ -109,7 +114,12 @@ def jePeuxNaitre(partie,carte):
         return True
     else:
         return False
-
+    
+def moinsDeCinqPerso(partie,carte):
+    joueur=partie.joueurQuiJoue()
+    nbPions=len(joueur.personnages)+len(joueur.personnagesPlaces)
+    return nbPions<5
+    
 def jePeuxJouerSavoirFaireOuNaissance(partie,carte):
     cout=coutSavoirFaire2(partie)
     joueur=partie.joueurQuiJoue()
@@ -347,39 +357,75 @@ def choixAmenagementMineur(partie,choix,possibilites,carte):
 ##################################################################################
 #---------------------------------------Majeur          --------------------------
 ##################################################################################        
+# def possibilitesAmenagementMajeur(partie,carte,Fake=False):
+#     possibilites=[]   
+#     joueur=partie.joueurQuiJoue()
+#     plateau=partie.plateau
+#     for k,c in plateau["majeurs"].items():
+#         if c.visible:
+#             if joueur.jeRemplisLesConditions(c.conditionAchat):
+#                 if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
+#                     possibilites.append(c)
+#     partie.changerPointeurs(possibilites ,carte,'p34',joueur,Fake=Fake)       
+
 def possibilitesAmenagementMajeur(partie,carte,Fake=False):
     possibilites=[]   
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
     for k,c in plateau["majeurs"].items():
-        if c.visible:
+        if c.uid[0]=="M" and c.visible:
+            #ici c'est condition achat... on ne veut pas appeler poss non vide de la carte à acheter
             if joueur.jeRemplisLesConditions(c.conditionAchat):
-                if joueur.jePeuxJouer(util.ajouter(c.cout,carte.cout)):
-                    possibilites.append(c)
-    partie.changerPointeurs(possibilites ,carte,'p34',joueur,Fake=Fake)       
+                
+                #pour gerer les cout listes
+                if type(c.cout)==list:
+                    for coutSimple in c.cout:
+                        #cout de la carte + de l'action (pour foire du travail)
+                        if joueur.jePeuxJouer(util.ajouter(carte.cout,coutSimple)):
+                            
+                            possibilites.append('{}_cout{}'.format(c.uid,c.cout.index(coutSimple)))
+                        else:
+                            partie.messagesDetail.append(["p10",c.uid])
+                else:
+                
+                    #cout de la carte + de l'action (pour foire du travail)
+                    if joueur.jePeuxJouer(util.ajouter(carte.cout,c.cout)):
+                        possibilites.append(c)
+                    else:
+                        partie.messagesDetail.append(["p10",c.uid])
+            else:
+                partie.messagesDetail.append(["p9",c.uid])
+    #si on appelle cette methode via l'action spéciale 
+    #on n'ajoute pas la possibilité u3 (ne rien faire)
+    #ainsi on ne peux pas faire l'action spéciale si on ne peux construire aucun
+    #ammenagement grace à possibiliteNonVide
+    partie.changerPointeurs(possibilites ,carte,phrase='34',djangoJoueur=joueur.djangoUid,Fake=Fake,jouerEgalEffet=not Fake)   
+                 
+    
     
 def choixAmenagementMajeur(partie,choix,possibilites,carte):
     carteJouee=possibilites[choix]
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
-    joueur.poserCarteDevantSoi(carteJouee,True)
     partie.messagesPrincipaux.append([joueur.nom,"p14",carteJouee.uid])
     partie.log.info([joueur.nom,"p14",carteJouee.uid])
     #si c'est une action speciale
     if hasattr( carte,"carteQuiMePorte"):
         joueur.mettreAJourLesRessources(util.ajouter(carte.cout,carteJouee.cout))
         carte.carteQuiMePorte.changerEtat(partie.quiJoue)
-        partie.changerPointeurs(-1 ,carte)  
+        joueur.poserCarteDevantSoi(carteJouee,Majeur=True)
+        partie.changerPointeurs(-1 ,None)  
+   
+        
     else:
         
         TODO
-        carteJouee.jouer()
-        partie.changerPointeurs(-1 ,carte)  
+
 ##################################################################################
 #---------------------------------------MINEUR OU MAJEUR--------------------------
 ##################################################################################
 
-def possibilitesAmenagementMineurOuMajeur(partie,carte,Fake=False):
+def possibilitesAmenagementMineurOuMajeur(partie,carte,Fake=False,possibiliteRien=False):
     possibilites=[]   
     joueur=partie.joueurQuiJoue()
     plateau=partie.plateau
@@ -413,6 +459,8 @@ def possibilitesAmenagementMineurOuMajeur(partie,carte,Fake=False):
         if plateau['majeurs'][m].visible:
              if joueur.jePeuxJouer(plateau['majeurs'][m].cout):
                         possibilites.append(plateau['majeurs'][m])   
+    if possibiliteRien:
+        possibilites.append('u3')
     partie.changerPointeurs(possibilites ,carte,phrase='p35',djangoJoueur=joueur.djangoUid,Fake=Fake,jouerEgalEffet=not Fake)  
     
      
@@ -574,7 +622,26 @@ def labourage(partie,choix,possibilites,carte):
     partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
     carte.mettrePersonnage(personnage)
     partie.changerPointeurs(-1,None)
+
+
+
+def naissanceSansPieceLibre(partie,choix,possibilites,carte):
     
+    
+    from pygricola.joueur.personnage import Personnage
+
+    joueur=partie.joueurs[partie.quiJoue]
+    ferme=joueur.courDeFerme
+    locBebe='B1'
+    nouveauNe=Personnage(locBebe,1+len(joueur.personnages)+len(joueur.personnagesPlaces),joueur.couleur)
+    nouveauNe.consomationNourriture=1
+    joueur.personnagesPlaces.append(nouveauNe)
+    nouveauNe.localisation=carte
+    carte.occupants.append(nouveauNe)
+    personnage=joueur.personnages.pop()
+    joueur.personnagesPlaces.append(personnage)                  
+    carte.mettrePersonnage(personnage)    
+    partie.changerPointeurs(-1,None)    
 ##################################################################################
 #---------------------------------------Cloture--------------------------
 ##################################################################################
@@ -616,8 +683,10 @@ def jePeuxCloturer(partie,carte):
 
 def demanderPlanCloture(partie,carte,Fake=False):
     partie.changerPointeurs('inputtext' ,carte,'p53',Fake=False)    
+
+
 def randomPlanCloture(partie):
-    pass
+    return partie.joueurQuiJoue().courDeFerme.tousLes('vide')[0]
     
 def planCloture(partie,planStr,possibilites,carte):
     #par ex C2,C3-C4  ou 
@@ -639,6 +708,17 @@ def planCloture(partie,planStr,possibilites,carte):
     listePaturageDejaTraite=[]
     
     ferme.tmpPaturage=[] #reinit au cas ou
+    
+    
+    #dans le cas RenoPuiCloture il se peut qu'on ne fasse pas de cloture
+    if planStr=='0' and carte.uid=='a23':
+        partie.messagesPrincipaux.append([partie.joueurQuiJoue().nom,'p70'])
+        personnage=partie.joueurQuiJoue().personnages.pop()
+        partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
+        carte.mettrePersonnage(personnage)
+        partie.changerPointeurs(-1,None)    
+        return        
+    
     for paturage in planStr.split(','):
         #si c'est une seule case
         if len(paturage)==2:
@@ -1115,8 +1195,11 @@ def jePeuxCuireDuPain(partie):
     return joueur.ressources['c']>0 and fourOk
 
 
-def demanderPlanSemailleEtOuCuisson(partie,carte,Fake=False):
-    partie.changerPointeurs('inputtext',carte,phrase='p33',Fake=Fake) 
+def demanderPlanSemaille(partie,carte,Fake=False):
+    if carte.uid=='a13':
+        partie.changerPointeurs('inputtext',carte,phrase='p33',Fake=Fake)
+    elif carte.uid=='a21':
+        partie.changerPointeurs('inputtext',carte,phrase='p69',Fake=Fake)
     
 def randomPlanSemailleEtOuCuisson(partie):
     joueur=partie.joueurQuiJoue()
@@ -1191,14 +1274,22 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
                 if case in ferme.etat.keys():
                     #et etre un champ
                     if ferme.etat[case].type=='champ':
-                        #vide
-                        if util.estVide(ferme.etat[case].ressources):
-                            cout[type]+=1
-                            validTup.append((case,type))
-                        else:
+                        
+                        #n'est pas déjà passé
+                        if case in [k for k,v in validTup]:
                             planCorrect=False
-                            msg="la case {} n'est pas vide".format(case)
+                            msg="vous avez déjà semé sur cette case {}".format(case)
                             break
+
+                        else:
+                            #vide
+                            if util.estVide(ferme.etat[case].ressources):
+                                cout[type]+=1
+                                validTup.append((case,type))
+                            else:
+                                planCorrect=False
+                                msg="la case {} n'est pas vide".format(case)
+                                break
                     else:
                         planCorrect=False
                         msg="la case {} n'est pas un champ".format(case)
@@ -1209,10 +1300,10 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
                     break                           
             else:
                 planCorrect=False
-                msg="la vous ne pouvez pas semer de {}".format(util.short2Long[type])
+                msg="la vous ne pouvez pas semer de {}".format(type)
                 break
     #si pour le moment on est bon
-    if (planCorrect):
+    if (planCorrect): 
         if(joueur.jePeuxJouer(cout)):
             #on est OK
             #on cuit les céréales
@@ -1233,9 +1324,117 @@ def planSemailleEtOuCuisson(partie,planStr,possibilites,carte):
      
     else:
         #on est pas bon
+        print(msg)
         partie.phraseChoixPossibles="Indiquez votre plan de semaille et cuisson de pain"
         partie.changerPointeurs('inputtext',carte,alert=msg)
     
     
-
+def planLabourageSemaille(partie,planStr,possibilites,carte):
+    #par ex L:B3,C2:c,C3:l,c:4
+    
+    #pour tests django et random
+    if planStr=="randomPlanLabourageSemaille":
+        planStr=randomPlanLabourageSemaille(partie)
+    partie.log.debug(planStr)
+    joueur=partie.joueurQuiJoue()
+    ferme=joueur.courDeFerme                                  
+    planCorrect=True
+    cout=util.rVide()
+    validTup=[]
+    msg=""
+    cout={'b':0,'c':0,'l':0} #on ne peut semer que ces 3 trucs
+    caseLabour=[] #pour les cartes plus tard
+    
+    for tup in planStr.split(','):
+        try:
+            first=tup.split(':')[0]
+            second=tup.split(':')[1]
+        except:
+            planCorrect=False
+            msg="format de plan invalide {}".format(planStr)
+            partie.changerPointeurs('inputtext',carte,alert=msg)
+            return
+        #instruction labourage
+        if first=='L':
+            if second in ferme.etat.keys():
+                if ferme.etat[second].type=='vide':
+                    if len(caseLabour)==0:
+                        #OK
+                        caseLabour.append(second)
+                    else:
+                        planCorrect=False
+                        msg="vous ne pouvez labourer une seule case {} est en trop".format(second)
+                        break
+                else:
+                    planCorrect=False
+                    msg="la case {} n'est pas vide".format(second)
+                    break
+            else:
+                planCorrect=False
+                msg="la case {} n'existe pas".format(second)
+                break     
+            pass
+        #instruction semaille
+        else:
+            if second in ['b','c','l']:
+                #la case doit exister 
+                if first in ferme.etat.keys():
+                    #et etre un champ
+                    if ferme.etat[first].type=='champ':
+                        #déja semée
+                        if first in [k for k,v in validTup]:
+                            planCorrect=False
+                            msg="vous avez déjà semé sur cette case {}".format(first)
+                            break
+                        else:
+                            #vide
+                            if util.estVide(ferme.etat[first].ressources):
+                                cout[second]+=1
+                                validTup.append((first,second))
+                            else:
+                                planCorrect=False
+                                msg="la case {} n'est pas vide".format(first)
+                                break
+                    elif first in caseLabour:
+                        cout[second]+=1
+                        validTup.append((first,second))
+                        
+                    else:
+                        planCorrect=False
+                        msg="la case {} n'est pas un champ".format(first)
+                        break
+                else:
+                    planCorrect=False
+                    msg="la case {} n'existe pas".format(first)
+                    break                           
+            else:
+                planCorrect=False
+                msg="vous ne pouvez pas semer de {}".format(second)
+                break
+    #si pour le moment on est bon
+    if (planCorrect): 
+        if(joueur.jePeuxJouer(cout)):
+            joueur.mettreAJourLesRessources(cout)
+            #OK, d'abord laboure le champ
+            if len(caseLabour)>0:
+                caseALabourer=caseLabour.pop()
+                ferme.etat[caseALabourer].type="champ"
+                partie.messagesPrincipaux.append([joueur.nom,'p22',caseALabourer])
+            #maintenant on seme
+            for case,type in validTup:
+                ferme.etat[case].semer(type)
+                partie.messagesPrincipaux.append([joueur.nom,'p49',cout['c'],'rc',',',
+                                      cout['l'],'rl',cout['b'],'rb'])         
+                personnage=partie.joueurQuiJoue().personnages.pop()
+                partie.joueurQuiJoue().personnagesPlaces.append(personnage)                  
+                carte.mettrePersonnage(personnage)
+                partie.changerPointeurs(-1,None)                
+            
+        else:
+            planCorrect=False
+            msg="vous ne pouvez pas payer le cout {} ".format(cout)
+            partie.changerPointeurs('inputtext',carte,alert=msg)        
+            
+    else:
+        print(msg)
 

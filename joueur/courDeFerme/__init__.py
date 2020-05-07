@@ -59,7 +59,6 @@ class CourDeFerme(object):
         
         buf.sort(reverse=True)
         dico['list']=buf
-        print(dico)
         
         return dico
         
@@ -77,7 +76,7 @@ class CourDeFerme(object):
        
     def enQuoiEstLaMaison(self,court=True):
         if court:
-            return util.long2Short[self.etat["B1"].type.split('maison')[1].lower()]
+            return util.aliasTuile[self.etat["B1"].type]
         else:
             return self.etat["B1"].type
     @property
@@ -169,7 +168,6 @@ class CourDeFerme(object):
         voiz=self.voisin(coord1)
         reponse=False
         for k in voiz.keys():
-            print(voiz[k],coord2,voiz[k]==coord2)
             if voiz[k]==coord2:
                 reponse=True
         return reponse
@@ -233,9 +231,21 @@ class CourDeFerme(object):
         rep=[]
         for case in parseList:
             (picto,etable)= self.etat[case].pictos(case)
-            rep.append({'type':self.etat[case].type,'picto':picto,'etable':etable,'occupants':len(self.etat[case].occupants)})
+            cDict={'type':self.etat[case].type,
+                        'picto':picto,
+                        'etable':etable,
+                        'occupants':self.etat[case].occupants
+                        }
+            ress=[]
+            for k,v in self.etat[case].ressources.items():
+                for n in range(v):
+                    ress.append(k)
+            cDict['ressources']=ress
+            rep.append(cDict)
+                
         dico['ferme']=rep
         dico['stockage']=self.calculerCapaciteStockage()['list']
+        
         return dico
     
     def load(self,dico):
@@ -285,10 +295,8 @@ class CourDeFerme(object):
                     if voiz in casesList:
                         compteur +=1
                 if compteur<2:
-                    print('pas en carré',c,casesList)
                     enCarre=False
                     break
-            print("EN CARRE",enCarre,compteur)
             if enCarre:
                 coutSansVoisins=8
             else:
@@ -339,7 +347,6 @@ class CourDeFerme(object):
                     coutSansVoisins=12
                 else:
                     coutSansVoisins=14
-        print('COUTSANSVOISINS',coutSansVoisins)                  
         reducBois=0
         
         for c in casesList:
@@ -353,22 +360,9 @@ class CourDeFerme(object):
                         elif voiz[direction] in self.tmpPaturage:
                             reducBois+=1          
                     else:
-                        print('skip',voiz[direction])
-        print('COUTSANSVOISINS',coutSansVoisins) 
-        print('COUTFINAL',coutSansVoisins-reducBois) 
+                        pass
         return {'b':coutSansVoisins-reducBois}     
-alias={
-'foret':'F',
-'tourbe':'T',
-'champ':'C',
-'etable':'E',
-'carte':'Z',
-'maisonBois':'B',
-'maisonArgile':'A',
-'maisonPierre':'S',
-'vide':'V',
-'paturage':'P'
-    }        
+    
 
 class Tuile(object):
 #foret, tourbe, champ, etable, carte, maisonBois,maisonArgile, maisonPierre,vide
@@ -376,12 +370,11 @@ class Tuile(object):
         self.type=type
         self.ressources=util.rVide()
         self.occupants=[]
-        print('TUILE',type)
     def __str__(self):
            return str(self.type)
     @property   
     def short(self):
-        return alias[self.type]
+        return util.aliasTuile[self.type]
 
     def semer(self,ressource):
         if self.type=="champ":
@@ -396,7 +389,7 @@ class Tuile(object):
             print("ERREUR vous ne pouvez semer que sur un champ")
             qsfqdfdf
     def pictos(self,case):
-        return (alias[self.type],self.type=="etable")
+        return (util.aliasTuile[self.type],self.type=="etable")
     
         
 class Paturage(Tuile):
@@ -407,7 +400,6 @@ class Paturage(Tuile):
         self.cloturesUtilises=0
         self.cour=cour# la cour de ferme
         super().__init__('paturage')
-        print('----> CONSTRUCTION PATURAGE',self.cases,self.etables)
         
     
     @property

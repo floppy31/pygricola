@@ -1,7 +1,7 @@
 from pygricola.joueur import Joueur ,loadJoueur
 
 
-from pygricola.carte import deck,loadCarte,genererActionsSpeciales,AmenagementMajeur,CarteAction,CaseAppro,AmenagementMineur,SavoirFaire
+from pygricola.carte import deck,loadCarte,genererActionsSpeciales,Amenagement,AmenagementMajeur,CarteAction,CaseAppro,AmenagementMineur,SavoirFaire
 import pygricola.fonctionsPlateau as fct
 from pygricola.traduction import trad
 
@@ -12,50 +12,38 @@ import json
 
 
 example={
-    0:('Romain','blue',1212),
+    0:('Anouck','violet',8990),
     1:('Daniel','yellow',1345),
     2:('Gauthier','red',5434),
-    3:('Damien','green',3432),
-    4:('Anouck','violet',8990),
+    3:('Romain','blue',1212),
+    4:('Damien','green',3432),
       }
 
-recoltes=[4,7,9,11,13,14]
 
 
         
     
-def cloture(partie):
-    aTermine = False
-    ferme=partie.joueurs[partie.quiJoue].courDeFerme
-    ferme.paturages.aCloture=False
-    while aTermine == False:
-        print(ferme.prettyPrint())
-        possibilites=['Construire un nouveau paturage', 'Diviser un paturage existant', 'Terminer l action']
-        choix=util.printPossibilities(partie,"Que voulez vous faire? :",possibilites)
-        if (choix == 2): 
-            if ferme.paturages.aCloture==True:   
-                aTermine = True
-                print("Fin de l action Cloture")
-            else:
-                print('Vous n avez pas cloture, action invalide')
-        if choix == 0:
-            ferme.paturages.construireUnPaturage()
-
-        if choix == 1:
-            ferme.paturages.diviserUnPaturage()
-
-        
+# def cloture(partie):
+#     aTermine = False
+#     ferme=partie.joueurs[partie.quiJoue].courDeFerme
+#     ferme.paturages.aCloture=False
+#     while aTermine == False:
+#         print(ferme.prettyPrint())
+#         possibilites=['Construire un nouveau paturage', 'Diviser un paturage existant', 'Terminer l action']
+#         choix=util.printPossibilities(partie,"Que voulez vous faire? :",possibilites)
+#         if (choix == 2): 
+#             if ferme.paturages.aCloture==True:   
+#                 aTermine = True
+#                 print("Fin de l action Cloture")
+#             else:
+#                 print('Vous n avez pas cloture, action invalide')
+#         if choix == 0:
+#             ferme.paturages.construireUnPaturage()
+# 
+#         if choix == 1:
+#             ferme.paturages.diviserUnPaturage()
 
 
-
-def labourageSemaille(partie):
-    pass
-
-def naissanceSansPieceLibre(partie):
-    pass
-
-def renoPuisCloture(partie):
-    pass
 
 # def avancer2(p,id):
 #     logger=p.log
@@ -81,11 +69,11 @@ def renoPuisCloture(partie):
 #             
            
 
-def avancer(p,id):
+def avancer(p,id,forceHook=False):
     log=p.log
-    log.debug('avancer {} len(p.hooks) {}'.format(id,len(p.hooks))) 
+    log.debug('avancer {} len(p.hooks) {} \n{}'.format(id,len(p.hooks),p.choixPossibles)) 
     #on ne traite les hook que si il n'y a pas d'autre choix à faire
-    if len(p.hooks)>0 and p.choixPossibles==-1:
+    if (len(p.hooks)>0 and p.choixPossibles==-1) or forceHook:
            
         
         hookResolu,typeResolu=p.hooks.pop()
@@ -106,6 +94,7 @@ def avancer(p,id):
             else:
                 return p.suivantOuEncore()
         else:
+            p.changerPointeurs(-1,None)
             return hookASuivre
     
     #quand on arrive ici on a un nouvelle iterraction id
@@ -131,6 +120,7 @@ def avancer(p,id):
     if p.choixPossibles==-1:
         #on  regarde si on a des hooks
         hook,t=p.returnDernierHook()
+        
         log.debug('possssssss {}'.format(p.choixPossibles))
         if hook==False:        
             log.debug('pas de hooks')
@@ -163,9 +153,10 @@ class Pointeur(object):
         self.jouerEgalEffet=jouerEgalEffet
     
     def __str__(self):
-        stri="sujet:{}\njoueur:{}\nphrase {}\npossibilites:{}".format(self.sujet,self.djangoJoueur,self.phrase,self.possibilites)
+        stri="sujet:{}\njoueur:{}\nphrase {}\n".format(self.sujet,self.djangoJoueur,self.phrase)
         return stri    
     def save(self):
+        
         dico={'sujet':self.sujet.uid if hasattr(self.sujet, "uid")  else self.sujet,
                 'djangoJoueur':self.djangoJoueur,
                 'phrase':self.phrase,
@@ -180,8 +171,9 @@ class Pointeur(object):
             dico['possibilites']=uidList
         elif self.possibilites=='inputtext':
             dico['possibilites']='inputtext'
-        else:
-            dico['possibilites']=-1
+        elif self.possibilites==-1:
+            #ERRRR
+            ERRR
         return dico
 
 
@@ -189,6 +181,8 @@ class Partie(object):
     
     def __init__(self,logger):
         self._offset=16
+        self._recoltes=[4,7,9,11,13,14]
+
         self.plateau = dict()
         self.joueurs = dict()
         self.quiJoue=0
@@ -211,7 +205,16 @@ class Partie(object):
         self.hooks=[]
         self.listeCoupsJoues=[]
         self.draftDict={}
+        
+        self.infirmerie={}
+        self._ignorerRecoltes=False
+        self._forceHook=False
 
+    @property
+    def prochaineRecolte(self):
+        for r in self._recoltes:
+            if self.plateau['tour']<= r:
+                return r
 
     @property
     def choixPossibles(self):
@@ -237,7 +240,11 @@ class Partie(object):
             #si on specifie un sujet, on le change
             if sujet:
                 self.pointeur.sujet=sujet
-
+                if hasattr(sujet, 'option'):
+                    if 'phraseSpecifique' in sujet.option.keys():
+                        phrase=sujet.option['phraseSpecifique']
+            
+             
             self.pointeur.phrase=phrase
             self.pointeur.alert=alert
             self.log.debug("changement de pointeurs {}".format(self.pointeur))
@@ -261,8 +268,148 @@ class Partie(object):
                
     def recolteOuDemmarageTour(self):
         self.log.debug("recolteOuDemmarageTour !!!!!!!!!!!!")
-        if False:
-            recolte
+        if self.plateau['tour']-1 in self._recoltes and not self._ignorerRecoltes:        
+            self.log.info("---------------------RECOLTE---------------------------")
+            print(self.plateau['tour'])
+            
+            for jid,j in self.joueurs.items():
+                self.log.info("joueur {}".format(j.nom))
+                ###########################################################
+                #on regarde, si on a des animaux qu'il vaut mieux cuire
+                #il faut pouvoir cuire, on en avoir 3 ou plus et ne pas pouvoir stocker 
+                #les bebes.
+                
+                
+                
+                
+                
+                
+                
+                
+                ###########################################################
+                #les champs récoltent
+                for ch in j.courDeFerme.tousLes('champ'):
+                    champ=j.courDeFerme.etat[ch]
+                    if not util.sontEgaux(champ.ressources,util.rVide()):
+                        if champ.ressources['c']>0:
+                            champ.ressources['c']-=1
+                            j.ressources['c']+=1
+                            self.log.debug("champ {} recolte 1 céréale".format(champ))
+                        elif champ.ressources['l']>0:
+                            champ.ressources['l']-=1
+                            j.ressources['l']+=1
+                            self.log.debug("champ {} recolte 1 légume".format(champ))
+                        elif champ.ressources['b']>0:
+                            champ.ressources['b']-=1
+                            j.ressources['b']+=1
+                            self.log.debug("champ {} recolte 1 bois".format(champ))
+                        else:
+                            print(list(champ.ressources.keys()))
+                            Chelou
+                ###########################################################                           
+                #il faut se chauffer (on fait ça avnt à cause du bois/combustible)
+                nbPersoInfirmerie=0
+                if j.aiJeJoue('M17'):
+                    coutChauffage={'f':1}
+                else:
+                    npiece=j.courDeFerme.compter('maison')
+                    type=j.courDeFerme.enQuoiEstLaMaison(court=True)
+                    if type=="B":
+                        reduc=0
+                    elif type=="A":
+                        reduc=1
+                    elif type=="S":
+                        reduc=2
+                    else:
+                        print(type)
+                        Impossible
+                    if j.aiJeJoue('M15'):
+                        reduc+=1
+                    ncombustible=npiece-reduc
+                    if ncombustible<1:
+                        ncombustible=0
+                    
+                    coutChauffage={'f':ncombustible}
+                    while not j.jePeuxJouer(coutChauffage) and len(j.personnages)>0:
+                        self.log.debug("ne peux pas chauffer, 1 perso va à l'infirmerie")
+                        pInfirm=j.personnages.pop()
+                        pInfirm.localisation='infirmerie'
+                        self.infirmerie[jid].append(pInfirm)
+                        coutChauffage['f']-=1
+                        nbPersoInfirmerie+=1
+                    
+                    if len(j.personnages)==0:
+                        self.log.debug("tout le monde est à l'infirmerie, je ne paye pas le chauffage")
+                    else:
+                        
+                        self.log.debug("chauffage {}".format(coutChauffage))
+                        j.mettreAJourLesRessources(coutChauffage,actionDunePersonne=False)
+                ###########################################################                           
+                #il faut se nourrir  
+                nPn=0
+                for p in j.personnages:
+                    nPn+=p.consomationNourriture
+                    
+                nPn+=nbPersoInfirmerie*2
+                self.log.debug("cout en Pn à payer {}".format(nPn))
+                
+                #menuiserie poterie vannerie
+                tupList=[('M18','b',2),('M20','a',2),('M22','r',3)]
+                
+                for uid,res,pn in tupList:
+                
+                    if j.aiJeJoue(uid) and j.ressources[res]>0:
+                        #always
+                        if j._preferencesRecolte[uid]=="a":
+                            j.ressources[res]-=1
+                            j.ressources['n']+=pn
+                            self.log.debug("utilisation de {}".format(uid))
+                        #if needed
+                        elif j._preferencesRecolte[uid]=="i":
+                            if nPn>j.ressources['n']:
+                                j.ressources[res]-=1
+                                j.ressources['n']+=pn        
+                                self.log.debug("utilisation de {}".format(uid))                   
+                        #never
+                        elif j._preferencesRecolte[uid]=="n":
+                            pass
+                        else:
+                            Impossible
+                
+                if nPn <= j.ressources['n']:
+                    self.log.debug("repas: conso nourriture".format(nPn))
+                    j.ressources['n']-=nPn
+                else:
+                    #ici on peut encore cuire des animaux si jamais
+                    
+                    #ou encore manger des trucs crus
+                    
+                    #en dernier recourt carte mendicité
+                    nbMendicite=nPn-j.ressources['n']
+                    for i in range(nbMendicite):
+                        self.log.debug("je prend une carte mendicite")
+                        j.cartesMendicite.append(Amenagement(self,'u8',**deck['utilitaire']['u8']))
+                
+                ###########################################################                           
+                #les animaux se reproduisent   
+                #il le font tous en même temps...
+                #on est obliger de libérer ceux qu'on ne peut pas stocker
+                for an in ['m','s','v','h']:
+                    if an in j.ressources.keys() and j.ressources[an]>1:
+                        j.ressources[an]+=1
+                        self.log.debug("un {} se reproduit".format(an))
+                j.organiserLesAnimaux(recolte=True)
+                self.log.info("fin de la récolte pour joueur {}".format(j.nom))
+                                           
+            self.log.info("----- fin de la récolte--------")
+            self.demarrageTour()
+            self.hooks=self.recolterLesHooksInterractifs('debutTour')
+            hook,t=self.returnDernierHook()
+            if hook==False:
+                self.pointerSurPremier()
+                return self.pointeur
+            else:
+                return hook            
         else:
             self.demarrageTour()
             self.hooks=self.recolterLesHooksInterractifs('debutTour')
@@ -297,7 +444,7 @@ class Partie(object):
                             #si le hook est jouable
                             if c.hookStatus==0:
                                 #si le hook me concerne
-                                if(c.hook[1]=="s"):
+                                if(c.hook[1]=="s") and (c.owner==self.joueurQuiJoue()):
                                     #si il y a plusieurs possibilites
                                     if hasattr(c._possibilites, '__call__'):
                                         c.possibilites(Fake=False)
@@ -328,11 +475,13 @@ class Partie(object):
                                         else:
                                             self.log.debug("parcourirLesHooks demande un choix utilisateur {} {}".format(c.uid,c.hookStatus))
                                             hooks.append((Pointeur(c,c._possibilites,c.owner.djangoUid),typeHook))
-                                elif (c.hook[1]=="o"):    
+                                elif (c.hook[1]=="o")  and not (c.owner==self.joueurQuiJoue()):    
                                     if self.joueurQuiJoue()==c.owner:
                                         pass
                                     else:
                                         c.effet(0,c._possibilites)
+                                elif (c.hook[1]=="a"):
+                                    ddd
                                         
                             else:
                                 self.log.debug("parcourirLesHooks: hook déjà consomé",c.uid,c.hookStatus) 
@@ -341,7 +490,7 @@ class Partie(object):
 
     #je separe la fonction d'init... a cause de save/load
     #on a besoin de creer un objet partie sans tout réinitialiser
-    def initialiser(self,nombreJoueurs,draftDict={}):   
+    def initialiser(self,nombreJoueurs,draftDict={},ignorerRecoltes=False,debug=False):   
 
         self.log.info('initialiser {} joueurs'.format(nombreJoueurs))
         self.nombreJoueurs=nombreJoueurs
@@ -352,7 +501,14 @@ class Partie(object):
         self.actionSurTours=self.faireActionSurTours()
         self._genererPlateau(nombreJoueurs)    
         self.draft(draftDict)
-            
+        self._ignorerRecoltes=ignorerRecoltes
+        if debug:
+            for jid,j in self.joueurs.items():
+                j.ressources={'b':50,'a':50,'p':50,'r':50,'n':50,'f':50,'c':50,'l':50,'m':0,'s':0,'v':0,'h':0}
+            for cid,case in self.plateau['cases'].items():
+                if case.uid!='a40':
+                    case.visible=True
+        
         
     def _initJoueurs(self):
         self.log.debug('_initJoueurs')
@@ -362,6 +518,7 @@ class Partie(object):
             (n,c,duid)=example[j]
             self.joueurs[j]=Joueur(partie=self,id=j,nom=n,couleur=c,djangoUid=duid)
             self.joueurs[j].ressources['n']+=bonusNourriture[j]
+            self.infirmerie[j]=[]
 
         
     def _genererPlateau(self,nombre):
@@ -474,17 +631,17 @@ class Partie(object):
         ordreActions[1]=CarteAction(self,"a10",effet=fct.choixAmenagementMineurOuMajeur,possibilites=fct.possibilitesAmenagementMineurOuMajeur)
         ordreActions[2]=CarteAction(self,"a11",possibilites=fct.demanderPlanCloture,condition=fct.jePeuxCloturer,effet=fct.planCloture,visible=False)
         ordreActions[3]=CaseAppro(self,"a12",appro={'m':-1},cout={},visible=False)
-        ordreActions[4]=CarteAction(self,"a13",visible=False,possibilites=fct.demanderPlanSemailleEtOuCuisson,effet=fct.planSemailleEtOuCuisson,condition=fct.jePeuxFaireSemailleEtOuCuisson)
-        ordreActions[5]=CarteAction(self,"a14",visible=False,effet=fct.naissancePuisMineur,condition=fct.jePeuxNaitre)
-        ordreActions[6]=CarteAction(self,"a15",visible=False,effet=fct.renoPuisMineurOuMajeur,condition=fct.jePeuxRenover)
+        ordreActions[4]=CarteAction(self,"a13",visible=False,possibilites=fct.demanderPlanSemaille,effet=fct.planSemailleEtOuCuisson,condition=fct.jePeuxFaireSemailleEtOuCuisson)
+        ordreActions[5]=CarteAction(self,"a14",visible=False,possibilites=fct.possibilitesAmenagementMineur,effet=fct.naissancePuisMineur,condition=fct.jePeuxNaitre)
+        ordreActions[6]=CarteAction(self,"a15",visible=False,effet=fct.choixAmenagementMineurOuMajeur,condition=fct.jePeuxRenover,possibilites=fct.renovation)
         ordreActions[7]=CaseAppro(self,"a16",appro={'p':-1},cout={},visible=False)
         ordreActions[8]=CarteAction(self,"a17",cout={'l':-1},visible=False)
         ordreActions[9]=CaseAppro(self,"a18",appro={'s':-1},cout={},visible=False)
-        ordreActions[10]=CaseAppro(self,"a19",appro={'b':-1},cout={},visible=False)
+        ordreActions[10]=CaseAppro(self,"a19",appro={'v':-1},cout={},visible=False)
         ordreActions[11]=CaseAppro(self,"a20",appro={'p':-1},cout={},visible=False)
-        ordreActions[12]=CarteAction(self,"a21",effet=labourageSemaille,visible=False)
-        ordreActions[13]=CarteAction(self,"a22",effet=naissanceSansPieceLibre,visible=False)
-        ordreActions[14]=CarteAction(self,"a23",effet=renoPuisCloture,visible=False)
+        ordreActions[12]=CarteAction(self,"a21",possibilites=fct.demanderPlanSemaille,effet=fct.planLabourageSemaille,visible=False)
+        ordreActions[13]=CarteAction(self,"a22",condition=fct.moinsDeCinqPerso,effet=fct.naissanceSansPieceLibre,visible=False)
+        ordreActions[14]=CarteAction(self,"a23",possibilites=fct.renovation,condition=fct.jePeuxRenover,effet=fct.planCloture,visible=False)
         return ordreActions
                     
     def initOrdre(self):
@@ -495,7 +652,14 @@ class Partie(object):
         if draftDict=={}:
             pass
         else:
+            print('TOTOTOTOTO',draftDict.keys())
+            if 'debugMode' in  draftDict.keys():
+                debug=draftDict.pop('debugMode')
+                
+                gg
+            
             self.draftDict=draftDict
+            
             for jid,liste in draftDict.items():
                 joueur=self.joueurs[int(jid)]
                 for carteId in liste:
@@ -522,10 +686,19 @@ class Partie(object):
         self.plateau['cases'][self._offset+self.plateau['tour']].visible=True
         
         
-        for i in range(1,self._offset+self.plateau['tour']+1):
-            self.plateau['cases'][i].reappro()
-                     
-                     
+#         for i in range(1,self._offset+self.plateau['tour']+1):
+#             self.plateau['cases'][i].reappro()
+#                      
+        for i,v in self.plateau['cases'].items():
+            if v.visible:
+                v.reappro()
+        
+        #on passe tous les personnages en consomation nourriture à 2
+        for jid,j in self.joueurs.items():
+            for p in j.personnages:
+                p.consomationNourriture=2        
+        
+                                           
         print(self.printCasesVisibles())     
         self.quiJoue=self.premierJoueur       
         
@@ -544,9 +717,9 @@ class Partie(object):
         else:
             return False,False #on a fini        
 
-    def ajouterHook(self,sujet,possibilites,owner,type):
+    def ajouterHook(self,sujet,possibilites,owner,type,phrase="p0"):
         self.log.debug('ajouterHook')
-        self.hooks.append((Pointeur(sujet,possibilites,owner),type))
+        self.hooks.append((Pointeur(sujet,possibilites,owner,phrase=phrase),type))
         
     
 
@@ -637,6 +810,13 @@ class Partie(object):
                     p.retourMaison()
                     self.joueurs[id].courDeFerme.mettrePersonnage(p,p.localisationInit)
                     self.joueurs[id].personnages.append(p)
+                
+                #on regarde à l'infirmerie
+                while(len(self.infirmerie[id])>0):
+                    p=self.infirmerie[id].pop()
+                    p.retourMaison()
+                    self.joueurs[id].ressource['n']+=1
+                
                 #on réinit les hooks qui sont valables une fois par tour
                 
                 
@@ -755,8 +935,14 @@ class Partie(object):
             dico={
                 'uid':self.plateau["cases"][c].uid,
                 'type':"Action",
-                'class': "" if self.plateau["cases"][c].visible else "disabled",
                 }
+            if not self.plateau["cases"][c].visible:
+                dico['class']="disabled"
+            elif type(self.choixPossibles)==list and not self.plateau["cases"][c] in self.choixPossibles:
+                dico['class']="disabled2"
+            else:
+                dico['class']=""
+            
             if c>self.plateau["tour"]+self._offset:
                 dico['ressourcesFutures']=self.plateau["cases"][c].ressourcesFutures
 #             ressourcesList=[]
@@ -764,9 +950,8 @@ class Partie(object):
 #                 if self.plateau["cases"][c].cout[t]<0:
 #                     ressourcesList.append((util.short2Long[t],-self.plateau["cases"][c].cout[t]))    
             dico['res']=self.plateau["cases"][c].cout
-            dico['perso']=[]
-            for perso in self.plateau["cases"][c].occupants:
-                dico['perso'].append(perso.couleur)
+            dico['perso']=self.plateau["cases"][c].occupants
+
 
             
             cases.append(dico.copy())
@@ -804,8 +989,12 @@ class Partie(object):
         dico["premierJoueur"]=self.premierJoueur
         dico["quiAFini"]=self.quiAFini
         dico["messagesPrincipaux"]=self.messagesPrincipaux    
-        dico["pointeur"]=self.pointeur.save()  
         dico["listeCoupsJoues"]=self.listeCoupsJoues
+        
+        #on anticipe si à ce moment là on a -1 c'est pas normal il faut pointer sur le dernier hook
+                    
+        dico["pointeur"]=self.pointeur.save()  
+        
         return json.dumps(dico)
 
     
