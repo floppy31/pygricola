@@ -1669,6 +1669,72 @@ class TestMajeurs(unittest.TestCase):
         partieSimulee=simulerPartie(['a10','M0','b4','M14','3'],p)
         self.assertTrue(util.sontEgaux(joueur.ressources,{'c':5,'n':9})) 
         
+    def test_EcuriesLogeEtAbbatoirs(self):
+        p=Partie(logger)
+        p.initialiser(1,debug=True) 
+        joueur=p.joueurs[0]
+        ferme=joueur.courDeFerme
+        joueur.ressources['n']=2
+        joueur.ressources['b']=3
+        ferme.etat['C2'].type="etable"
+        ferme.etat['A2'].type="foret"
+        partieSimulee=simulerPartie(['b0','a10','M6','a15','M7','a10','M0'],p)
+        self.assertTrue(joueur.ressources['h']==1)  
+        self.assertTrue(joueur.ressources['n']==1)
+        self.assertTrue(ferme.enQuoiEstLaMaison()=='A')  
+        self.assertTrue(joueur.aiJeJoue("M6")==True)  
+        self.assertTrue(joueur.aiJeJoue("M7")==True) 
+        self.assertTrue(joueur.aiJeJoue("M0")==True) 
+        partieSimulee=simulerPartie(['b0','a15','M2'],p,faireInit=False)
+        self.assertTrue(joueur.ressources['n']==1) #gagné 1 avec l'écurie
+        self.assertTrue(joueur.aiJeJoue("M2")==True) 
+        self.assertTrue(p.plateau['tour']==3) 
+        partieSimulee=simulerPartie(['M2','uh','b5','A2','a2','a17'],p,faireInit=False)
+        self.assertTrue(joueur.ressources['n']==3)
+        self.assertTrue(joueur.ressources['h']==1)
+        self.assertTrue(joueur.ressources['b']==4)
+
+    def test_M19M21M23(self):
+        p=Partie(logger)
+        p.initialiser(1,debug=True)  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()
+        joueur.ressources['b']=4
+        joueur.ressources['p']=3
+        joueur.ressources['n']=1
+        joueur.ressources['f']=1
+        
+        partieSimulee=simulerPartie(['a10','M18','b4','M19','M19'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'a':1})) 
+        self.assertFalse('M19' in p.choixPossibles) 
+
+        p=Partie(logger)
+        p.initialiser(1,debug=True)  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()
+        joueur.ressources['a']=4
+        joueur.ressources['p']=3
+        joueur.ressources['n']=1
+        joueur.ressources['f']=1
+        
+        partieSimulee=simulerPartie(['a10','M20','b4','M21','M21'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'b':1})) 
+        self.assertFalse('M21' in p.choixPossibles)        
+
+        p=Partie(logger)
+        p.initialiser(1,debug=True)  
+        joueur=p.joueurs[0]
+        joueur.ressources=util.rVide()
+        joueur.ressources['r']=6
+        joueur.ressources['p']=3
+        joueur.ressources['n']=1
+        joueur.ressources['f']=1
+        
+        partieSimulee=simulerPartie(['a10','M22','b4','M23','M23','up','M23','ua','M23','ub'],p)
+        self.assertTrue(util.sontEgaux(joueur.ressources,{'p':1,'b':1,'a':1})) 
+        self.assertFalse('M23' in p.choixPossibles)        
+
+        
 class TestSavoirFaire(unittest.TestCase):
     def test_cout(self):
         p=Partie(logger)

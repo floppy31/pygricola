@@ -214,7 +214,7 @@ def possibilitesAnnexe(partie,carte):
     return possibilites                
 
 
-def coutArbrePourCitoyens(partie):
+def coutArbrePourCitoyens(partie,carte):
     joueur=partie.joueurQuiJoue()
     if joueur.aiJeJoue('M18') or joueur.aiJeJoue('m16'):
         return {}
@@ -284,7 +284,14 @@ def possibilitesSaisonier(partie,carte,Fake=False):
     possibilites=['c']
     if partie.plateau['tour']>5:
         possibilites.append('l')
-    partie.changerPointeurs(possibilites,carte,['s10',':','p0'],carte.owner,Fake=Fake)               
+    partie.changerPointeurs(possibilites,carte,phrase=['s10',':','p0'],djangoJoueur=carte.owner.djangoUid,Fake=Fake)               
+
+
+def possibilitesEcurie(partie,carte,Fake=False):
+    possibilites=['0']
+    if carte.owner.ressources['h']>1:
+        possibilites=['2chevauxOk']
+    partie.changerPointeurs(possibilites,carte,djangoJoueur=carte.owner.djangoUid,Fake=Fake)   
     
 
 
@@ -324,6 +331,36 @@ def volerRessource(partie,choix,possibilites,carte):
     partie.log.info("{} vole des ressources à {} avec {}".format(voleur,cible,carte.uid))
         
     
+def coutModif(partie,carte):
+
+#musée de la lande
+# Puits (-1 pierre), 
+# Menuiserie (-1 bois), 
+# Poterie (-1 argile), 
+# Vannerie (-1 roseau), 
+# Four en brique (-1 argile), 
+# Four en pierre (-1 pierre), 
+# Loge du forestier (-1 argile)
+    joueur=partie.joueurQuiJoue()
+    M5=joueur.aiJeJoue('M5')
+    
+    if carte.uid=='M12':
+        return {'p':2,'b':1} if M5 else {'p':3,'b':1}
+    elif carte.uid=='M14':
+        return {'a':2,'p':1} if M5 else {'a':3,'p':1}
+    elif carte.uid=='M16':
+        return {'p':2,'a':1} if M5 else {'p':3,'a':1}
+    elif carte.uid=='M18':
+        return {'p':2,'b':1} if M5 else {'p':2,'b':2}
+    elif carte.uid=='M20':
+        return {'p':2,'a':1} if M5 else {'p':2,'a':2}
+    elif carte.uid=='M22':
+        return {'p':2,'r':1} if M5 else {'p':2,'r':2}
+    elif carte.uid=='M6':
+        return {'a':1,'b':1} if M5 else {'a':2,'b':1}
+    
+    
+    
 def sixiemeSens(selfCarte):
     NOTIMPL
 
@@ -334,5 +371,7 @@ def final_actrice(selfCarte):
 def final_administration(selfCarte):
     NOTIMPL
 
+def finalEglise():
+    NOTIMPL
 
 

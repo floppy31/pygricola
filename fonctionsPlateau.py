@@ -5,11 +5,14 @@ import pygricola.util as util
 ####par ex ni on ne peux ni jouer de mineur ni de majeur, on ne peux pas faire la case
 def possibilitesNonVide(partie,carte):
     if not type(carte._possibilites)==dict:
-        carte._possibilites(partie,carte,Fake=True)
-        if len(partie.choixPossibles)==0:
-            partie.log.debug("{} : possibilites vides".format(carte.uid))
-            partie.messagesDetail.append("{} : possibilites vides".format(carte.uid) )
-        return len(partie.choixPossibles)>0
+        if type(carte._possibilites)==list:
+            return len(carte._possibilites)>0
+        else:
+            carte._possibilites(partie,carte,Fake=True)
+            if len(partie.choixPossibles)==0:
+                partie.log.debug("{} : possibilites vides".format(carte.uid))
+                partie.messagesDetail.append("{} : possibilites vides".format(carte.uid) )
+            return len(partie.choixPossibles)>0
     return True
     
     
@@ -121,7 +124,7 @@ def moinsDeCinqPerso(partie,carte):
     return nbPions<5
     
 def jePeuxJouerSavoirFaireOuNaissance(partie,carte):
-    cout=coutSavoirFaire2(partie)
+    cout=coutSavoirFaire2(partie,carte)
     joueur=partie.joueurQuiJoue()
     savoirFaireOk=joueur.jePeuxJouer(cout)
     tourOk=partie.plateau["tour"]>4
@@ -151,7 +154,7 @@ def possibilitesSavoirFaireGratuit(partie,carte,Fake=False):
 def savoiFaireOuNaissance(partie,choix,possibilites,carte):
     joueur=partie.joueurQuiJoue()
     if possibilites[choix]=="p2":
-        cout=coutSavoirFaire2(partie)
+        cout=coutSavoirFaire2(partie,carte)
         coutCarte=carte.vider()
         coutAAppliquer=util.ajouter(cout,coutCarte)
         joueur.mettreAJourLesRessources(coutAAppliquer)
@@ -211,14 +214,14 @@ def naissancePuisMineur(partie,choix,possibilites,carte):
 ##################################################################################
 #---------------------------------------SAVOIR FAIRE------------------------------
 ##################################################################################
-def coutSavoirFaire1(partie):
+def coutSavoirFaire1(partie,carte):
     joueur=partie.joueurQuiJoue()
     if joueur.combienJaiJoueDe('s')==0:
         return {}
     else:
         return {'n':1}
 
-def coutSavoirFaire2(partie):
+def coutSavoirFaire2(partie,carte):
     if partie.joueurs[partie.quiJoue].combienJaiJoueDe('s')<2:
         return {'n':1}
     else:

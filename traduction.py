@@ -335,10 +335,19 @@ trad["um"]={'fr':"Cuire 1 monton",
             'en':"TODO"}  
 trad["us"]={'fr':"Cuire 1 sanglier",
             'en':"TODO"}  
-trad["uv"]={'fr':"Cuire 1 bouef",
+trad["uv"]={'fr':"Cuire 1 boeuf",
             'en':"TODO"}  
 trad["uh"]={'fr':"Cuire 1 cheval",
             'en':"TODO"}  
+
+trad["ub"]={'fr':"échanger 1 roseau contre 1 bois",
+            'en':"TODO"}        
+trad["ua"]={'fr':"échanger 1 roseau contre 1 argile",
+            'en':"TODO"}  
+trad["up"]={'fr':"échanger 1 roseau contre 1 pierre",
+            'en':"TODO"}  
+
+
 trad["lm"]={'fr':"libérer 1 mouton",
             'en':"TODO"}  
 trad["ls"]={'fr':"libérer 1 sanglier",

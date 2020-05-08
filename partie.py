@@ -344,7 +344,29 @@ class Partie(object):
                         
                         self.log.debug("chauffage {}".format(coutChauffage))
                         j.mettreAJourLesRessources(coutChauffage,actionDunePersonne=False)
-                ###########################################################                           
+                ###########################################################     
+                #chauffer l'éflise
+                if j.aiJeJoue("M13"):
+                    if j._preferencesRecolte["M13"]=="a":
+                        if j.ressources['f']>0:
+                            j.cartesDevantSoi['M13'].option['chauffage']+=1
+                            j.ressources['f']-=1
+                        elif j.ressources['b']>0:
+                            j.cartesDevantSoi['M13'].option['chauffage']+=1
+                            j.ressources['b']-=1     
+                        else:
+                            pass
+                    elif j._preferencesRecolte["M13"]=="i":    
+                        if j.ressources['f']>0:
+                            j.cartesDevantSoi['M13'].option['chauffage']+=1
+                            j.ressources['f']-=1
+                        else:
+                            pass
+                    elif j._preferencesRecolte["M13"]=="n":
+                        pass                
+                
+                
+                ###########################################################                       
                 #il faut se nourrir  
                 nPn=0
                 for p in j.personnages:
@@ -457,6 +479,7 @@ class Partie(object):
                                             if len(self.pointeur.possibilites)>1:
                                                 self.log.debug("parcourirLesHooks demande un choix utilisateur {} {}".format(c.uid,c.hookStatus))
                                                 hooks.append((Pointeur(c,self.pointeur.possibilites,c.owner.djangoUid),typeHook))
+                                            
                                             else:
                                             #sinon
                                                 self.log.debug("parcourirLesHooks fait une action automatique car un seul choix")
@@ -603,7 +626,10 @@ class Partie(object):
                     rienFait=False
         if rienFait:
             self.log.critical("jouerUid n'a rien fait")
-            self.log.critical(self.choixPossibles)
+            liste=[]
+            for c in self.choixPossibles:
+                liste.append(util.uidOrSelf(c))
+            self.log.critical(liste)
             planter
 #         dbg=""
 #         for c in   self.choixPossibles:
@@ -930,7 +956,13 @@ class Partie(object):
                     'cout':self.plateau['majeurs'][c].cout,
                     'devoile':self.plateau['majeurs'][c].devoile
                     }
-                cases.append(dico.copy())
+                
+                if not self.plateau['majeurs'][c] in self.choixPossibles:
+                    dico['class']="disabled2"
+                else:
+                    dico['class']="Action"
+                    
+                cases.append(dico.copy())   
         for c in self.plateau["cases"].keys():
             dico={
                 'uid':self.plateau["cases"][c].uid,
@@ -957,8 +989,9 @@ class Partie(object):
             cases.append(dico.copy())
             
         for CAS in self.plateau["actionsSpeciales"]:
+            l=CAS.listAs()
             dico={
-                'uid':CAS.listAs(),
+                'list':l,
                 'type':"ActionSpeciale",
                 
                 }
@@ -970,6 +1003,16 @@ class Partie(object):
                 dico['etat']={'texte':'p13','color':"#999"}
             else:
                 imposss
+            disabled=True
+            for it in CAS.listeActionSpeciale:
+                if it in  self.choixPossibles:
+                    disabled=False
+                    break
+            if disabled  :
+                dico['class']="disabled2"
+            
+            
+                
             cases.append(dico.copy())            
         return cases
     

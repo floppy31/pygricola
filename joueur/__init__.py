@@ -43,7 +43,8 @@ class Joueur(object):
             'animaux':['h','v','s','m'],
             'M18':'a',
             'M20':'a',
-            'M22':'a'}
+            'M22':'a',
+            'M13':'a'}
     #génere la liste du nombre d'animaux et sa correspondance 
     # tri par odre décroissant
     # pour savoir si on a assez de place

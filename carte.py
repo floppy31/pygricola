@@ -99,7 +99,7 @@ class Carte:
         if type(self._cout)==dict or type(self._cout)==list :
             return self._cout        
         else:
-            return self._cout(self.partie)
+            return self._cout(self.partie,self)
     
     @property   
     def condition(self):
@@ -165,7 +165,13 @@ class Carte:
             self.partie.pointeur.sujet.effet(self.partie.choixPossibles.index(self),self.partie.choixPossibles)
         else:
             if not type(self._possibilites)==dict:
-                self._possibilites(self.partie,self,Fake=False)
+                if  type(self._possibilites)==list:
+                    if len(self._possibilites)==1:
+                        self.effet(0, self._possibilites)
+                    else:
+                        self.partie.changerPointeurs(self._possibilites ,self,phrase='p0',Fake=False) 
+                else:
+                    self._possibilites(self.partie,self,Fake=False)
             
             #on regarde si la carte se joue direct avec son effet mais activable
             elif self.uid in ['s21']:
@@ -380,9 +386,13 @@ class SavoirFaire(Carte):
  
 class Amenagement(Carte):
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet=util.dummy,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet=util.dummy,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy,hook=(),final=util.dummy):
         self.pointsVictoire=pointsVictoire
         self.pointsSpeciaux=pointsSpeciaux
+        self.hook=hook
+        self.final=final
+        self.owner=None
+        self.hookStatus=0 #-1 pas jouable, 0 jouable, 
         super().__init__(partie,uid,possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion)
         
     @property
@@ -394,19 +404,17 @@ class AmenagementMineur(Amenagement):
 
     def __init__(self,partie,uid,possibilites={},cout={},condition={},option={},effet=util.dummy,passableAGauche=False,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy,hook=(),final=util.dummy):
         self.passableAGauche=passableAGauche
-        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
-        self.hook=hook
-        self.final=final
-        self.owner=None
-        self.hookStatus=0 #-1 pas jouable, 0 jouable, 
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux,hook=hook,final=final)
+        
+        
 
         
 class AmenagementMajeur(Amenagement):
 
-    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet=util.dummy,option={},visible=False,devoile=None,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy):
+    def __init__(self,partie,uid,possibilites={},cout={},condition={},effet=util.dummy,option={},visible=False,devoile=None,sansPion=True,pointsVictoire=0,pointsSpeciaux=util.dummy,hook=(),final=util.dummy):
         self.visible=visible
         self.devoile=devoile
-        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux)
+        super().__init__(partie,uid,possibilites=possibilites,cout=cout,condition=condition,effet=effet,option=option,sansPion=sansPion,pointsVictoire=pointsVictoire,pointsSpeciaux=pointsSpeciaux,hook=hook,final=final)
 
 
 
@@ -584,16 +592,19 @@ majeursDict["M5"]={
     'pointsVictoire':3,
     }
 majeursDict["M6"]={
-    'cout':{'a':2,'b':1},
+    'cout':fctCarte.coutModif,
     'visible':True,
-    'devoile': "M7",     
     'pointsVictoire':1,
+    'devoile': "M7",  
     }
 majeursDict["M7"]={
     'cout':{'a':1,'b':2,'r':1},
     'visible':False,
-    'devoile': "Ecuries",     
     'pointsVictoire':3,
+    'hook':('debutTour','s','t'),
+    'option':{'choixCout':{'0':{},'2chevauxOk':{'n':-1}}}, 
+    'effet':fctCarte.choixCout,
+    'possibilites':fctCarte.possibilitesEcurie,
     }
 majeursDict["M8"]={
     'cout':{'a':4},
@@ -631,7 +642,7 @@ majeursDict["M11"]={
     }
 
 majeursDict["M12"]={
-    'cout':{'p':3,'b':1},
+    'cout':fctCarte.coutModif,
     'option':{'instant':'ressourcesFutures',
               'pile':[{'n':-1},{'n':-1},{'n':-1},{'n':-1},{'n':-1}]}, 
     'effet':fctCarte.depiler,
@@ -644,10 +655,11 @@ majeursDict["M13"]={
     'option':{'chauffage':0},
     'visible':False,
     'pointsVictoire':4, 
+    'final':fctCarte.finalEglise,
     }
 
 majeursDict["M14"]={
-    'cout':{'a':3,'p':1},
+    'cout':fctCarte.coutModif,
     'option':{'cuissonPain':{'c':5},
               'instant':'hook',
               'hook_possibilites':fctCarte.possibilitesCuissonPain,
@@ -659,12 +671,12 @@ majeursDict["M14"]={
     'effet':fctCarte.choixCuissonPain,
     }
 majeursDict["M15"]={
-    'cout':{'a':1,'p':1,'c':-2},
+    'cout':{'a':1,'p':1},
     'visible':False,
     'pointsVictoire':1, 
     }
 majeursDict["M16"]={
-    'cout':{'p':3,'a':1},
+    'cout':fctCarte.coutModif,
     'option':{'cuissonPain':{'c':4},
               'instant':'hook',
               'hook_possibilites':fctCarte.possibilitesCuissonPain,
@@ -681,42 +693,53 @@ majeursDict["M17"]={
     'pointsVictoire':1, 
     }
 majeursDict["M18"]={
-    'cout':{'p':2,'b':2},
+    'cout':fctCarte.coutModif,
     'visible':True,
     'pointsVictoire':2, 
     'devoile': "M19",
     }
 majeursDict["M19"]={
     'cout':{'p':1,'b':1},
+    'condition':{'b':1},
     'visible':False,
     'pointsVictoire':2, 
-    'option':{'echange':{'b':1,'a':-1}},
+    'option':{'choixCout':{'echange':{'b':1,'a':-1}}},
+    'effet':fctCarte.choixCout,
+    'possibilites':['echange'],    
     }
 
 majeursDict["M20"]={
-    'cout':{'p':2,'a':2},
+    'cout':fctCarte.coutModif,
     'visible':True,
     'pointsVictoire':2, 
     'devoile': "M21",
     }
 majeursDict["M21"]={
     'cout':{'p':1,'a':1},
+    'condition':{'a':1},
     'visible':False,
     'pointsVictoire':2, 
-    'option':{'echange':{'a':1,'b':-1}},
+    'option':{'choixCout':{'echange':{'a':1,'b':-1}}},
+    'effet':fctCarte.choixCout,
+    'possibilites':['echange'],    
     }
 
 majeursDict["M22"]={
-    'cout':{'p':2,'r':2},
+    'cout':fctCarte.coutModif,
     'visible':True,
     'pointsVictoire':2, 
     'devoile': "M23",
     }
 majeursDict["M23"]={
     'cout':{'p':1,'r':1},
+    'condition':{'r':1},
     'visible':False,
     'pointsVictoire':2, 
-    'option':{'echange':{}},
+    'option':{'choixCout':{'ub':{'r':1,'b':-1},
+                           'ua':{'r':1,'a':-1},
+                           'up':{'r':1,'p':-1}}},
+    'effet':fctCarte.choixCout,
+    'possibilites':['ub','ua','up'],   
     }
 
 
